@@ -30,9 +30,20 @@ Este documento apresenta a análise técnica que fundamenta a escolha do Python 
 
 ### Visão de alto nível da solução
 
+### Diagrama do serviço multiagent
 ![image.png](./docs/Multiagent_Orchestrator-2026-04-05-131317.png)
 
-![diagrama_implificado.png](./docs//diagrama_simplificado-2026-04-05-130856.png)
+
+### Diagrama Simplificado da solução
+![diagrama_simplificado.png](./docs//diagrama_simplificado-2026-04-05-130856.png)
+
+
+### Diagrama completo da aplicação
+![diagrama_completo_solucao.png](./docs/fluxo_completo-2026-04-05-130458.png)
+
+
+## Diagrama de sequência
+![diagrama_sequencia.png](./docs/diagrama_sequencia-2026-04-05-130602.png)
 
 ---
 
