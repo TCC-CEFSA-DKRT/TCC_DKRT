@@ -19,7 +19,8 @@ Documento de análise técnica que fundamenta a escolha do **Python** como lingu
 9. [Matriz de decisão final](#9-matriz-de-decisão-final)
 10. [Referências](#10-referências)
 11. [Anexo A — Exemplo de código](#anexo-a)
-12. [Referencias de estudo](#Referencia-de-estudo)
+12. [Referências de estudo](#referencias-de-estudo)
+
 
 ---
 
@@ -467,7 +468,8 @@ if __name__ == "__main__":
 
 *Documento preparado em abril de 2026. Versão 1.0 — para aprovação técnica.*
 
-## Referências de estudo
+
+<h2 id="referencias-de-estudo">Referências de estudo</h2>
 
 MCP (model context protocol) => [link do site](https://modelcontextprotocol.io/docs/getting-started/intro)
 
