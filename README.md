@@ -461,9 +461,17 @@ if __name__ == "__main__":
 
 <h2 id="referencias-de-estudo">Referências de estudo</h2>
 
+hugging face (GitHub da Inteligência Artificial) => [link do site](https://huggingface.co)
+
 MCP (model context protocol) => [link do site](https://modelcontextprotocol.io/docs/getting-started/intro)
 
 smithery => [link do site](https://smithery.ai/)
 
 curso (MCP & FastMCP: Do Zero a 3 Projetos. Integração com Cursor) => [link so curso](https://fsalvadorarena.udemy.com/course/mcp-rapido-e-pratico-tudo-que-voce-precisa-saber-em-1-dia/learn/lecture/49391601#overview)
+
+beecrowd (plataforma para treinar programação) => [link da plataforma](https://beecrowd.com/pt/)
+
+mermaid edit (plataforma de criação de diagrama por comando) => [link da plataforma](https://mermaid.ai/app/dashboard)
+
+drawio (plataforma de criação de diagram) => [link do site](https://www.drawio.com)
 
