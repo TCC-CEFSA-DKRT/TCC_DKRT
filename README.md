@@ -30,30 +30,9 @@ Este documento apresenta a análise técnica que fundamenta a escolha do Python 
 
 ### Visão de alto nível da solução
 
-```mermaid
-flowchart TB
-    subgraph User["Usuário"]
-        CLI[CLI Typer]
-    end
-    subgraph Core["Núcleo multiagente"]
-        ORCH[Orquestrador asyncio]
-        A1[Agente consulta]
-        A2[Agente assinaturas]
-        A3[Agente análise]
-    end
-    subgraph IA["IA / SLM"]
-        SLM[Modelo pequeno NLP]
-        MCP[MCP / FastMCP]
-    end
-    subgraph FIWARE["FIWARE"]
-        ORION[Orion Context Broker NGSI-v2]
-    end
-    CLI --> ORCH
-    ORCH --> A1 & A2 & A3
-    A1 & A2 & A3 --> ORION
-    SLM --> ORCH
-    MCP --> ORCH
-```
+![image.png](./docs/Multiagent_Orchestrator-2026-04-05-131317.png)
+
+![diagrama_implificado.png](./docs//diagrama_simplificado-2026-04-05-130856.png)
 
 ---
 
