@@ -478,15 +478,15 @@ drawio (plataforma de criação de diagram) => [link do site](https://www.drawio
 ## Cronograma
 
 ### Orgonograma prazo:
-11/04/2026 - 24/04/2026 - consolidação do conhecimento necessário.
-25/04/2026 - Call de realinhamento.
-25/04/2026 -  15/04/2026 - MVP - piloto do agent (V1):
-	CLI Typer - Diego
-	Orquestrador - Diego
-	Consulta - Tainara
-	Atualização - Tainara
-	Provisionamento - Kaue
-	Assinatura - Kaue
-	Roteamento - Robson
-	Analise - Robson
-16/06/2026 - Call de realinhamento próximos passos.
++ 11/04/2026 - 24/04/2026 - consolidação do conhecimento necessário.
++ 25/04/2026 - Call de realinhamento.
++ 25/04/2026 -  15/04/2026 - MVP - piloto do agent (V1):
+	+ CLI Typer - Diego
+	+ Orquestrador - Diego
+	+ Consulta - Tainara
+	+ Atualização - Tainara
+	+ Provisionamento - Kaue
+	+ Assinatura - Kaue
+	+ Roteamento - Robson
+	+ Analise - Robson
++ 16/06/2026 - Call de realinhamento próximos passos.
