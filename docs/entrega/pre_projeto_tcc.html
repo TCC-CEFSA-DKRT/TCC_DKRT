@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Pre-projeto TCC</title>
+  <style>
+body{font-family:Arial,Helvetica,sans-serif;line-height:1.45;color:#1f2937;margin:40px auto;max-width:980px;padding:0 24px}
+h1,h2,h3{color:#111827;page-break-after:avoid}
+h1{font-size:30px;text-align:center}
+h2{border-bottom:1px solid #d1d5db;padding-bottom:6px;margin-top:34px}
+table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13px}
+th,td{border:1px solid #d1d5db;padding:7px;vertical-align:top}
+th{background:#f3f4f6}
+pre{background:#111827;color:#f9fafb;padding:14px;overflow:auto;border-radius:6px}
+code{font-family:Consolas,monospace}
+figure{margin:22px 0;text-align:center;page-break-inside:avoid}
+img{max-width:100%;border:1px solid #d1d5db;border-radius:4px}
+figcaption{font-size:12px;color:#4b5563;margin-top:6px}
+.bullet{margin:4px 0 4px 20px}
+@media print{body{margin:18mm;max-width:none;padding:0}pre,figure,table{break-inside:avoid}}
+</style>
+</head>
+<body>
+<h1>Pre-projeto de TCC</h1>
+
+<h2>Sistema multiagentes para orquestracao do Orion Context Broker</h2>
+
+<p>Grupo: DKRT  </p>
+<p>Curso: Engenharia de Software / TCC  </p>
+<p>Professora: Leide  </p>
+<p>Data: maio de 2026  </p>
+<p>Repositorio: &lt;https://github.com/TCC-CEFSA-DKRT/TCC_DKRT&gt;</p>
+
+<p>---</p>
+
+<h2>1. Descricao do projeto</h2>
+
+<p>O projeto consiste no desenvolvimento de um sistema multiagentes para auxiliar a consulta, manipulacao e orquestracao de dados no FIWARE Orion Context Broker. A proposta e criar uma camada inteligente entre o usuario e o Context Broker, permitindo que comandos em linguagem natural ou comandos estruturados sejam interpretados por agentes especializados.</p>
+
+<p>A solucao prevista combina uma interface inicial via CLI, uma camada de orquestracao multiagentes e integracao com o Orion Context Broker por meio do protocolo NGSI-v2. Em etapas posteriores, o projeto podera incorporar SLMs, APIs e recursos de MCP para ampliar a capacidade de interpretacao, automacao e integracao com ferramentas externas.</p>
+
+<p>O objetivo principal e simplificar o uso do Orion Context Broker para usuarios que precisam consultar entidades, atributos e contexto de aplicacoes inteligentes, reduzindo a necessidade de conhecer todos os detalhes tecnicos da API NGSI-v2.</p>
+
+<h2>2. Problema</h2>
+
+<p>O Orion Context Broker e uma tecnologia robusta para gerenciamento de contexto, mas seu uso direto exige conhecimento tecnico sobre entidades, tipos, atributos, endpoints e chamadas HTTP. Esse fator aumenta a curva de aprendizado e dificulta a utilizacao por usuarios iniciantes, equipes academicas ou equipes de projeto que precisam validar rapidamente dados de contexto.</p>
+
+<p>Assim, o problema central do projeto e: como facilitar a interacao com o Orion Context Broker por meio de uma solucao organizada, extensivel e capaz de interpretar solicitacoes do usuario, distribuir tarefas entre agentes e retornar respostas compreensiveis?</p>
+
+<h2>3. Publico-alvo</h2>
+
+<p>O publico-alvo inicial e composto por estudantes, pesquisadores, desenvolvedores e equipes tecnicas que utilizam FIWARE em projetos academicos, provas de conceito ou solucoes de cidades inteligentes, IoT e sistemas contextuais.</p>
+
+<p>Tambem sao considerados usuarios potenciais os profissionais que precisam consultar informacoes no Context Broker, mas que nao dominam completamente os detalhes de integracao com NGSI-v2.</p>
+
+<h2>4. Objetivos</h2>
+
+<p>O objetivo geral e desenvolver um sistema multiagentes para orquestrar consultas e operacoes relacionadas ao Orion Context Broker.</p>
+
+<p>Objetivos especificos:</p>
+
+<p class="bullet">&bull; Criar uma estrutura inicial de projeto em Python.</p>
+<p class="bullet">&bull; Implementar uma primeira funcionalidade de orquestracao multiagentes.</p>
+<p class="bullet">&bull; Definir agentes especializados para interpretacao de intencao e planejamento de consulta.</p>
+<p class="bullet">&bull; Documentar requisitos funcionais e nao funcionais.</p>
+<p class="bullet">&bull; Elaborar backlog inicial e cronograma de desenvolvimento.</p>
+<p class="bullet">&bull; Justificar as tecnologias escolhidas.</p>
+<p class="bullet">&bull; Apresentar prototipos simples do fluxo de uso.</p>
+<p class="bullet">&bull; Manter o desenvolvimento versionado em repositorio Git.</p>
+
+<h2>5. Requisitos funcionais</h2>
+
+<p class="bullet">&bull; RF-01: O sistema deve receber uma solicitacao do usuario pela interface CLI.</p>
+<p class="bullet">&bull; RF-02: O sistema deve encaminhar a solicitacao para um orquestrador multiagentes.</p>
+<p class="bullet">&bull; RF-03: O sistema deve possuir um agente para identificar intencoes de consulta relacionadas ao Context Broker.</p>
+<p class="bullet">&bull; RF-04: O sistema deve possuir um agente para gerar um plano inicial de consulta NGSI-v2.</p>
+<p class="bullet">&bull; RF-05: O sistema deve retornar uma resposta estruturada ao usuario.</p>
+<p class="bullet">&bull; RF-06: O sistema deve permitir evolucao futura para integracao direta com o Orion Context Broker.</p>
+<p class="bullet">&bull; RF-07: O sistema deve permitir inclusao futura de novos agentes especializados.</p>
+<p class="bullet">&bull; RF-08: O sistema deve manter documentacao tecnica do funcionamento e das decisoes de arquitetura.</p>
+
+<h2>6. Requisitos nao funcionais</h2>
+
+<p class="bullet">&bull; RNF-01: O sistema deve ser desenvolvido em Python 3.11 ou superior.</p>
+<p class="bullet">&bull; RNF-02: O codigo deve ser modular, favorecendo manutencao e expansao dos agentes.</p>
+<p class="bullet">&bull; RNF-03: A solucao deve utilizar versionamento Git.</p>
+<p class="bullet">&bull; RNF-04: A interface inicial deve ser simples de executar em ambiente local.</p>
+<p class="bullet">&bull; RNF-05: A arquitetura deve permitir evolucao para chamadas assincronas e integracao com APIs.</p>
+<p class="bullet">&bull; RNF-06: O projeto deve priorizar legibilidade e organizacao do codigo.</p>
+<p class="bullet">&bull; RNF-07: A documentacao deve registrar as principais decisoes tecnicas.</p>
+<p class="bullet">&bull; RNF-08: O sistema deve considerar boas praticas de Engenharia de Software, como separacao de responsabilidades, backlog, cronograma e testes.</p>
+
+<h2>7. Backlog inicial do projeto</h2>
+
+<table>
+<tr><th>ID</th><th>Item</th><th>Tipo</th><th>Prioridade</th><th>Status</th></tr>
+<tr><td>B01</td><td>Criar repositorio Git e estrutura inicial de documentacao</td><td>Documentacao</td><td>Alta</td><td>Concluido</td></tr>
+<tr><td>B02</td><td>Elaborar justificativa da linguagem Python</td><td>Documentacao</td><td>Alta</td><td>Concluido</td></tr>
+<tr><td>B03</td><td>Criar diagramas de arquitetura e fluxo</td><td>Documentacao</td><td>Alta</td><td>Concluido</td></tr>
+<tr><td>B04</td><td>Definir requisitos funcionais e nao funcionais</td><td>Documentacao</td><td>Alta</td><td>Concluido</td></tr>
+<tr><td>B05</td><td>Criar estrutura inicial do projeto Python</td><td>Desenvolvimento</td><td>Alta</td><td>Concluido</td></tr>
+<tr><td>B06</td><td>Implementar orquestrador multiagentes inicial</td><td>Desenvolvimento</td><td>Alta</td><td>Concluido</td></tr>
+<tr><td>B07</td><td>Implementar agente de classificacao de intencao</td><td>Desenvolvimento</td><td>Alta</td><td>Concluido</td></tr>
+<tr><td>B08</td><td>Implementar agente de planejamento de consulta</td><td>Desenvolvimento</td><td>Alta</td><td>Concluido</td></tr>
+<tr><td>B09</td><td>Criar CLI simples para entrada do usuario</td><td>Desenvolvimento</td><td>Alta</td><td>Concluido</td></tr>
+<tr><td>B10</td><td>Adicionar teste unitario inicial</td><td>Qualidade</td><td>Media</td><td>Concluido</td></tr>
+<tr><td>B11</td><td>Integrar com Orion Context Broker real</td><td>Desenvolvimento</td><td>Alta</td><td>Pendente</td></tr>
+<tr><td>B12</td><td>Implementar configuracao de endpoint do broker</td><td>Desenvolvimento</td><td>Alta</td><td>Pendente</td></tr>
+<tr><td>B13</td><td>Evoluir CLI com Typer e exibicao formatada</td><td>Desenvolvimento</td><td>Media</td><td>Pendente</td></tr>
+<tr><td>B14</td><td>Criar API simples com FastAPI</td><td>Desenvolvimento</td><td>Media</td><td>Pendente</td></tr>
+<tr><td>B15</td><td>Avaliar integracao com SLM para interpretacao de linguagem natural</td><td>Pesquisa</td><td>Media</td><td>Pendente</td></tr>
+<tr><td>B16</td><td>Preparar apresentacao e versao final da documentacao</td><td>Documentacao</td><td>Alta</td><td>Pendente</td></tr>
+</table>
+
+<h2>8. Cronograma simplificado</h2>
+
+<table>
+<tr><th>Periodo</th><th>Atividade</th><th>Entrega esperada</th></tr>
+<tr><td>Semana 1</td><td>Definicao do tema, problema e publico-alvo</td><td>Escopo inicial definido</td></tr>
+<tr><td>Semana 2</td><td>Levantamento das tecnologias e estudo do FIWARE</td><td>Justificativa tecnica</td></tr>
+<tr><td>Semana 3</td><td>Criacao de diagramas e fluxo da solucao</td><td>Diagramas em `docs/`</td></tr>
+<tr><td>Semana 4</td><td>Elaboracao dos requisitos e backlog</td><td>Documento de pre-projeto</td></tr>
+<tr><td>Semana 5</td><td>Criacao da estrutura inicial do codigo</td><td>Pacote Python inicial</td></tr>
+<tr><td>Semana 6</td><td>Implementacao do orquestrador e agentes iniciais</td><td>Funcionalidade basica via CLI</td></tr>
+<tr><td>Semana 7</td><td>Integracao inicial com Orion Context Broker</td><td>Consulta real a entidades</td></tr>
+<tr><td>Semana 8</td><td>Ajustes de arquitetura e testes</td><td>Testes e melhoria do codigo</td></tr>
+<tr><td>Semana 9</td><td>Prototipo evoluido e refinamento da CLI/API</td><td>Fluxo demonstravel</td></tr>
+<tr><td>Semana 10</td><td>Consolidacao da documentacao e apresentacao</td><td>Entrega final do semestre</td></tr>
+</table>
+
+<h2>9. Prototipos e fluxo basico</h2>
+
+<h3>9.1 Fluxo geral da solucao</h3>
+
+<p>O fluxo basico previsto e:</p>
+
+<p class="bullet">1. Usuario informa uma solicitacao pela CLI.</p>
+<p class="bullet">2. O orquestrador recebe a solicitacao.</p>
+<p class="bullet">3. O agente de intencao classifica o pedido.</p>
+<p class="bullet">4. O agente de planejamento define os passos para consulta NGSI-v2.</p>
+<p class="bullet">5. Futuramente, o agente de integracao acionara o Orion Context Broker.</p>
+<p class="bullet">6. O sistema retorna uma resposta estruturada ao usuario.</p>
+
+<h3>9.2 Protótipo textual da CLI</h3>
+
+<p>Tela 1 - Entrada da solicitacao:</p>
+
+<pre><code>$ context-broker-agent "consultar sensores no Context Broker"</code></pre>
+
+<p>Tela 2 - Retorno inicial dos agentes:</p>
+
+<pre><code>{
+  "request": "consultar sensores no Context Broker",
+  "status": "ok",
+  "results": [
+    {
+      "agent": "QueryIntentAgent",
+      "status": "ok",
+      "message": "Solicitacao classificada como consulta NGSI-v2."
+    },
+    {
+      "agent": "BrokerPlanningAgent",
+      "status": "ok",
+      "message": "Plano inicial: validar entrada, montar consulta NGSI-v2, acionar Orion Context Broker e formatar resposta ao usuario."
+    }
+  ]
+}</code></pre>
+
+<h3>9.3 Diagramas existentes</h3>
+
+<p>Os diagramas abaixo fazem parte da documentacao do projeto e representam a arquitetura e o fluxo pretendidos:</p>
+
+<figure><img src="../Multiagent_Orchestrator-2026-04-05-131317.png" alt="Diagrama do servico multiagente"><figcaption>Diagrama do servico multiagente</figcaption></figure>
+
+<figure><img src="../diagrama_simplificado-2026-04-05-130856.png" alt="Diagrama simplificado da solucao"><figcaption>Diagrama simplificado da solucao</figcaption></figure>
+
+<figure><img src="../fluxo_completo-2026-04-05-130458.png" alt="Fluxo completo da solucao"><figcaption>Fluxo completo da solucao</figcaption></figure>
+
+<figure><img src="../diagrama_sequencia-2026-04-05-130602.png" alt="Diagrama de sequencia"><figcaption>Diagrama de sequencia</figcaption></figure>
+
+<h2>10. Tecnologias escolhidas</h2>
+
+<h3>Linguagem de programacao: Python</h3>
+
+<p>Python foi escolhido por oferecer alta produtividade, boa legibilidade, ampla comunidade e forte ecossistema para IA, automacao, APIs e integracoes. A documentacao existente no `README.md` apresenta uma analise comparativa entre Python, Node.js e Go, indicando Python como melhor opcao para o contexto do projeto por causa da combinacao entre FIWARE, SLMs, CLI e desenvolvimento rapido.</p>
+
+<h3>Interface CLI</h3>
+
+<p>A primeira interface do sistema sera uma CLI. Nesta etapa inicial foi utilizada a biblioteca padrao `argparse`, pois ela permite demonstrar rapidamente o fluxo basico sem dependencias externas. Em etapas futuras, a CLI podera evoluir para Typer, que oferece melhor experiencia de uso, tipagem, ajuda automatica e integracao com Rich.</p>
+
+<h3>Backend e API</h3>
+
+<p>Para evolucao do projeto, a tecnologia prevista para API e FastAPI, por ser uma opcao moderna em Python, com suporte a documentacao automatica, validacao com Pydantic e bom desempenho em operacoes I/O-bound, que sao comuns em chamadas ao Orion Context Broker.</p>
+
+<h3>Banco de dados</h3>
+
+<p>Na fase inicial, o sistema nao exige banco de dados proprio, pois o Orion Context Broker atua como fonte principal de dados contextuais. Em evolucoes futuras, podera ser utilizado PostgreSQL para historico, configuracoes, auditoria e persistencia auxiliar.</p>
+
+<h3>Orion Context Broker e FIWARE</h3>
+
+<p>O Orion Context Broker e o componente central de contexto do projeto. Ele sera acessado por meio de endpoints NGSI-v2, permitindo consultar entidades, atributos e metadados.</p>
+
+<h3>IA e SLMs</h3>
+
+<p>O uso de SLMs e previsto para interpretar linguagem natural e converter solicitacoes do usuario em planos ou consultas direcionadas ao Context Broker. Essa etapa sera avaliada apos a consolidacao do fluxo basico de agentes.</p>
+
+<h2>11. Estrutura inicial do projeto</h2>
+
+<p>Estrutura criada para demonstrar o inicio pratico do desenvolvimento:</p>
+
+<pre><code>agent_multi_IA_context_broker/
+  docs/
+    entrega/
+      pre_projeto_tcc.md
+    cronograma/
+    *.png
+    *.svg
+  src/
+    context_broker_multiagent/
+      __init__.py
+      agents.py
+      cli.py
+  tests/
+    test_orchestrator.py
+  pyproject.toml
+  README.md</code></pre>
+
+<h2>12. Funcionalidade basica implementada</h2>
+
+<p>Foi implementada uma primeira funcionalidade de orquestracao multiagentes. A CLI recebe uma solicitacao textual, envia para o orquestrador e retorna um JSON com os resultados dos agentes.</p>
+
+<p>Componentes implementados:</p>
+
+<p class="bullet">&bull; `MultiAgentOrchestrator`: coordena os agentes registrados.</p>
+<p class="bullet">&bull; `QueryIntentAgent`: identifica solicitacoes relacionadas a consultas ao Context Broker.</p>
+<p class="bullet">&bull; `BrokerPlanningAgent`: gera um plano inicial para uma consulta NGSI-v2.</p>
+<p class="bullet">&bull; `cli.py`: disponibiliza a execucao inicial por linha de comando.</p>
+<p class="bullet">&bull; `test_orchestrator.py`: registra um teste unitario da classificacao de consulta.</p>
+
+<p>Exemplo de uso previsto:</p>
+
+<pre><code>python -m context_broker_multiagent.cli "consultar sensores no Context Broker"</code></pre>
+
+<h2>13. Evidencias de commits individuais</h2>
+
+<p>Historico recente do repositorio:</p>
+
+<table>
+<tr><th>Commit</th><th>Autor</th><th>Data</th><th>Descricao</th></tr>
+<tr><td>e9f9fc4</td><td>diego-mobilemed-dev</td><td>2026-04-11</td><td>insercao do cronograma e perguntas alinhamento</td></tr>
+<tr><td>3b598b3</td><td>diego-mobilemed-dev</td><td>2026-04-05</td><td>insercao de referencias</td></tr>
+<tr><td>888ae65</td><td>diego-mobilemed-dev</td><td>2026-04-05</td><td>insercao dos diagramas</td></tr>
+<tr><td>8c65bc8</td><td>diego-mobilemed-dev</td><td>2026-04-05</td><td>correcao da imagem do fluxo</td></tr>
+<tr><td>0987d4f</td><td>diego-mobilemed-dev</td><td>2026-04-05</td><td>correcao no link</td></tr>
+<tr><td>de08aec</td><td>diego-mobilemed-dev</td><td>2026-04-05</td><td>inclusao das referencias</td></tr>
+<tr><td>ee3b786</td><td>diego-mobilemed-dev</td><td>2026-04-05</td><td>mudanca dos diagramas para estrutura mais consistente</td></tr>
+<tr><td>ab30377</td><td>diego-mobilemed-dev</td><td>2026-04-04</td><td>imgs</td></tr>
+<tr><td>9dee786</td><td>diego-mobilemed-dev</td><td>2026-04-02</td><td>first commit</td></tr>
+<tr><td>f66acb5</td><td>Diego de Souza</td><td>2026-04-02</td><td>Initial commit</td></tr>
+</table>
+
+<p>Essas evidencias demonstram a evolucao do projeto com commits de criacao, inclusao de diagramas, referencias e cronograma.</p>
+
+<h2>14. Prints ou registros do desenvolvimento</h2>
+
+<p>Registros disponiveis ate o momento:</p>
+
+<p class="bullet">&bull; Repositorio Git criado e com historico de commits.</p>
+<p class="bullet">&bull; Documentacao tecnica no `README.md`.</p>
+<p class="bullet">&bull; Diagramas de arquitetura em `docs/`.</p>
+<p class="bullet">&bull; Cronograma em `docs/cronograma/`.</p>
+<p class="bullet">&bull; Estrutura inicial Python em `src/context_broker_multiagent/`.</p>
+<p class="bullet">&bull; Funcionalidade basica de CLI e orquestracao multiagentes.</p>
+<p class="bullet">&bull; Teste unitario inicial em `tests/test_orchestrator.py`.</p>
+
+<p>Comando utilizado para verificar o historico:</p>
+
+<pre><code>git log --oneline --decorate -n 12</code></pre>
+
+<p>Resultado resumido:</p>
+
+<pre><code>e9f9fc4 insercao do cronograma e perguntas alinhamento
+3b598b3 insercao de referencias
+888ae65 insercao dos diagramas
+8c65bc8 correcao da imagem do fluxo
+0987d4f correcao no link
+de08aec inclusao das referencias
+ee3b786 mudanca dos diagramas para estrutura mais consistente
+ab30377 imgs
+9dee786 first commit
+f66acb5 Initial commit</code></pre>
+
+<h2>15. Consideracoes finais</h2>
+
+<p>Esta primeira atividade demonstra que o projeto foi iniciado de forma organizada, com tema definido, problema identificado, publico-alvo descrito, requisitos iniciais, backlog, cronograma, prototipos e justificativa das tecnologias.</p>
+
+<p>Alem da documentacao, o repositorio passou a contar com uma estrutura inicial de software e uma funcionalidade basica implementada, permitindo evoluir nas proximas etapas para integracao real com o Orion Context Broker, melhoria da CLI, criacao de API e experimentos com SLMs.</p>
+
+</body>
+</html>

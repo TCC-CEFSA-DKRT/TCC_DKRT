@@ -1,0 +1,16 @@
+[project]
+name = "context-broker-multiagent"
+version = "0.1.0"
+description = "Sistema multiagentes para orquestracao do Orion Context Broker."
+requires-python = ">=3.11"
+readme = "README.md"
+authors = [
+    { name = "Grupo DKRT" }
+]
+
+[project.scripts]
+context-broker-agent = "context_broker_multiagent.cli:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

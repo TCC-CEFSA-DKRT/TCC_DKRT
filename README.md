@@ -4,6 +4,20 @@
 
 Documento de análise técnica que fundamenta a escolha do **Python** como linguagem principal para o desenvolvimento de um sistema multiagentes integrado ao FIWARE Context Broker, com interface de linha de comando (CLI) e suporte a *Small Language Models* (SLMs).
 
+## Entrega do pré-projeto
+
+A documentação consolidada da primeira atividade de acompanhamento está em `docs/entrega/pre_projeto_tcc.md`, com versão PDF em `docs/entrega/pre_projeto_tcc.pdf`.
+
+## Funcionalidade inicial
+
+O repositório já possui uma primeira implementação prática em Python com um orquestrador multiagentes simples, uma CLI inicial e um teste unitário.
+
+Execução prevista após configurar um ambiente Python 3.11+:
+
+```bash
+python -m context_broker_multiagent.cli "consultar sensores no Context Broker"
+```
+
 ---
 
 ## Índice

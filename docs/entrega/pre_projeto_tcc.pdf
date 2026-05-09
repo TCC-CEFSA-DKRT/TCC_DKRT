@@ -1,0 +1,782 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R] /Count 7 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 2706 >>
+stream
+BT
+/F1 10 Tf
+50 800 Td
+14 TL
+(Pre-projeto de TCC) Tj
+T*
+() Tj
+T*
+(Sistema multiagentes para orquestracao do Orion Context Broker) Tj
+T*
+() Tj
+T*
+(Grupo: DKRT  ) Tj
+T*
+(Curso: Engenharia de Software / TCC  ) Tj
+T*
+(Professora: Leide  ) Tj
+T*
+(Data: maio de 2026  ) Tj
+T*
+(Repositorio: ) Tj
+T*
+() Tj
+T*
+(---) Tj
+T*
+() Tj
+T*
+(1. Descricao do projeto) Tj
+T*
+() Tj
+T*
+(O projeto consiste no desenvolvimento de um sistema multiagentes para auxiliar a consulta,) Tj
+T*
+(manipulacao e orquestracao de dados no FIWARE Orion Context Broker. A proposta e criar uma) Tj
+T*
+(camada inteligente entre o usuario e o Context Broker, permitindo que comandos em linguagem) Tj
+T*
+(natural ou comandos estruturados sejam interpretados por agentes especializados.) Tj
+T*
+() Tj
+T*
+(A solucao prevista combina uma interface inicial via CLI, uma camada de orquestracao) Tj
+T*
+(multiagentes e integracao com o Orion Context Broker por meio do protocolo NGSI-v2. Em) Tj
+T*
+(etapas posteriores, o projeto podera incorporar SLMs, APIs e recursos de MCP para ampliar a) Tj
+T*
+(capacidade de interpretacao, automacao e integracao com ferramentas externas.) Tj
+T*
+() Tj
+T*
+(O objetivo principal e simplificar o uso do Orion Context Broker para usuarios que precisam) Tj
+T*
+(consultar entidades, atributos e contexto de aplicacoes inteligentes, reduzindo a) Tj
+T*
+(necessidade de conhecer todos os detalhes tecnicos da API NGSI-v2.) Tj
+T*
+() Tj
+T*
+(2. Problema) Tj
+T*
+() Tj
+T*
+(O Orion Context Broker e uma tecnologia robusta para gerenciamento de contexto, mas seu uso) Tj
+T*
+(direto exige conhecimento tecnico sobre entidades, tipos, atributos, endpoints e chamadas) Tj
+T*
+(HTTP. Esse fator aumenta a curva de aprendizado e dificulta a utilizacao por usuarios) Tj
+T*
+(iniciantes, equipes academicas ou equipes de projeto que precisam validar rapidamente dados) Tj
+T*
+(de contexto.) Tj
+T*
+() Tj
+T*
+(Assim, o problema central do projeto e: como facilitar a interacao com o Orion Context) Tj
+T*
+(Broker por meio de uma solucao organizada, extensivel e capaz de interpretar solicitacoes do) Tj
+T*
+(usuario, distribuir tarefas entre agentes e retornar respostas compreensiveis?) Tj
+T*
+() Tj
+T*
+(3. Publico-alvo) Tj
+T*
+() Tj
+T*
+(O publico-alvo inicial e composto por estudantes, pesquisadores, desenvolvedores e equipes) Tj
+T*
+(tecnicas que utilizam FIWARE em projetos academicos, provas de conceito ou solucoes de) Tj
+T*
+(cidades inteligentes, IoT e sistemas contextuais.) Tj
+T*
+() Tj
+T*
+(Tambem sao considerados usuarios potenciais os profissionais que precisam consultar) Tj
+T*
+(informacoes no Context Broker, mas que nao dominam completamente os detalhes de integracao) Tj
+T*
+(com NGSI-v2.) Tj
+T*
+() Tj
+T*
+(4. Objetivos) Tj
+T*
+() Tj
+T*
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 3179 >>
+stream
+BT
+/F1 10 Tf
+50 800 Td
+14 TL
+(O objetivo geral e desenvolver um sistema multiagentes para orquestrar consultas e operacoes) Tj
+T*
+(relacionadas ao Orion Context Broker.) Tj
+T*
+() Tj
+T*
+(Objetivos especificos:) Tj
+T*
+() Tj
+T*
+(- Criar uma estrutura inicial de projeto em Python.) Tj
+T*
+(- Implementar uma primeira funcionalidade de orquestracao multiagentes.) Tj
+T*
+(- Definir agentes especializados para interpretacao de intencao e planejamento de consulta.) Tj
+T*
+(- Documentar requisitos funcionais e nao funcionais.) Tj
+T*
+(- Elaborar backlog inicial e cronograma de desenvolvimento.) Tj
+T*
+(- Justificar as tecnologias escolhidas.) Tj
+T*
+(- Apresentar prototipos simples do fluxo de uso.) Tj
+T*
+(- Manter o desenvolvimento versionado em repositorio Git.) Tj
+T*
+() Tj
+T*
+(5. Requisitos funcionais) Tj
+T*
+() Tj
+T*
+(- RF-01: O sistema deve receber uma solicitacao do usuario pela interface CLI.) Tj
+T*
+(- RF-02: O sistema deve encaminhar a solicitacao para um orquestrador multiagentes.) Tj
+T*
+(- RF-03: O sistema deve possuir um agente para identificar intencoes de consulta) Tj
+T*
+(relacionadas ao Context Broker.) Tj
+T*
+(- RF-04: O sistema deve possuir um agente para gerar um plano inicial de consulta NGSI-v2.) Tj
+T*
+(- RF-05: O sistema deve retornar uma resposta estruturada ao usuario.) Tj
+T*
+(- RF-06: O sistema deve permitir evolucao futura para integracao direta com o Orion Context) Tj
+T*
+(Broker.) Tj
+T*
+(- RF-07: O sistema deve permitir inclusao futura de novos agentes especializados.) Tj
+T*
+(- RF-08: O sistema deve manter documentacao tecnica do funcionamento e das decisoes de) Tj
+T*
+(arquitetura.) Tj
+T*
+() Tj
+T*
+(6. Requisitos nao funcionais) Tj
+T*
+() Tj
+T*
+(- RNF-01: O sistema deve ser desenvolvido em Python 3.11 ou superior.) Tj
+T*
+(- RNF-02: O codigo deve ser modular, favorecendo manutencao e expansao dos agentes.) Tj
+T*
+(- RNF-03: A solucao deve utilizar versionamento Git.) Tj
+T*
+(- RNF-04: A interface inicial deve ser simples de executar em ambiente local.) Tj
+T*
+(- RNF-05: A arquitetura deve permitir evolucao para chamadas assincronas e integracao com) Tj
+T*
+(APIs.) Tj
+T*
+(- RNF-06: O projeto deve priorizar legibilidade e organizacao do codigo.) Tj
+T*
+(- RNF-07: A documentacao deve registrar as principais decisoes tecnicas.) Tj
+T*
+(- RNF-08: O sistema deve considerar boas praticas de Engenharia de Software, como separacao) Tj
+T*
+(de responsabilidades, backlog, cronograma e testes.) Tj
+T*
+() Tj
+T*
+(7. Backlog inicial do projeto) Tj
+T*
+() Tj
+T*
+(| ID | Item | Tipo | Prioridade | Status |) Tj
+T*
+(| --- | --- | --- | --- | --- |) Tj
+T*
+(| B01 | Criar repositorio Git e estrutura inicial de documentacao | Documentacao | Alta |) Tj
+T*
+(Concluido |) Tj
+T*
+(| B02 | Elaborar justificativa da linguagem Python | Documentacao | Alta | Concluido |) Tj
+T*
+(| B03 | Criar diagramas de arquitetura e fluxo | Documentacao | Alta | Concluido |) Tj
+T*
+(| B04 | Definir requisitos funcionais e nao funcionais | Documentacao | Alta | Concluido |) Tj
+T*
+(| B05 | Criar estrutura inicial do projeto Python | Desenvolvimento | Alta | Concluido |) Tj
+T*
+(| B06 | Implementar orquestrador multiagentes inicial | Desenvolvimento | Alta | Concluido |) Tj
+T*
+ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 2853 >>
+stream
+BT
+/F1 10 Tf
+50 800 Td
+14 TL
+(| B07 | Implementar agente de classificacao de intencao | Desenvolvimento | Alta | Concluido) Tj
+T*
+(|) Tj
+T*
+(| B08 | Implementar agente de planejamento de consulta | Desenvolvimento | Alta | Concluido) Tj
+T*
+(|) Tj
+T*
+(| B09 | Criar CLI simples para entrada do usuario | Desenvolvimento | Alta | Concluido |) Tj
+T*
+(| B10 | Adicionar teste unitario inicial | Qualidade | Media | Concluido |) Tj
+T*
+(| B11 | Integrar com Orion Context Broker real | Desenvolvimento | Alta | Pendente |) Tj
+T*
+(| B12 | Implementar configuracao de endpoint do broker | Desenvolvimento | Alta | Pendente |) Tj
+T*
+(| B13 | Evoluir CLI com Typer e exibicao formatada | Desenvolvimento | Media | Pendente |) Tj
+T*
+(| B14 | Criar API simples com FastAPI | Desenvolvimento | Media | Pendente |) Tj
+T*
+(| B15 | Avaliar integracao com SLM para interpretacao de linguagem natural | Pesquisa |) Tj
+T*
+(Media | Pendente |) Tj
+T*
+(| B16 | Preparar apresentacao e versao final da documentacao | Documentacao | Alta |) Tj
+T*
+(Pendente |) Tj
+T*
+() Tj
+T*
+(8. Cronograma simplificado) Tj
+T*
+() Tj
+T*
+(| Periodo | Atividade | Entrega esperada |) Tj
+T*
+(| --- | --- | --- |) Tj
+T*
+(| Semana 1 | Definicao do tema, problema e publico-alvo | Escopo inicial definido |) Tj
+T*
+(| Semana 2 | Levantamento das tecnologias e estudo do FIWARE | Justificativa tecnica |) Tj
+T*
+(| Semana 3 | Criacao de diagramas e fluxo da solucao | Diagramas em docs/ |) Tj
+T*
+(| Semana 4 | Elaboracao dos requisitos e backlog | Documento de pre-projeto |) Tj
+T*
+(| Semana 5 | Criacao da estrutura inicial do codigo | Pacote Python inicial |) Tj
+T*
+(| Semana 6 | Implementacao do orquestrador e agentes iniciais | Funcionalidade basica via) Tj
+T*
+(CLI |) Tj
+T*
+(| Semana 7 | Integracao inicial com Orion Context Broker | Consulta real a entidades |) Tj
+T*
+(| Semana 8 | Ajustes de arquitetura e testes | Testes e melhoria do codigo |) Tj
+T*
+(| Semana 9 | Prototipo evoluido e refinamento da CLI/API | Fluxo demonstravel |) Tj
+T*
+(| Semana 10 | Consolidacao da documentacao e apresentacao | Entrega final do semestre |) Tj
+T*
+() Tj
+T*
+(9. Prototipos e fluxo basico) Tj
+T*
+() Tj
+T*
+(9.1 Fluxo geral da solucao) Tj
+T*
+() Tj
+T*
+(O fluxo basico previsto e:) Tj
+T*
+() Tj
+T*
+(1. Usuario informa uma solicitacao pela CLI.) Tj
+T*
+(2. O orquestrador recebe a solicitacao.) Tj
+T*
+(3. O agente de intencao classifica o pedido.) Tj
+T*
+(4. O agente de planejamento define os passos para consulta NGSI-v2.) Tj
+T*
+(5. Futuramente, o agente de integracao acionara o Orion Context Broker.) Tj
+T*
+(6. O sistema retorna uma resposta estruturada ao usuario.) Tj
+T*
+() Tj
+T*
+(9.2 Prototipo textual da CLI) Tj
+T*
+() Tj
+T*
+(Tela 1 - Entrada da solicitacao:) Tj
+T*
+() Tj
+T*
+($ context-broker-agent "consultar sensores no Context Broker") Tj
+T*
+() Tj
+T*
+(Tela 2 - Retorno inicial dos agentes:) Tj
+T*
+() Tj
+T*
+ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 11 0 R >>
+endobj
+11 0 obj
+<< /Length 2069 >>
+stream
+BT
+/F1 10 Tf
+50 800 Td
+14 TL
+({) Tj
+T*
+(  "request": "consultar sensores no Context Broker",) Tj
+T*
+(  "status": "ok",) Tj
+T*
+(  "results": [) Tj
+T*
+(    {) Tj
+T*
+(      "agent": "QueryIntentAgent",) Tj
+T*
+(      "status": "ok",) Tj
+T*
+(      "message": "Solicitacao classificada como consulta NGSI-v2.") Tj
+T*
+(    },) Tj
+T*
+(    {) Tj
+T*
+(      "agent": "BrokerPlanningAgent",) Tj
+T*
+(      "status": "ok",) Tj
+T*
+(      "message": "Plano inicial: validar entrada, montar consulta NGSI-v2, acionar Orion) Tj
+T*
+(Context Broker e formatar resposta ao usuario.") Tj
+T*
+(    }) Tj
+T*
+(  ]) Tj
+T*
+(}) Tj
+T*
+() Tj
+T*
+(9.3 Diagramas existentes) Tj
+T*
+() Tj
+T*
+(Os diagramas abaixo fazem parte da documentacao do projeto e representam a arquitetura e o) Tj
+T*
+(fluxo pretendidos:) Tj
+T*
+() Tj
+T*
+([Imagem:  - ]) Tj
+T*
+() Tj
+T*
+([Imagem:  - ]) Tj
+T*
+() Tj
+T*
+([Imagem:  - ]) Tj
+T*
+() Tj
+T*
+([Imagem:  - ]) Tj
+T*
+() Tj
+T*
+(10. Tecnologias escolhidas) Tj
+T*
+() Tj
+T*
+(Linguagem de programacao: Python) Tj
+T*
+() Tj
+T*
+(Python foi escolhido por oferecer alta produtividade, boa legibilidade, ampla comunidade e) Tj
+T*
+(forte ecossistema para IA, automacao, APIs e integracoes. A documentacao existente no) Tj
+T*
+(README.md apresenta uma analise comparativa entre Python, Node.js e Go, indicando Python) Tj
+T*
+(como melhor opcao para o contexto do projeto por causa da combinacao entre FIWARE, SLMs, CLI) Tj
+T*
+(e desenvolvimento rapido.) Tj
+T*
+() Tj
+T*
+(Interface CLI) Tj
+T*
+() Tj
+T*
+(A primeira interface do sistema sera uma CLI. Nesta etapa inicial foi utilizada a biblioteca) Tj
+T*
+(padrao argparse, pois ela permite demonstrar rapidamente o fluxo basico sem dependencias) Tj
+T*
+(externas. Em etapas futuras, a CLI podera evoluir para Typer, que oferece melhor experiencia) Tj
+T*
+(de uso, tipagem, ajuda automatica e integracao com Rich.) Tj
+T*
+() Tj
+T*
+(Backend e API) Tj
+T*
+() Tj
+T*
+(Para evolucao do projeto, a tecnologia prevista para API e FastAPI, por ser uma opcao) Tj
+T*
+(moderna em Python, com suporte a documentacao automatica, validacao com Pydantic e bom) Tj
+T*
+ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 13 0 R >>
+endobj
+13 0 obj
+<< /Length 2159 >>
+stream
+BT
+/F1 10 Tf
+50 800 Td
+14 TL
+(desempenho em operacoes I/O-bound, que sao comuns em chamadas ao Orion Context Broker.) Tj
+T*
+() Tj
+T*
+(Banco de dados) Tj
+T*
+() Tj
+T*
+(Na fase inicial, o sistema nao exige banco de dados proprio, pois o Orion Context Broker) Tj
+T*
+(atua como fonte principal de dados contextuais. Em evolucoes futuras, podera ser utilizado) Tj
+T*
+(PostgreSQL para historico, configuracoes, auditoria e persistencia auxiliar.) Tj
+T*
+() Tj
+T*
+(Orion Context Broker e FIWARE) Tj
+T*
+() Tj
+T*
+(O Orion Context Broker e o componente central de contexto do projeto. Ele sera acessado por) Tj
+T*
+(meio de endpoints NGSI-v2, permitindo consultar entidades, atributos e metadados.) Tj
+T*
+() Tj
+T*
+(IA e SLMs) Tj
+T*
+() Tj
+T*
+(O uso de SLMs e previsto para interpretar linguagem natural e converter solicitacoes do) Tj
+T*
+(usuario em planos ou consultas direcionadas ao Context Broker. Essa etapa sera avaliada apos) Tj
+T*
+(a consolidacao do fluxo basico de agentes.) Tj
+T*
+() Tj
+T*
+(11. Estrutura inicial do projeto) Tj
+T*
+() Tj
+T*
+(Estrutura criada para demonstrar o inicio pratico do desenvolvimento:) Tj
+T*
+() Tj
+T*
+(agent_multi_IA_context_broker/) Tj
+T*
+(  docs/) Tj
+T*
+(    entrega/) Tj
+T*
+(      pre_projeto_tcc.md) Tj
+T*
+(    cronograma/) Tj
+T*
+(    *.png) Tj
+T*
+(    *.svg) Tj
+T*
+(  src/) Tj
+T*
+(    context_broker_multiagent/) Tj
+T*
+(      __init__.py) Tj
+T*
+(      agents.py) Tj
+T*
+(      cli.py) Tj
+T*
+(  tests/) Tj
+T*
+(    test_orchestrator.py) Tj
+T*
+(  pyproject.toml) Tj
+T*
+(  README.md) Tj
+T*
+() Tj
+T*
+(12. Funcionalidade basica implementada) Tj
+T*
+() Tj
+T*
+(Foi implementada uma primeira funcionalidade de orquestracao multiagentes. A CLI recebe uma) Tj
+T*
+(solicitacao textual, envia para o orquestrador e retorna um JSON com os resultados dos) Tj
+T*
+(agentes.) Tj
+T*
+() Tj
+T*
+(Componentes implementados:) Tj
+T*
+() Tj
+T*
+(- MultiAgentOrchestrator: coordena os agentes registrados.) Tj
+T*
+(- QueryIntentAgent: identifica solicitacoes relacionadas a consultas ao Context Broker.) Tj
+T*
+(- BrokerPlanningAgent: gera um plano inicial para uma consulta NGSI-v2.) Tj
+T*
+(- cli.py: disponibiliza a execucao inicial por linha de comando.) Tj
+T*
+ET
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 15 0 R >>
+endobj
+15 0 obj
+<< /Length 2372 >>
+stream
+BT
+/F1 10 Tf
+50 800 Td
+14 TL
+(- test_orchestrator.py: registra um teste unitario da classificacao de consulta.) Tj
+T*
+() Tj
+T*
+(Exemplo de uso previsto:) Tj
+T*
+() Tj
+T*
+(python -m context_broker_multiagent.cli "consultar sensores no Context Broker") Tj
+T*
+() Tj
+T*
+(13. Evidencias de commits individuais) Tj
+T*
+() Tj
+T*
+(Historico recente do repositorio:) Tj
+T*
+() Tj
+T*
+(| Commit | Autor | Data | Descricao |) Tj
+T*
+(| --- | --- | --- | --- |) Tj
+T*
+(| e9f9fc4 | diego-mobilemed-dev | 2026-04-11 | insercao do cronograma e perguntas) Tj
+T*
+(alinhamento |) Tj
+T*
+(| 3b598b3 | diego-mobilemed-dev | 2026-04-05 | insercao de referencias |) Tj
+T*
+(| 888ae65 | diego-mobilemed-dev | 2026-04-05 | insercao dos diagramas |) Tj
+T*
+(| 8c65bc8 | diego-mobilemed-dev | 2026-04-05 | correcao da imagem do fluxo |) Tj
+T*
+(| 0987d4f | diego-mobilemed-dev | 2026-04-05 | correcao no link |) Tj
+T*
+(| de08aec | diego-mobilemed-dev | 2026-04-05 | inclusao das referencias |) Tj
+T*
+(| ee3b786 | diego-mobilemed-dev | 2026-04-05 | mudanca dos diagramas para estrutura mais) Tj
+T*
+(consistente |) Tj
+T*
+(| ab30377 | diego-mobilemed-dev | 2026-04-04 | imgs |) Tj
+T*
+(| 9dee786 | diego-mobilemed-dev | 2026-04-02 | first commit |) Tj
+T*
+(| f66acb5 | Diego de Souza | 2026-04-02 | Initial commit |) Tj
+T*
+() Tj
+T*
+(Essas evidencias demonstram a evolucao do projeto com commits de criacao, inclusao de) Tj
+T*
+(diagramas, referencias e cronograma.) Tj
+T*
+() Tj
+T*
+(14. Prints ou registros do desenvolvimento) Tj
+T*
+() Tj
+T*
+(Registros disponiveis ate o momento:) Tj
+T*
+() Tj
+T*
+(- Repositorio Git criado e com historico de commits.) Tj
+T*
+(- Documentacao tecnica no README.md.) Tj
+T*
+(- Diagramas de arquitetura em docs/.) Tj
+T*
+(- Cronograma em docs/cronograma/.) Tj
+T*
+(- Estrutura inicial Python em src/context_broker_multiagent/.) Tj
+T*
+(- Funcionalidade basica de CLI e orquestracao multiagentes.) Tj
+T*
+(- Teste unitario inicial em tests/test_orchestrator.py.) Tj
+T*
+() Tj
+T*
+(Comando utilizado para verificar o historico:) Tj
+T*
+() Tj
+T*
+(git log --oneline --decorate -n 12) Tj
+T*
+() Tj
+T*
+(Resultado resumido:) Tj
+T*
+() Tj
+T*
+(e9f9fc4 insercao do cronograma e perguntas alinhamento) Tj
+T*
+(3b598b3 insercao de referencias) Tj
+T*
+(888ae65 insercao dos diagramas) Tj
+T*
+(8c65bc8 correcao da imagem do fluxo) Tj
+T*
+(0987d4f correcao no link) Tj
+T*
+(de08aec inclusao das referencias) Tj
+T*
+ET
+endstream
+endobj
+16 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 17 0 R >>
+endobj
+17 0 obj
+<< /Length 817 >>
+stream
+BT
+/F1 10 Tf
+50 800 Td
+14 TL
+(ee3b786 mudanca dos diagramas para estrutura mais consistente) Tj
+T*
+(ab30377 imgs) Tj
+T*
+(9dee786 first commit) Tj
+T*
+(f66acb5 Initial commit) Tj
+T*
+() Tj
+T*
+(15. Consideracoes finais) Tj
+T*
+() Tj
+T*
+(Esta primeira atividade demonstra que o projeto foi iniciado de forma organizada, com tema) Tj
+T*
+(definido, problema identificado, publico-alvo descrito, requisitos iniciais, backlog,) Tj
+T*
+(cronograma, prototipos e justificativa das tecnologias.) Tj
+T*
+() Tj
+T*
+(Alem da documentacao, o repositorio passou a contar com uma estrutura inicial de software e) Tj
+T*
+(uma funcionalidade basica implementada, permitindo evoluir nas proximas etapas para) Tj
+T*
+(integracao real com o Orion Context Broker, melhoria da CLI, criacao de API e experimentos) Tj
+T*
+(com SLMs.) Tj
+T*
+() Tj
+T*
+ET
+endstream
+endobj
+xref
+0 18
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000155 00000 n 
+0000000225 00000 n 
+0000000351 00000 n 
+0000003109 00000 n 
+0000003235 00000 n 
+0000006466 00000 n 
+0000006592 00000 n 
+0000009497 00000 n 
+0000009625 00000 n 
+0000011747 00000 n 
+0000011875 00000 n 
+0000014087 00000 n 
+0000014215 00000 n 
+0000016640 00000 n 
+0000016768 00000 n 
+trailer
+<< /Size 18 /Root 1 0 R >>
+startxref
+17637
+%%EOF
