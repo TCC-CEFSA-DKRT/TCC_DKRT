@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DKRT Codegen Output",
+  "type": "object",
+  "required": ["intent", "plan", "files", "references", "guardrails"],
+  "properties": {
+    "intent": {
+      "type": "string",
+      "enum": ["query", "provision", "subscribe", "analyze", "route"]
+    },
+    "plan": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "action", "content"],
+        "properties": {
+          "path": { "type": "string" },
+          "action": { "type": "string", "enum": ["create", "update", "delete"] },
+          "content": { "type": "string" }
+        }
+      }
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "chunk_id": { "type": "string" },
+          "source_file": { "type": "string" }
+        }
+      }
+    },
+    "guardrails": {
+      "type": "object",
+      "required": ["pii_passed", "schema_passed"],
+      "properties": {
+        "pii_passed": { "type": "boolean" },
+        "schema_passed": { "type": "boolean" }
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+knowledge/chunks/*.jsonl
+!knowledge/chunks/.gitkeep
+*.log
+.DS_Store
+.dkrt_chat_history
+.dkrt_terminal_history

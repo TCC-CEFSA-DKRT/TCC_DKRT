@@ -1,0 +1,17 @@
+services:
+  mongo:
+    image: mongo:4.4
+    command: --nojournal
+    ports:
+      - "27017:27017"
+
+  orion:
+    image: fiware/orion:3.10.1
+    platform: linux/amd64
+    depends_on:
+      - mongo
+    ports:
+      - "1026:1026"
+    command: -dbhost mongo -logLevel DEBUG
+    environment:
+      - ORION_MULTI_SERVICE=TRUE

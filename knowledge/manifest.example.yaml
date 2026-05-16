@@ -1,0 +1,11 @@
+version: "1.0"
+sources:
+  - path: knowledge/raw/fiware_ngsi_v2.md
+    category: fiware
+    version: "2.0"
+  - path: knowledge/raw/multiagent_orchestrator.md
+    category: multiagent
+    version: "0.1"
+  - path: knowledge/raw/tcc_dkrt_overview.md
+    category: tcc
+    version: "0.1"

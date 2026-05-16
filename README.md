@@ -1,506 +1,251 @@
-# TCC DKRT — Análise técnica e justificativa Python
+# DKRT — Context Broker Multiagent
 
-**Sistema multiagentes para FIWARE Context Broker com interface CLI e SLM**
+Sistema multiagentes para operar o **FIWARE Orion Context Broker (NGSI-v2)** com CLI, SLM, RAG, guardrails e servidor **MCP**.
 
-Documento de análise técnica que fundamenta a escolha do **Python** como linguagem principal para o desenvolvimento de um sistema multiagentes integrado ao FIWARE Context Broker, com interface de linha de comando (CLI) e suporte a *Small Language Models* (SLMs).
+Documentação de fases: [`docs/fases/README.md`](docs/fases/README.md).
 
-## Entrega do pré-projeto
+## Requisitos
 
-A documentação consolidada da primeira atividade de acompanhamento está em `docs/entrega/pre_projeto_tcc.md`, com versão PDF em `docs/entrega/pre_projeto_tcc.pdf`.
+- Python **3.11+**
+- (Opcional) Docker — Orion local
+- (Opcional) GPU/RAM — modelo `microsoft/phi-2` (`SLM_ENABLED=true`)
 
-## Funcionalidade inicial
+## Instalação rápida
 
-O repositório já possui uma primeira implementação prática em Python com um orquestrador multiagentes simples, uma CLI inicial e um teste unitário.
+No Windows, se `python` ou `pip` não forem reconhecidos, use o launcher **`py`** (Python 3.11 já instalado via instalador oficial):
 
-Execução prevista após configurar um ambiente Python 3.11+:
-
-```bash
-python -m context_broker_multiagent.cli "consultar sensores no Context Broker"
+```powershell
+cd agent_multi_IA_context_broker
+.\scripts\setup_windows.ps1
+.\.venv\Scripts\Activate.ps1
 ```
 
----
+Ou manualmente:
 
-## Índice
-
-1. [Resumo executivo](#1-resumo-executivo)
-2. [Visão geral do projeto](#2-visão-geral-do-projeto)
-3. [Análise comparativa de linguagens](#3-análise-comparativa-de-linguagens)
-4. [Ecossistema FIWARE em Python](#4-ecossistema-fiware-em-python)
-5. [Ecossistema CLI em Python](#5-ecossistema-cli-em-python)
-6. [Ecossistema IA e SLM em Python](#6-ecossistema-ia-e-slm-em-python)
-7. [Concorrência para multiagentes](#7-concorrência-para-multiagentes)
-8. [Distribuição e deploy](#8-distribuição-e-deploy)
-9. [Matriz de decisão final](#9-matriz-de-decisão-final)
-10. [Referências](#10-referências)
-11. [Anexo A — Exemplo de código](#anexo-a)
-12. [Referências de estudo](#referencias-de-estudo)
-
-
----
-
-## 1. Resumo executivo
-
-Este documento apresenta a análise técnica que fundamenta a escolha do Python como linguagem principal para o desenvolvimento de um sistema multiagentes integrado ao FIWARE Context Broker, com interface de linha de comando (CLI) e suporte a SLMs. A decisão baseia-se em evidências empíricas de desempenho, maturidade do ecossistema, produtividade de desenvolvimento e adequação aos requisitos específicos do projeto.
-
-### Visão de alto nível da solução
-
-### Diagrama do serviço multiagent
-![image.png](./docs/Multiagent_Orchestrator-2026-04-05-131317.png)
-
-
-### Diagrama Simplificado da solução
-![diagrama_simplificado.png](./docs//diagrama_simplificado-2026-04-05-130856.png)
-
-
-### Diagrama completo da aplicação
-![diagrama_completo_solucao.png](./docs/fluxo_completo-2026-04-05-130458.png)
-
-
-## Diagrama de sequência
-![diagrama_sequencia.png](./docs/diagrama_sequencia-2026-04-05-130602.png)
-
----
-
-## 2. Visão geral do projeto
-
-### 2.1 Requisitos técnicos
-
-| Requisito      | Descrição                                                                 |
-| -------------- | ------------------------------------------------------------------------- |
-| Arquitetura    | Sistema multiagentes para consulta e manipulação de dados no Context Broker |
-| Interface      | CLI para usuários finais (instalação local e online)                      |
-| Integração IA  | Suporte a SLMs para processamento de linguagem natural                    |
-| Protocolos     | NGSI-v2 (Orion Context Broker) e MCP (Model Context Protocol)             |
-
-### 2.2 Restrições
-
-- Baixa latência em consultas ao Context Broker
-- Capacidade de lidar com múltiplas requisições simultâneas
-- Facilidade de instalação e distribuição
-- Manutenibilidade do código multiagente
-
----
-
-## 3. Análise comparativa de linguagens
-
-### 3.1 Visão geral: Python vs Node.js vs Go
-
-Com base em benchmarks e análises da comunidade, a comparação fundamental é a seguinte:
-
-| Critério               | Python                         | Node.js                      | Go                |
-| ---------------------- | ------------------------------ | ---------------------------- | ----------------- |
-| Modelo de concorrência | Async/await + threads (GIL)    | Event loop (single-thread)   | Goroutines (CSP)  |
-| Performance I/O        | Bom (com asyncio)              | Excelente                    | Excelente         |
-| Performance CPU        | Bom (com multiprocessing)      | Limitado                     | Excelente         |
-| Ecossistema FIWARE     | Maduro                         | Moderado                     | Limitado          |
-| Ecossistema IA/ML      | Dominante                      | Limitado                     | Emergente         |
-| Curva de aprendizado   | Baixa                          | Média                        | Alta              |
-| Produtividade          | Alta                           | Média–alta                   | Média             |
-
-### 3.2 Benchmark de performance
-
-**Teste I/O bound (relevante para API do Context Broker)**
-
-| Métrica           | Node.js (Express) | Python (FastAPI) | Diferença        |
-| ----------------- | ----------------- | ---------------- | ---------------- |
-| Requests/segundo  | 55.200            | 38.100           | +44,9% (Node.js) |
-| Latência (ms)     | 4,5               | 7,8              | +73% (Node.js)   |
-| Memória (MB)      | 130               | 190              | +46% (Python)    |
-| Startup time (s)  | 0,3               | 0,8              | +167% (Python)   |
-
-*Fonte: benchmark comparativo Node.js vs Python.*
-
-**Teste de framework CLI (startup time)**
-
-| Framework            | Tempo médio | Performance relativa |
-| -------------------- | ----------- | -------------------- |
-| argparse (Python std) | 12,3 ms    | Baseline             |
-| Click (Python)       | 18,9 ms    | −53%                 |
-| Typer (Python)       | 22,1 ms    | −80%                 |
-| docopt (Python)      | 25,6 ms    | −108%                |
-
-*Fonte: Typer performance benchmark.*
-
-#### Comparativo visual (throughput I/O bound)
-
-Throughput relativo ao cenário Node.js = 100% (dados da tabela acima; Python ≈ 69% de 55.200 req/s):
-
-```mermaid
-flowchart LR
-    subgraph Throughput["Requests/s (escala relativa)"]
-        N["Node.js\n100%"]
-        P["Python\n~69%"]
-    end
-    N --- P
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\python -m pip install -e ".[dev]"
+copy .env.example .env
 ```
 
-*Se o diagrama não aparecer no seu visualizador, use a tabela numérica na seção 3.2.*
+> **Dica:** Desative o atalho da Microsoft Store em *Configurações → Aplicativos → Aliases de execução de aplicativo* e desligue `python.exe` / `python3.exe`, para o comando `python` apontar ao Python real após marcar "Add to PATH" no instalador.
 
-### 3.3 Análise do GIL e impacto no projeto
+## Base de conhecimento (RAG — Fase 2)
 
-O *Global Interpreter Lock* (GIL) do Python é frequentemente citado como limitação, mas o impacto neste projeto é reduzido porque:
-
-1. **Operações I/O-bound** — consultas ao Context Broker são rede; o GIL é liberado durante a espera.
-2. **Async/await** — Python 3.11+ com `asyncio` oferece desempenho competitivo em cenários I/O intensivos.
-3. **Arquitetura multiagente** — agentes podem rodar em processos separados (`multiprocessing`) para tarefas CPU-bound.
-
-**Conclusão:** para um sistema que predominantemente aguarda respostas de API (I/O-bound), o GIL não representa gargalo significativo.
-
----
-
-## 4. Ecossistema FIWARE em Python
-
-### 4.1 Bibliotecas oficiais e maduras
-
-O FIWARE mantém suporte robusto para Python, evidenciado pelo catálogo oficial de *Generic Enablers*:
-
-| Componente        | Linguagem | Status   | Finalidade                              |
-| ----------------- | --------- | -------- | --------------------------------------- |
-| QuantumLeap       | Python    | Oficial  | Time-series database para NGSI          |
-| Anubis            | Python    | Oficial  | Policy enforcement para APIs NGSI       |
-| PySpark Connector | Python    | Incubado | Processamento de dados em escala        |
-| FiLiP             | Python    | Incubado | Processamento de linguagem natural      |
-
-### 4.2 Bibliotecas de terceiros para FIWARE
-
-| Biblioteca    | Funcionalidade                         | Maturidade |
-| ------------- | -------------------------------------- | ---------- |
-| filip         | Cliente Python completo para NGSI-v2   | Alta       |
-| ngsi-client   | Cliente leve para Orion Context Broker | Média      |
-| pydantic-ngsi | Modelos NGSI com validação             | Média      |
-
-### 4.3 Evidência de adoção
-
-- **Telefónica I+D:** múltiplos repositórios Python, incluindo `di-py` e `fiware-keystone-*`.
-- **Martel GmbH:** QuantumLeap e Anubis em Python.
-
----
-
-## 5. Ecossistema CLI em Python
-
-### 5.1 Comparativo de frameworks CLI
-
-| Característica     | argparse | click | typer | plumbum |
-| ------------------ | -------- | ----- | ----- | ------- |
-| Código necessário  | ~85 linhas | ~65 | ~40 | ~55   |
-| Tempo desenvolvimento | 30 min | 20 min | 8–10 min | 15 min |
-| Type hints         | Manual   | Bom   | Nativo | Regular |
-| Autocomplete       | Não      | Sim   | Sim    | Limitado |
-| Rich output        | Não      | Sim   | Sim    | Sim     |
-
-*Fonte: comparativo de frameworks CLI 2025.*
-
-### 5.2 Por que Typer neste projeto
-
-Typer é uma opção sólida como framework CLI moderno devido a:
-
-- **Menos boilerplate** — type hints geram parsing automático.
-- **Documentação automática** — help gerado a partir de docstrings.
-- **Integração Rich** — cores, barras de progresso, tabelas.
-- **Async** — compatível com `async def` para operações assíncronas.
-
-```python
-# Exemplo: CLI para agente FIWARE com Typer
-import typer
-from typing import Optional, List
-from pathlib import Path
-
-app = typer.Typer(help="FIWARE Multi-Agent System CLI")
-
-@app.command()
-def query(
-    entity_id: str = typer.Argument(..., help="ID da entidade (ex: Room1)"),
-    entity_type: str = typer.Option("Room", help="Tipo da entidade"),
-    attributes: List[str] = typer.Option([], help="Atributos específicos"),
-    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Arquivo de saída")
-):
-    """Consulta entidades no Context Broker"""
-    # Lógica do agente aqui
-    typer.secho(f"Consulta realizada para {entity_id}", fg="green")
-
-if __name__ == "__main__":
-    app()
+```powershell
+.\.venv\Scripts\python scripts/rag/chunk_hybrid.py knowledge/raw/ --out knowledge/chunks/ --category fiware
 ```
 
----
+Gera `knowledge/chunks/chunks.jsonl` com pares **Small2Big**.
 
-## 6. Ecossistema IA e SLM em Python
+## Orion local (Fase 4 / 10)
 
-### 6.1 Dominância em machine learning
-
-| Biblioteca              | Caso de uso           | Relevância para o projeto        |
-| ----------------------- | --------------------- | -------------------------------- |
-| Transformers (HF)       | SLMs e LLMs           | Alta — NLP para consultas        |
-| LangChain               | Orquestração de agentes | Alta — framework de agentes   |
-| LlamaIndex              | RAG e contexto        | Média — enriquecimento           |
-| FastAPI                 | APIs assíncronas      | Alta — servidor MCP / endpoints  |
-| Pydantic                | Validação de dados    | Alta — modelos NGSI tipados      |
-
-### 6.2 SLM em Python
-
-Para interpretação de consultas ao Context Broker, SLMs são adequados:
-
-```python
-# Exemplo: SLM para interpretação de consultas
-from transformers import AutoModelForCausalLM, AutoTokenizer
-
-class QueryInterpreter:
-    def __init__(self):
-        self.model = AutoModelForCausalLM.from_pretrained("microsoft/phi-2")
-        self.tokenizer = AutoTokenizer.from_pretrained("microsoft/phi-2")
-
-    def parse_natural_language(self, query: str) -> dict:
-        """Converte linguagem natural para query NGSI"""
-        # Implementação com fine-tuning para domínio FIWARE
-        pass
+```powershell
+docker compose up -d
+# Aguarde ~30s; verifique: http://localhost:1026/version
+python scripts/seed_orion.py
 ```
 
-### 6.3 Integração MCP (Model Context Protocol)
+Configure no `.env`:
 
-- **MCP SDK oficial:** pacote `mcp` para servidores e clientes.
-- **FastMCP:** framework de alto nível para servidores MCP.
-
----
-
-## 7. Concorrência para multiagentes
-
-### 7.1 Modelos de concorrência comparados
-
-| Aspecto                   | Python (asyncio) | Node.js   | Go      |
-| ------------------------- | ---------------- | --------- | ------- |
-| Máximo conexões (estimado)| 10K–50K          | 10K–100K  | 1M+     |
-| Memória por conexão       | 8–16 KB          | 4–8 KB    | 2–4 KB  |
-| Complexidade (debug)      | Alta             | Média     | Baixa   |
-| Escalabilidade horizontal | Boa              | Excelente | Excelente |
-
-*Fonte: análise de modelos de concorrência.*
-
-### 7.2 Arquitetura recomendada para multiagentes
-
-```python
-# Padrão de design para multiagentes com asyncio
-import asyncio
-from typing import List, Dict, Any
-
-class FIWAREAgency:
-    """Orquestrador de múltiplos agentes"""
-
-    def __init__(self):
-        self.agents: List["BaseAgent"] = []
-        self.task_queue = asyncio.Queue()
-
-    async def orchestrate(self, query: str) -> Dict[str, Any]:
-        """Executa agentes em paralelo para consulta"""
-        tasks = [agent.process(query) for agent in self.agents]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        return self._merge_results(results)
+```env
+FIWARE_BROKER_URL=http://localhost:1026
+FIWARE_SERVICE=openiot
+FIWARE_SERVICE_PATH=/
 ```
 
-```mermaid
-sequenceDiagram
-    participant U as Usuário / CLI
-    participant O as Orquestrador
-    participant A as Agentes
-    participant CB as Context Broker
-    U->>O: comando / consulta
-    O->>A: process(query) em paralelo
-    par Agentes
-        A->>CB: NGSI-v2
-        CB-->>A: resposta
-    end
-    A-->>O: resultados
-    O-->>U: resultado agregado
+## Terminal CLI externo (principal)
+
+O DKRT **não é um programa com ícone na área de trabalho** (como um `.exe` instalador). É um **terminal de texto** — igual ao `ollama run` no PowerShell.
+
+### Onde fica o “exe”?
+
+Após `pip install -e .`, o pip cria um atalho em:
+
+```
+.venv\Scripts\dkrt.exe
 ```
 
----
+Esse arquivo **só funciona com o projeto instalado** (venv + Python). Não é um instalador independente.
 
-## 8. Distribuição e deploy
+### Como abrir (escolha uma opção)
 
-### 8.1 Instalação local vs online
+| Onde | Como |
+|------|------|
+| **Janela nova fora do Cursor** | Dê duplo clique em `scripts\Iniciar-DKRT.bat` |
+| **PowerShell externo** | Abra PowerShell → `cd` na pasta do projeto → `.\.venv\Scripts\Activate.ps1` → `dkrt` |
+| **Terminal do Cursor** | Mesmo comando `dkrt` no painel Terminal (já é o CLI) |
 
-| Cenário            | Solução Python                    | Complexidade  |
-| ------------------ | --------------------------------- | ------------- |
-| Local (pip)        | `pip install meu-agente`          | Baixa         |
-| Local (conda)      | `conda install -c conda-forge …`  | Baixa         |
-| Local (binary)     | PyInstaller / Nuitka              | Média         |
-| Online (API)       | FastAPI + Docker                  | Média         |
-| Online (serverless)| AWS Lambda (Python 3.11+)         | Média–alta    |
-
-### 8.2 Empacotamento para usuário final
-
-```bash
-# Instalação simples via pip
-pip install fiware-multiagent-cli
-
-# Uso imediato
-fiware-agent query Room1 --type Room --pretty
+```powershell
+# Primeira vez (feche o dkrt se estiver rodando antes de reinstalar)
+pip install -e .
 ```
 
-**Vantagem Python:** o ecossistema PyPI permite distribuição global com um único comando.
+**Abrir janela dedicada (recomendado para “CLI externo”):**
 
----
-
-## 9. Matriz de decisão final
-
-### 9.1 Critérios ponderados
-
-| Critério            | Peso  | Python | Node.js | Go |
-| ------------------- | ----- | ------ | ------- | -- |
-| Ecossistema FIWARE  | 25%   | 10     | 6       | 4  |
-| Ecossistema IA/SLM  | 20%   | 10     | 4       | 5  |
-| Produtividade CLI   | 15%   | 9      | 7       | 6  |
-| Performance I/O     | 15%   | 7      | 9       | 10 |
-| Curva aprendizado   | 10%   | 9      | 7       | 5  |
-| Manutenibilidade    | 10%   | 9      | 8       | 8  |
-| Distribuição        | 5%    | 8      | 7       | 7  |
-| **Pontuação ponderada** | **100%** | **9,1** | **6,9** | **6,1** |
-
-### Pontuação final (visual)
-
-```mermaid
-flowchart TB
-    subgraph Matriz["Pontuação ponderada 0–10"]
-        direction TB
-        PY["Python — 9.1"]
-        NJ["Node.js — 6.9"]
-        GO["Go — 6.1"]
-    end
-    style PY fill:#1a472a,color:#fff
-    style NJ fill:#3d5a80,color:#fff
-    style GO fill:#293241,color:#fff
+```text
+Duplo clique:  scripts\Iniciar-DKRT.bat
 ```
 
-### 9.2 Recomendação final
+Ou no PowerShell:
 
-**Python** é a linguagem recomendada para este projeto com base em:
-
-- Ecossistema FIWARE maduro (bibliotecas oficiais e comunidade).
-- Dominância em IA/ML com acesso direto a SLMs e frameworks de agentes.
-- Bom suporte CLI com frameworks modernos como Typer.
-- Produtividade elevada com menos código em relação a várias alternativas.
-- Curva de aprendizado acessível para a equipe.
-
-### 9.3 Mitigações para limitações
-
-| Limitação              | Mitigação                                      |
-| ---------------------- | ---------------------------------------------- |
-| Startup mais lento     | `typer-slim` sem Rich; lazy loading            |
-| GIL em CPU-bound       | Isolar tarefas pesadas em `multiprocessing`    |
-| Consumo de memória     | Otimizar estruturas; usar generators           |
-
----
-
-## 10. Referências
-
-1. FIWARE Catalogue Release 8.6.1 — Official Component List  
-2. Typer Performance Benchmark — CLI Framework Comparison  
-3. Node.js vs Python: Real Benchmarks and Performance Analysis  
-4. Python async I/O Performance Analysis — Python.org Mailing List  
-5. Martel GmbH — FIWARE Python Repositories  
-6. Python CLI Frameworks Comparison 2025 — Typer vs Click vs argparse  
-7. Concurrency Management in Python and Node.js — Edureka  
-8. Telefónica I+D — Python FIWARE Components  
-9. Click Library Tutorial — CLI Development Best Practices  
-10. Go, Python, Node.js Concurrency Models Comparison  
-
----
-
-## Anexo A
-
-Exemplo de código — CLI multiagente em Python.
-
-```python
-#!/usr/bin/env python3
-"""
-FIWARE Multi-Agent System CLI
-Instalação: pip install fiware-multiagent-cli
-"""
-
-import typer
-import asyncio
-from typing import Optional, List
-from rich.table import Table
-from rich.console import Console
-
-app = typer.Typer(help="FIWARE Multi-Agent System - Interface CLI")
-console = Console()
-
-class FIWAREAgency:
-    """Orquestrador de agentes para Context Broker"""
-
-    async def query_entity(self, entity_id: str, entity_type: str) -> dict:
-        """Consulta entidade no Orion Context Broker"""
-        # Implementação com aiohttp
-        pass
-
-agency = FIWAREAgency()
-
-@app.command()
-def query(
-    entity_id: str = typer.Argument(..., help="ID da entidade"),
-    entity_type: str = typer.Option("Room", help="Tipo da entidade"),
-    pretty: bool = typer.Option(True, help="Exibir formatado"),
-):
-    """Consulta dados de uma entidade"""
-    result = asyncio.run(agency.query_entity(entity_id, entity_type))
-
-    if pretty:
-        table = Table(title=f"Dados de {entity_id}")
-        table.add_column("Atributo", style="cyan")
-        table.add_column("Valor", style="green")
-        for k, v in result.items():
-            table.add_row(k, str(v))
-        console.print(table)
-    else:
-        console.print(result)
-
-@app.command()
-def agents(
-    verbose: bool = typer.Option(False, "--verbose", "-v")
-):
-    """Lista agentes disponíveis"""
-    console.print("[bold green]Agentes carregados:[/bold green]")
-    console.print("  • QueryAgent - Consulta entidades")
-    console.print("  • SubscribeAgent - Gerencia assinaturas")
-    console.print("  • AnalyzeAgent - Análise de dados")
-
-if __name__ == "__main__":
-    app()
+```powershell
+.\scripts\Iniciar-DKRT.ps1
 ```
 
----
+Prompt exibido: `dkrt> `
 
-*Documento preparado em abril de 2026. Versão 1.0 — para aprovação técnica.*
+```
+Bom dia
+listar sensores do lab 64
+/query Sensor 20
+/status
+/model qwen2.5:3b
+/help
+/exit
+```
 
+| Comando no terminal | Função |
+|---------------------|--------|
+| *(texto livre)* | Conversa ou pedido FIWARE via SLM + agentes |
+| `/help` | Lista comandos |
+| `/exit`, `/quit` | Sair |
+| `/clear` | Limpa histórico da sessão |
+| `/history` | Últimas trocas |
+| `/status` | Ollama + FIWARE Orion |
+| `/agents` | Agentes disponíveis |
+| `/model` ou `/model qwen2.5:3b` | Modelo SLM |
+| `/query Sensor 20` | Consulta NGSI direta (sem SLM) |
+| `/orchestrate texto` | Orquestrador multiagentes |
 
-<h2 id="referencias-de-estudo">Referências de estudo</h2>
+**Comportamento:** cumprimentos → resposta da IA (sem Orion). Pedidos sobre sensores → agentes + Orion. Dados faltando → IA pergunta antes de executar.
 
-hugging face (GitHub da Inteligência Artificial) => [link do site](https://huggingface.co)
+## Ferramentas administrativas (`dkrt-tools`)
 
-MCP (model context protocol) => [link do site](https://modelcontextprotocol.io/docs/getting-started/intro)
+Comandos one-shot (scripts, CI, automação):
 
-smithery => [link do site](https://smithery.ai/)
+| Comando | Descrição |
+|---------|-----------|
+| `dkrt-tools query -t Sensor` | Consulta NGSI direta |
+| `dkrt-tools ask "listar sensores"` | NL + orquestração (one-shot) |
+| `dkrt-tools orchestrate "..."` | Orquestrador |
+| `dkrt-tools ollama-check` | Verifica Ollama |
+| `dkrt-tools serve -p 8000` | Servidor MCP |
 
-curso (MCP & FastMCP: Do Zero a 3 Projetos. Integração com Cursor) => [link so curso](https://fsalvadorarena.udemy.com/course/mcp-rapido-e-pratico-tudo-que-voce-precisa-saber-em-1-dia/learn/lecture/49391601#overview)
+## Servidor MCP (Fase 7)
 
-beecrowd (plataforma para treinar programação) => [link da plataforma](https://beecrowd.com/pt/)
+```powershell
+dkrt serve --host 127.0.0.1 --port 8000
+```
 
-mermaid edit (plataforma de criação de diagrama por comando) => [link da plataforma](https://mermaid.ai/app/dashboard)
+```powershell
+curl http://127.0.0.1:8000/health
+curl -X POST http://127.0.0.1:8000/mcp -H "Content-Type: application/json" -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}"
+```
 
-drawio (plataforma de criação de diagram) => [link do site](https://www.drawio.com)
+Ferramentas: `dkrt_orchestrate`, `dkrt_query_entities`, `dkrt_interpret_nl`.
 
-## Cronograma
+## SLM com Ollama + Qwen2.5 (recomendado)
 
-### Orgonograma prazo:
-+ 11/04/2026 - 24/04/2026 - consolidação do conhecimento necessário.
-+ 25/04/2026 - Call de realinhamento.
-+ 25/04/2026 -  15/04/2026 - MVP - piloto do agent (V1):
-	+ CLI Typer - Diego
-	+ Orquestrador - Diego
-	+ Consulta - Tainara
-	+ Atualização - Tainara
-	+ Provisionamento - Kaue
-	+ Assinatura - Kaue
-	+ Roteamento - Robson
-	+ Analise - Robson
-+ 16/06/2026 - Call de realinhamento próximos passos.
+1. Instale e inicie o [Ollama](https://ollama.com/):
+
+```powershell
+ollama serve
+ollama pull qwen2.5
+ollama list
+```
+
+Se `ollama` não for reconhecido no PowerShell, abra o **Ollama Desktop** (ícone na bandeja) — o serviço em `http://localhost:11434` sobe automaticamente.
+
+2. Configure o `.env` (copie de `.env.example`):
+
+```env
+SLM_ENABLED=true
+SLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=qwen2.5
+```
+
+> Use o nome **exato** retornado por `ollama list` (ex.: `qwen2.5:7b`, `qwen2.5:latest`).
+
+3. Teste a conexão e interprete um pedido:
+
+```powershell
+dkrt ollama-check
+dkrt ask "listar todos os sensores de temperatura"
+```
+
+A saída deve mostrar `Interpretação (ollama): ...`.
+
+**Fallback:** se Ollama estiver offline ou `SLM_ENABLED=false`, o sistema usa regras heurísticas (sem GPU).
+
+### Alternativa: phi-2 via Transformers
+
+```powershell
+pip install -e ".[slm]"
+# .env: SLM_PROVIDER=transformers, SLM_MODEL=microsoft/phi-2
+```
+
+## Guardrails (Fase 9)
+
+Após gerar JSON de codegen:
+
+```powershell
+python scripts/rag/detect_pii.py --file resposta.json
+python scripts/rag/validate_schema.py resposta.json
+```
+
+Schema: `schemas/codegen_output.schema.json`. Skills: `.cursor/skills/dkrt-code-guardrails/`.
+
+## Testes (Fase 10)
+
+```powershell
+.\scripts\run_tests.ps1
+# ou (com venv)
+.\.venv\Scripts\python -m pytest tests/ -v -m "not integration"
+```
+
+Inclui orquestrador, SLM, FIWARE mock, RAG, MCP, CLI e guardrails (≥ 15 testes).
+
+Testes com Orion real (opcional):
+
+```powershell
+pytest tests/ -v -m integration
+```
+
+## Estrutura do projeto
+
+```
+├── src/context_broker_multiagent/   # Pacote principal
+│   ├── agents/                      # Route, Query, Subscribe, Provision, Analyze
+│   ├── models/                      # Pydantic NGSI + mensagens
+│   ├── services/                    # FIWARE, SLM, RAG, MCP
+│   ├── orchestrator.py
+│   └── cli.py
+├── knowledge/raw/                   # Docs para ingestão
+├── scripts/rag/                     # chunk_hybrid, PII, schema
+├── prompts/                         # Ingestão, inferência, guardrails
+├── schemas/
+├── tests/
+├── docs/fases/                      # Plano por fase (mantido)
+└── .cursor/skills/                  # Skills Cursor DKRT
+```
+
+## Segurança
+
+- Não versione `.env` com segredos reais.
+- Use placeholders em exemplos (`user@example.com`, `localhost:1026`).
+- Bind MCP em `127.0.0.1` em desenvolvimento.
+
+## Skills Cursor
+
+| Skill | Fase |
+|-------|------|
+| `dkrt-knowledge-ingestion` | 2 |
+| `dkrt-rag-inference` | 8 |
+| `dkrt-code-guardrails` | 9 |
+| `dkrt-tcc-codegen` | Pipeline completo |
+
+## Licença
+
+MIT — TCC DKRT.
