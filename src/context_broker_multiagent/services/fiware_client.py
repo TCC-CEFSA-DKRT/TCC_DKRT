@@ -34,13 +34,15 @@ class FiwareClient:
         self.cache_ttl = cache_ttl
         self._cache: dict[str, tuple[float, Any]] = {}
 
-    def _headers(self) -> dict[str, str]:
+    def _headers(self, *, json_body: bool = False) -> dict[str, str]:
+        """Orion rejeita Content-Type em GET/DELETE sem payload (HTTP 400)."""
         headers = {
             "Accept": "application/json",
-            "Content-Type": "application/json",
             "Fiware-Service": self.service,
             "Fiware-ServicePath": self.service_path,
         }
+        if json_body:
+            headers["Content-Type"] = "application/json"
         if self.api_key:
             headers["X-Api-Key"] = self.api_key
         return headers
@@ -63,7 +65,7 @@ class FiwareClient:
                     async with session.request(
                         method,
                         url,
-                        headers=self._headers(),
+                        headers=self._headers(json_body=json_body is not None),
                         params=params,
                         json=json_body,
                     ) as resp:

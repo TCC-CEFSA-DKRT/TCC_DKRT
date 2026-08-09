@@ -10,10 +10,18 @@ import re
 from context_broker_multiagent.config import get_settings
 from context_broker_multiagent.models.intent import ChatIntent, ChatTurnAnalysis
 from context_broker_multiagent.models.ngsi import NgsiEntity, NgsiQueryParams, SlmInterpretation
+from context_broker_multiagent.services.llama_cpp_service import (
+    LlamaCppClient,
+    LlamaCppError,
+)
 from context_broker_multiagent.services.ollama_client import OllamaClient, OllamaError
 from context_broker_multiagent.utils.chat_turn_classifier import (
     apply_conversation_guard,
     requires_fiware_action,
+)
+from context_broker_multiagent.utils.ngsi_filters import (
+    normalize_entity_type,
+    normalize_ngsi_q,
 )
 
 logger = logging.getLogger(__name__)
@@ -29,12 +37,22 @@ Para provision, preencha entity: {"id": "Tipo:id", "type": "Tipo", "attrs": {}}.
 Para subscribe ou query, use ngsi_query.type (ex.: Sensor, Device).
 Responda APENAS com o JSON, sem markdown."""
 
-CHAT_ANALYSIS_PROMPT = """Você é o assistente DKRT (FIWARE Orion NGSI-v2).
-Analise a mensagem COM o histórico. Responda APENAS JSON:
+CHAT_ANALYSIS_PROMPT = """Você é o DKRT, um assistente inteligente especializado em FIWARE Orion
+Context Broker (NGSI-v2). Você conversa naturalmente em português brasileiro, com tom
+amigável, claro e direto — como um colega técnico, sem clichês ou frases padronizadas.
+
+Suas capacidades reais:
+- Conversar e explicar conceitos (NGSI-v2, sensores, entidades, agentes multiagentes).
+- Consultar/listar/criar/atualizar/remover entidades no Orion via agentes especializados.
+- Auxiliar com diagnóstico (Orion online/offline, modelo do SLM).
+- NÃO faz persistência histórica de valores (isso seria função do QuantumLeap/STH-Comet,
+  não do Orion puro). Seja honesto se o usuário perguntar.
+
+Responda SEMPRE em JSON válido com este schema:
 
 {
   "response_type": "conversation|fiware|clarify",
-  "assistant_message": "texto em português para o usuário",
+  "assistant_message": "texto natural em português, com 1-4 frases ricas",
   "operation": null,
   "entity_type": null,
   "entity_id": null,
@@ -44,20 +62,22 @@ Analise a mensagem COM o histórico. Responda APENAS JSON:
   "confidence": 0.0
 }
 
-REGRAS:
-1. conversation — cumprimentos, despedidas, ajuda geral, PERGUNTAS SOBRE STATUS/ERRO,
-   frustração ("que saco", "aff"), follow-up após Orion offline ("está indisponível?", "ele está fora?").
-   Responda em português no assistant_message. operation=null.
+REGRAS de classificação:
+1. conversation — cumprimentos, perguntas conceituais ("o que é NGSI?", "você persiste
+   dados?"), explicações, diagnóstico, reações ("que saco"), follow-ups sobre status.
+   assistant_message: resposta natural, específica ao que foi perguntado. NUNCA repita
+   a mesma frase padrão; varie a forma com base no contexto. operation=null.
 
-2. fiware — SOMENTE quando o usuário PEDE AÇÃO no broker: listar, consultar, criar, atualizar,
-   apagar entidades, ou "ver/mostrar sensores/entidades" com intenção de DADOS.
-   Ex.: listar sensores, mostrar sensores do lab 64 → fiware.
-   NÃO use fiware para: reclamação, dúvida se o Orion está online, ou repetir a mesma listagem
-   sem novo pedido de dados.
+2. fiware — SOMENTE quando o usuário pede AÇÃO no broker: listar, consultar, criar,
+   atualizar, apagar entidades. Ex.: "listar sensores", "mostrar sensores do lab 64".
+   NÃO use fiware para perguntas conceituais ou reclamações.
 
-3. clarify — ação FIWARE mas faltam dados; assistant_message deve PERGUNTAR.
+3. clarify — ação FIWARE com dados faltantes; faça pergunta específica.
 
-NUNCA use fiware para cumprimento ou reação emocional. confidence entre 0 e 1."""
+ngsi_q: SOMENTE expressão NGSI-v2 (ex.: lab==64). NUNCA JSON nem URL.
+entity_type: nome capitalizado (Sensor, Device, Room).
+
+Confidence: 0.0–1.0 (sua certeza na classificação)."""
 
 FIWARE_KEYWORDS = (
     "sensor", "sensores", "entidade", "entidades", "orion", "fiware", "broker",
@@ -74,24 +94,41 @@ CONVERSATION_HINTS = (
 
 
 class SLMService:
-    """Converte linguagem natural em intent + parâmetros NGSI."""
+    """Converte linguagem natural em intent + parâmetros NGSI.
 
-    def __init__(self, ollama: OllamaClient | None = None) -> None:
+    Suporta três backends (selecionados por SLM_PROVIDER):
+    - ollama      → daemon HTTP local (bom em desenvolvimento)
+    - llama_cpp   → llama.cpp via binding Python (in-process, distribuível)
+    - transformers→ phi-2 via HuggingFace (legado)
+    Sem SLM_ENABLED ou em erro, cai na heurística determinística.
+    """
+
+    def __init__(
+        self,
+        ollama: OllamaClient | None = None,
+        llama_cpp: LlamaCppClient | None = None,
+    ) -> None:
         self._settings = get_settings()
         self._ollama = ollama
+        self._llama_cpp = llama_cpp
         self._model_override: str | None = None
         self._model = None
         self._tokenizer = None
 
     @property
+    def provider(self) -> str:
+        return self._settings.slm_provider.lower()
+
+    @property
     def current_model(self) -> str:
         if self._model_override:
             return self._model_override
-        client = self._ollama or OllamaClient()
-        return client.model
+        if self.provider == "llama_cpp":
+            return (self._llama_cpp or LlamaCppClient()).model
+        return (self._ollama or OllamaClient()).model
 
     def set_model(self, name: str) -> None:
-        """Altera modelo Ollama em runtime (modo chat)."""
+        """Altera modelo em runtime (modo chat). Para llama_cpp é informativo."""
         self._model_override = name
         if self._ollama:
             self._ollama.model = name
@@ -101,6 +138,11 @@ class SLMService:
         if self._model_override:
             client.model = self._model_override
         return client
+
+    def _llama_cpp_client(self) -> LlamaCppClient:
+        if self._llama_cpp is None:
+            self._llama_cpp = LlamaCppClient()
+        return self._llama_cpp
 
     def interpret_query(self, text: str) -> SlmInterpretation:
         """Interpreta texto conforme SLM_PROVIDER e SLM_ENABLED."""
@@ -112,6 +154,8 @@ class SLMService:
         try:
             if provider == "ollama":
                 return self._interpret_ollama(text)
+            if provider == "llama_cpp":
+                return self._interpret_llama_cpp(text)
             if provider == "transformers":
                 return self._interpret_phi2(text)
         except Exception as exc:
@@ -123,6 +167,11 @@ class SLMService:
         client = self._ollama or OllamaClient()
         raw = asyncio.run(client.chat(system=NGSI_SYSTEM_PROMPT, user=text))
         return self._parse_llm_json(raw, source="ollama")
+
+    def _interpret_llama_cpp(self, text: str) -> SlmInterpretation:
+        client = self._llama_cpp_client()
+        raw = asyncio.run(client.chat(system=NGSI_SYSTEM_PROMPT, user=text))
+        return self._parse_llm_json(raw, source="llama_cpp")
 
     def _parse_llm_json(self, raw: str, source: str) -> SlmInterpretation:
         match = re.search(r"\{.*\}", raw, re.DOTALL)
@@ -207,14 +256,19 @@ class SLMService:
         """Classifica turno: conversa, FIWARE ou pedido de esclarecimento."""
         settings = get_settings()
         ctx = context_messages or []
-        if settings.slm_enabled and settings.slm_provider.lower() == "ollama":
+        provider = settings.slm_provider.lower()
+        if settings.slm_enabled and provider in ("ollama", "llama_cpp"):
             try:
-                analysis = await self._analyze_chat_ollama(text, ctx, pending, last_intent)
-                return apply_conversation_guard(text, analysis, ctx)
+                analysis = await self._analyze_chat_llm(
+                    text, ctx, pending, last_intent, provider
+                )
+                analysis = apply_conversation_guard(text, analysis, ctx)
+                return self._normalize_fiware_analysis(analysis, text)
             except Exception as exc:
-                logger.warning("SLM análise falhou, heurística: %s", exc)
+                logger.debug("SLM análise falhou, heurística: %s", exc)
         analysis = self._analyze_chat_heuristic(text, last_intent, pending, ctx)
-        return apply_conversation_guard(text, analysis, ctx)
+        analysis = apply_conversation_guard(text, analysis, ctx)
+        return self._normalize_fiware_analysis(analysis, text)
 
     async def interpret_chat_intent(
         self,
@@ -228,29 +282,51 @@ class SLMService:
             return analysis.to_fiware_intent(text)
         return ChatIntent(operation="query", entity_type="Sensor", confidence=0.3, source="heuristic")
 
-    async def _analyze_chat_ollama(
+    async def _analyze_chat_llm(
         self,
         text: str,
         context_messages: list[dict[str, str]],
         pending: dict | None,
-        last_intent: ChatIntent | None = None,
+        last_intent: ChatIntent | None,
+        provider: str,
     ) -> ChatTurnAnalysis:
-        client = self._ollama_client()
+        """Caminho comum para Ollama e llama_cpp — ambos com interface chat_messages."""
+        if provider == "llama_cpp":
+            client = self._llama_cpp_client()
+            source = "llama_cpp"
+        else:
+            client = self._ollama_client()
+            source = "ollama"
+
         system = CHAT_ANALYSIS_PROMPT
         if last_intent:
             system += f"\nÚltima ação FIWARE (contexto): {last_intent.summary()}"
         if pending:
-            system += f"\nContexto pendente (complete com a nova mensagem): {json.dumps(pending, ensure_ascii=False)}"
+            system += (
+                "\nContexto pendente (complete com a nova mensagem): "
+                f"{json.dumps(pending, ensure_ascii=False)}"
+            )
         messages = [{"role": "system", "content": system}]
         messages.extend(context_messages)
         messages.append({"role": "user", "content": text})
         raw = await client.chat_messages(messages, json_mode=True)
-        return self._parse_chat_analysis(raw, source="ollama")
+        return self._parse_chat_analysis(raw, source=source)
+
+    @staticmethod
+    def _normalize_fiware_analysis(analysis: ChatTurnAnalysis, user_text: str) -> ChatTurnAnalysis:
+        if analysis.response_type != "fiware":
+            return analysis
+        return analysis.model_copy(
+            update={
+                "entity_type": normalize_entity_type(analysis.entity_type),
+                "ngsi_q": normalize_ngsi_q(analysis.ngsi_q, user_text),
+            }
+        )
 
     def _parse_chat_analysis(self, raw: str, source: str) -> ChatTurnAnalysis:
         match = re.search(r"\{.*\}", raw, re.DOTALL)
         if not match:
-            raise OllamaError("JSON de análise não encontrado")
+            raise ValueError(f"JSON de análise não encontrado em resposta {source}")
         data = json.loads(match.group())
         rtype = data.get("response_type", "conversation")
         if rtype not in ("conversation", "fiware", "clarify"):
@@ -391,7 +467,7 @@ class SLMService:
             if m := re.search(r"lab(?:orat[oó]rio)?\s*(\d+)", lower):
                 lab_q = f"lab=={m.group(1)}"
             etype = "Device" if "device" in lower or "dispositivo" in lower else "Sensor"
-            op = "list" if any(w in lower for w in ("listar", "mostrar", "quais")) else "query"
+            op = "list" if any(w in lower for w in ("listar", "lista", "mostrar", "quais")) else "query"
             if re.search(r"\bver\s+(meus?|minhas?|os|as)?\s*(sensores|entidades)", lower):
                 op = "list"
             return ChatTurnAnalysis(
@@ -408,8 +484,10 @@ class SLMService:
         return ChatTurnAnalysis(
             response_type="conversation",
             assistant_message=(
-                "Sou o assistente DKRT para o FIWARE Orion. "
-                "Posso conversar ou consultar sensores e entidades — o que você precisa?"
+                "[modo simplificado — Ollama offline] "
+                "Consigo executar comandos no Orion (listar/consultar/criar/atualizar/apagar "
+                "sensores e entidades). Para respostas mais ricas e naturais, suba o Ollama: "
+                "`ollama serve`."
             ),
             confidence=0.6,
             source="heuristic",
@@ -435,11 +513,38 @@ class SLMService:
         return "Olá! Sou o assistente DKRT. Posso ajudar com o Context Broker ou tirar dúvidas — o que você precisa?"
 
     async def check_ollama(self) -> dict:
-        """Verifica se Ollama está acessível e se o modelo configurado existe."""
-        client = self._ollama_client()
-        models = await client.list_models()
+        """Saúde do backend SLM atual. Nome mantido por compat com chat_engine/cli."""
+        provider = self.provider
         configured = self.current_model
+
+        if provider == "llama_cpp":
+            client = self._llama_cpp_client()
+            try:
+                models = await client.list_models()
+                available = client.model_path.exists()
+                error = None
+            except Exception as exc:
+                models = []
+                available = False
+                error = str(exc)
+            return {
+                "provider": "llama_cpp",
+                "base_url": f"file://{client.model_path}",
+                "configured_model": configured,
+                "model_available": available,
+                "installed_models": models,
+                "error": error,
+            }
+
+        client = self._ollama_client()
+        try:
+            models = await client.list_models()
+            error = None
+        except Exception as exc:
+            models = []
+            error = str(exc)
         return {
+            "provider": "ollama",
             "base_url": client.base_url,
             "configured_model": configured,
             "model_available": any(
@@ -447,6 +552,7 @@ class SLMService:
                 for m in models
             ),
             "installed_models": models,
+            "error": error,
         }
 
     @staticmethod

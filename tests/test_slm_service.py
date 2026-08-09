@@ -3,6 +3,16 @@ import pytest
 from context_broker_multiagent.services.slm_service import SLMService
 
 
+@pytest.fixture
+def heuristic_only(monkeypatch):
+    """Garante que SLM caia na heurística mesmo se Ollama estiver rodando."""
+    from context_broker_multiagent import config
+
+    settings = config.get_settings()
+    monkeypatch.setattr(settings, "slm_enabled", False)
+    yield
+
+
 @pytest.mark.parametrize(
     "text,expected_intent",
     [
@@ -11,7 +21,7 @@ from context_broker_multiagent.services.slm_service import SLMService
         ("avisar quando temperatura subir", "subscribe"),
     ],
 )
-def test_slm_heuristic_intents(text, expected_intent):
+def test_slm_heuristic_intents(heuristic_only, text, expected_intent):
     slm = SLMService()
     result = slm.interpret_query(text)
     assert result.intent == expected_intent

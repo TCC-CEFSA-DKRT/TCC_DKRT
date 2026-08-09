@@ -8,6 +8,7 @@ from context_broker_multiagent.models.intent import ChatTurnAnalysis
 
 FIWARE_ACTION_VERBS = (
     "listar",
+    "lista",
     "liste",
     "mostrar",
     "mostre",
@@ -80,9 +81,9 @@ def requires_fiware_action(text: str) -> bool:
 
 
 def is_meta_or_status_question(text: str) -> bool:
-    """Perguntas sobre disponibilidade/erro, sem pedido de dados NGSI."""
+    """Perguntas sobre status/erro OU capacidade do agente — sem pedido direto de dados."""
     lower = text.lower().strip()
-    patterns = (
+    status_patterns = (
         r"\b(est[aá]|t[aá])\s+(indispon[ií]vel|offline|fora|down)\b",
         r"\bindispon[ií]vel\b",
         r"\b(por que|porque)\s+(n[aã]o|nao)\s+(funciona|conecta|abre)\b",
@@ -94,7 +95,16 @@ def is_meta_or_status_question(text: str) -> bool:
         r"\best[aá]\s+offline\b",
         r"\bcaiu\b",
     )
-    return any(re.search(p, lower) for p in patterns)
+    capability_patterns = (
+        r"\bvoc[eê]\s+(consegue|consegui|sabe|pode|poderia|faz|tem como|saberia)\b",
+        r"\b(consegue|consegui|sabe|pode|poderia|saberia)\s+(persistir|guardar|salvar|gravar|armazenar|consultar|listar|criar|atualizar|apagar|fazer|buscar|mostrar|ajudar)\b",
+        r"\b(consigo|posso|sabemos|podemos)\s+(persistir|guardar|consultar|listar|criar|atualizar)\b",
+        r"\bo que\s+voc[eê]\s+(faz|sabe|pode)\b",
+        r"\b(quem|o que)\s+(é\s+)?voc[eê]\b",
+        r"\bcomo\s+(funciona|voc[eê]\s+funciona)\b",
+        r"\b(entendi|certo|ok|legal)[\s,.!?]",
+    )
+    return any(re.search(p, lower) for p in (*status_patterns, *capability_patterns))
 
 
 def is_frustration_only(text: str) -> bool:
@@ -113,12 +123,22 @@ def last_assistant_had_orion_error(context_messages: list[dict[str, str]]) -> bo
     return False
 
 
+def _has_concrete_fiware_params(analysis: ChatTurnAnalysis) -> bool:
+    """SLM extraiu parâmetros específicos o suficiente para justificar uma ação."""
+    return bool(analysis.entity_id or analysis.ngsi_q or analysis.attribute)
+
+
 def should_force_conversation(
     text: str,
     analysis: ChatTurnAnalysis,
     context_messages: list[dict[str, str]] | None,
 ) -> bool:
-    """Evita chamar Orion quando o turno é reação, status ou follow-up ao erro."""
+    """Evita chamar Orion quando o turno é reação, status, capacidade ou conversa.
+
+    Princípio: só executa FIWARE quando há verbo de ação explícito OU parâmetros
+    concretos extraídos (entity_id, ngsi_q, attribute). Sem isso, o SLM provavelmente
+    confundiu uma pergunta conceitual com um pedido de dados.
+    """
     if analysis.response_type != "fiware":
         return False
 
@@ -128,17 +148,21 @@ def should_force_conversation(
     if is_frustration_only(text):
         return True
 
-    if is_meta_or_status_question(text) and not requires_fiware_action(text):
+    # Perguntas de capacidade/status/meta SEMPRE são conversa, mesmo com verbo.
+    # Ex.: "você consegue listar?" tem "listar" mas é pergunta, não comando.
+    if is_meta_or_status_question(text):
+        return True
+
+    has_verb = requires_fiware_action(text)
+    has_params = _has_concrete_fiware_params(analysis)
+
+    # Sem verbo E sem parâmetros concretos → conversa (mesmo com confidence alta).
+    if not has_verb and not has_params:
         return True
 
     if last_assistant_had_orion_error(ctx):
-        if is_meta_or_status_question(text) or is_frustration_only(text):
+        if not has_verb and len(lower.split()) <= 10:
             return True
-        if len(lower.split()) <= 10 and not requires_fiware_action(text):
-            return True
-
-    if not requires_fiware_action(text) and analysis.confidence < 0.88:
-        return True
 
     return False
 
@@ -182,16 +206,45 @@ def contextual_conversation_reply(
     )
 
 
+_GENERIC_FIWARE_MSG_PREFIXES = (
+    "buscando",
+    "consultando",
+    "listando",
+    "atualizando",
+    "criando",
+    "removendo",
+    "deletando",
+    "executando",
+)
+
+
+def _slm_message_looks_conversational(message: str) -> bool:
+    """O SLM gerou texto rico (explicação real) e não confirmação de ação."""
+    if not message:
+        return False
+    stripped = message.strip()
+    if len(stripped) < 30:
+        return False
+    return not stripped.lower().startswith(_GENERIC_FIWARE_MSG_PREFIXES)
+
+
 def apply_conversation_guard(
     text: str,
     analysis: ChatTurnAnalysis,
     context_messages: list[dict[str, str]] | None,
 ) -> ChatTurnAnalysis:
-    """Reclassifica fiware → conversation quando as regras indicam."""
+    """Reclassifica fiware → conversation quando as regras indicam.
+
+    Preserva o assistant_message original do SLM se for uma resposta rica
+    (explicação real); caso contrário usa um template contextual.
+    """
     if not should_force_conversation(text, analysis, context_messages):
         return analysis
 
-    reply = contextual_conversation_reply(text, context_messages)
+    if _slm_message_looks_conversational(analysis.assistant_message):
+        reply = analysis.assistant_message.strip()
+    else:
+        reply = contextual_conversation_reply(text, context_messages)
 
     return ChatTurnAnalysis(
         response_type="conversation",

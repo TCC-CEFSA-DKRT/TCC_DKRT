@@ -1,11 +1,18 @@
 """Configuração central via variáveis de ambiente."""
 
+import os
 from functools import lru_cache
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _default_threads() -> int:
+    """Heurística de threads para llama.cpp: núcleos físicos ≈ logical/2 (HT)."""
+    cpu = os.cpu_count() or 4
+    return max(1, cpu // 2)
 
 
 class Settings(BaseSettings):
@@ -23,12 +30,28 @@ class Settings(BaseSettings):
     fiware_api_key: str = ""
 
     slm_enabled: bool = False
-    slm_provider: str = "ollama"  # ollama | transformers | heuristic (forçado se slm_enabled=false)
+    slm_provider: str = "ollama"  # ollama | llama_cpp | transformers | heuristic
     slm_model: str = "microsoft/phi-2"  # usado apenas com slm_provider=transformers
 
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "qwen2.5"
     ollama_timeout_seconds: float = 120.0
+
+    llama_model_path: Path = (
+        PROJECT_ROOT / "models" / "qwen2.5-3b-instruct-q4_k_m.gguf"
+    )
+    llama_model_repo: str = "Qwen/Qwen2.5-3B-Instruct-GGUF"
+    llama_model_file: str = "qwen2.5-3b-instruct-q4_k_m.gguf"
+    llama_n_ctx: int = 2048
+    llama_n_threads: int = _default_threads()
+    llama_n_batch: int = 512
+    llama_n_ubatch: int = 512
+    llama_flash_attn: bool = False
+    llama_mlock: bool = False
+    llama_n_gpu_layers: int = 0
+    llama_max_tokens: int = 512
+    llama_temperature: float = 0.4
+    llama_verbose: bool = False
 
     chat_history_max_turns: int = 5
 

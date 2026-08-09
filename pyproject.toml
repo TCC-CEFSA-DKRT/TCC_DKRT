@@ -28,6 +28,10 @@ slm = [
     "transformers>=4.40.0",
     "torch>=2.0.0",
 ]
+slm-cpp = [
+    "llama-cpp-python>=0.3.2",
+    "huggingface-hub>=0.24.0",
+]
 
 [project.scripts]
 dkrt = "context_broker_multiagent.terminal:main"

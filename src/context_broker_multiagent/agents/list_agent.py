@@ -15,10 +15,14 @@ class ListAgent(BaseAgent):
 
     async def process(self, message: AgentMessage) -> AgentResponse:
         intent = message.metadata.get("chat_intent", {})
-        entity_type = intent.get("entity_type") or message.metadata.get("entity_type", "Sensor")
-        limit = intent.get("limit", 50)
-
-        params = NgsiQueryParams(type=entity_type, limit=limit)
+        params_data = message.metadata.get("ngsi_query", {})
+        if params_data:
+            params = NgsiQueryParams.model_validate(params_data)
+        else:
+            entity_type = intent.get("entity_type") or message.metadata.get("entity_type", "Sensor")
+            limit = intent.get("limit", 50)
+            params = NgsiQueryParams(type=entity_type, limit=limit)
+        entity_type = params.type or "Sensor"
         try:
             entities = await self._client.query_entities(params)
             return AgentResponse(

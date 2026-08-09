@@ -217,11 +217,28 @@ class ChatEngine:
         try:
             info = await self.status()
         except Exception:
-            return
-        if not info["ollama"].get("model_available"):
             self._console.print(
-                "[yellow]! Ollama: ajuste o modelo com /model qwen2.5:3b[/yellow]"
+                "[yellow]! Não consegui verificar Ollama/Orion no startup.[/yellow]"
             )
+            return
+
+        ollama_info = info["ollama"]
+        reachable = bool(ollama_info.get("installed_models")) or ollama_info.get(
+            "model_available"
+        )
+        if not reachable:
+            self._console.print(
+                "[yellow]! Ollama offline em "
+                f"{ollama_info.get('base_url', 'localhost:11434')} — sem SLM, respostas "
+                "ficarão simplificadas. Suba com:[/yellow] [bold]ollama serve[/bold]"
+            )
+        elif not ollama_info.get("model_available"):
+            installed = ", ".join(ollama_info.get("installed_models", [])) or "nenhum"
+            self._console.print(
+                f"[yellow]! Modelo {ollama_info.get('configured_model')} ausente. "
+                f"Instalados: {installed}. Use /model <nome>.[/yellow]"
+            )
+
         if not info["fiware"].get("ok"):
             self._console.print(
                 "[yellow]! Orion offline — conversa OK; dados exigem docker compose up -d[/yellow]"
@@ -229,8 +246,22 @@ class ChatEngine:
 
 
 def configure_quiet_logging() -> None:
-    """Oculta logs INFO no terminal (mantém erros)."""
-    logging.basicConfig(level=logging.WARNING)
+    """Oculta logs INFO/WARNING no terminal (mantém ERROR/CRITICAL).
+
+    O motor de chat já trata fallbacks (SLM offline, Orion offline) com mensagens
+    amigáveis; logs estruturados poluiriam a UX.
+    """
+    logging.basicConfig(level=logging.ERROR, format="%(message)s")
+    for name in (
+        "context_broker_multiagent",
+        "context_broker_multiagent.services.slm_service",
+        "context_broker_multiagent.services.ollama_client",
+        "context_broker_multiagent.services.fiware_client",
+        "context_broker_multiagent.core.intent_router",
+        "aiohttp",
+        "asyncio",
+    ):
+        logging.getLogger(name).setLevel(logging.ERROR)
     structlog.configure(
-        wrapper_class=structlog.make_filtering_bound_logger(logging.WARNING),
+        wrapper_class=structlog.make_filtering_bound_logger(logging.ERROR),
     )

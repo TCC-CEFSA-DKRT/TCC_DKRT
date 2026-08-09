@@ -18,7 +18,7 @@ class ChatIntent(BaseModel):
     ngsi_q: str | None = None
     confidence: float = Field(default=0.5, ge=0.0, le=1.0)
     raw_text: str = ""
-    source: Literal["ollama", "heuristic"] = "heuristic"
+    source: Literal["ollama", "llama_cpp", "heuristic"] = "heuristic"
 
     def summary(self) -> str:
         parts = [f"op={self.operation}", f"conf={self.confidence:.0%}"]
@@ -45,7 +45,7 @@ class ChatTurnAnalysis(BaseModel):
     ngsi_q: str | None = None
     missing_fields: list[str] = Field(default_factory=list)
     confidence: float = Field(default=0.5, ge=0.0, le=1.0)
-    source: Literal["ollama", "heuristic"] = "heuristic"
+    source: Literal["ollama", "llama_cpp", "heuristic"] = "heuristic"
 
     def to_fiware_intent(self, raw_text: str = "") -> ChatIntent:
         """Converte para ChatIntent quando response_type == fiware."""

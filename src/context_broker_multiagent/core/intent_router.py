@@ -13,6 +13,7 @@ from context_broker_multiagent.agents.update_agent import UpdateAgent
 from context_broker_multiagent.models.intent import ChatIntent
 from context_broker_multiagent.models.messages import AgentMessage, AgentResponse
 from context_broker_multiagent.services.fiware_client import FiwareClient
+from context_broker_multiagent.utils.ngsi_filters import normalize_entity_type, normalize_ngsi_q
 
 logger = structlog.get_logger(__name__)
 
@@ -39,15 +40,17 @@ class IntentRouter:
         return {name: "ready" for name in self._agents}
 
     def _build_metadata(self, intent: ChatIntent, user_text: str) -> dict:
+        entity_type = normalize_entity_type(intent.entity_type)
+        ngsi_q = normalize_ngsi_q(intent.ngsi_q, user_text)
         ngsi_query: dict = {"limit": 20}
-        if intent.entity_type:
-            ngsi_query["type"] = intent.entity_type
+        if entity_type:
+            ngsi_query["type"] = entity_type
         if intent.entity_id:
             ngsi_query["id"] = intent.entity_id
         if intent.attribute:
             ngsi_query["attrs"] = intent.attribute
-        if intent.ngsi_q:
-            ngsi_query["q"] = intent.ngsi_q
+        if ngsi_q:
+            ngsi_query["q"] = ngsi_q
 
         meta: dict = {
             "chat_intent": intent.model_dump(),

@@ -16,6 +16,14 @@ async def test_query_entities_mock():
     assert entities[0]["id"] == "Sensor:001"
 
 
+def test_headers_omit_content_type_without_body():
+    client = FiwareClient(base_url="http://test")
+    get_headers = client._headers(json_body=False)
+    assert "Content-Type" not in get_headers
+    post_headers = client._headers(json_body=True)
+    assert post_headers["Content-Type"] == "application/json"
+
+
 def test_ngsi_entity_id_validation():
     with pytest.raises(ValueError):
         NgsiEntity(id="invalid", type="Sensor")

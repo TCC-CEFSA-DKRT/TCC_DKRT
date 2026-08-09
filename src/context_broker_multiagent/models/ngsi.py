@@ -41,4 +41,4 @@ class SlmInterpretation(BaseModel):
     ngsi_query: NgsiQueryParams | None = None
     entity: NgsiEntity | None = None
     raw_interpretation: str = ""
-    source: Literal["heuristic", "phi-2", "ollama"] = "heuristic"
+    source: Literal["heuristic", "phi-2", "ollama", "llama_cpp"] = "heuristic"
