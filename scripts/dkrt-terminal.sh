@@ -7,4 +7,4 @@ if [[ ! -x "$PYTHON" ]]; then
   echo "Crie o venv: python3 -m venv .venv && pip install -e ."
   exit 1
 fi
-exec "$PYTHON" -m context_broker_multiagent.terminal "$@"
+exec "$PYTHON" -m context_broker_agent.terminal "$@"

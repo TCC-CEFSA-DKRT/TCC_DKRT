@@ -16,7 +16,7 @@ from pathlib import Path
 from threading import Lock
 from typing import Any
 
-from context_broker_multiagent.config import get_settings
+from context_broker_agent.config import get_settings
 
 logger = logging.getLogger(__name__)
 

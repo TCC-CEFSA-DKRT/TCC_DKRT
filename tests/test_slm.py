@@ -1,6 +1,6 @@
 import pytest
 
-from context_broker_multiagent.services.slm_service import SLMService
+from context_broker_agent.services.slm_service import SLMService
 
 
 @pytest.mark.parametrize(

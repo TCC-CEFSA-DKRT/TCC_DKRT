@@ -5,8 +5,8 @@ from typing import Any
 
 import aiohttp
 
-from context_broker_multiagent.config import get_settings
-from context_broker_multiagent.models.ngsi import NgsiEntity, NgsiQueryParams
+from context_broker_agent.config import get_settings
+from context_broker_agent.models.ngsi import NgsiEntity, NgsiQueryParams
 
 
 class FiwareError(Exception):

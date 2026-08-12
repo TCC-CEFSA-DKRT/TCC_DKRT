@@ -2,8 +2,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from context_broker_multiagent.models.ngsi import NgsiEntity, NgsiQueryParams
-from context_broker_multiagent.services.fiware_client import FiwareClient
+from context_broker_agent.models.ngsi import NgsiEntity, NgsiQueryParams
+from context_broker_agent.services.fiware_client import FiwareClient
 
 
 @pytest.mark.asyncio

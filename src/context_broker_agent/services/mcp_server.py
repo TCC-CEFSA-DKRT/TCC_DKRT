@@ -5,11 +5,11 @@ from typing import Any
 
 from aiohttp import web
 
-from context_broker_multiagent.config import get_settings
-from context_broker_multiagent.models.ngsi import NgsiQueryParams
-from context_broker_multiagent.orchestrator import MultiAgentOrchestrator
-from context_broker_multiagent.services.fiware_client import FiwareClient
-from context_broker_multiagent.services.slm_service import SLMService
+from context_broker_agent.config import get_settings
+from context_broker_agent.models.ngsi import NgsiQueryParams
+from context_broker_agent.orchestrator import MultiAgentOrchestrator
+from context_broker_agent.services.fiware_client import FiwareClient
+from context_broker_agent.services.slm_service import SLMService
 
 TOOLS: list[dict[str, Any]] = [
     {

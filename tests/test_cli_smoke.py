@@ -1,6 +1,6 @@
 from typer.testing import CliRunner
 
-from context_broker_multiagent.cli import app
+from context_broker_agent.cli import app
 
 runner = CliRunner()
 

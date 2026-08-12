@@ -1,6 +1,6 @@
 import pytest
 
-from context_broker_multiagent.terminal.shell import DkrtTerminal
+from context_broker_agent.terminal.shell import DkrtTerminal
 
 
 def test_parse_command():

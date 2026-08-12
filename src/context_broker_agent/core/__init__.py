@@ -1,4 +1,4 @@
-from context_broker_multiagent.core.chat_engine import ChatEngine, ChatTurnResult
-from context_broker_multiagent.core.intent_router import IntentRouter
+from context_broker_agent.core.chat_engine import ChatEngine, ChatTurnResult
+from context_broker_agent.core.intent_router import IntentRouter
 
 __all__ = ["ChatEngine", "ChatTurnResult", "IntentRouter"]

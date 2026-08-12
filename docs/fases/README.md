@@ -61,4 +61,4 @@ flowchart TD
 | Diagramas | `docs/*.png`, `docs/*.svg` |
 | Prompts RAG | `prompts/` |
 | Skills Cursor | `.cursor/skills/` |
-| Código atual | `src/context_broker_multiagent/` |
+| Código atual | `src/context_broker_agent/` |

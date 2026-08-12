@@ -2,10 +2,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from context_broker_multiagent.agents.base import BaseAgent
-from context_broker_multiagent.core.intent_router import IntentRouter
-from context_broker_multiagent.models.intent import ChatIntent
-from context_broker_multiagent.models.messages import AgentMessage, AgentResponse
+from context_broker_agent.agents.base import BaseAgent
+from context_broker_agent.core.intent_router import IntentRouter
+from context_broker_agent.models.intent import ChatIntent
+from context_broker_agent.models.messages import AgentMessage, AgentResponse
 
 
 class StubAgent(BaseAgent):

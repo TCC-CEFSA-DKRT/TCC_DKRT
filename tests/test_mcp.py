@@ -1,7 +1,7 @@
 import pytest
 from aiohttp.test_utils import TestClient, TestServer
 
-from context_broker_multiagent.services.mcp_server import McpServer
+from context_broker_agent.services.mcp_server import McpServer
 
 
 @pytest.mark.asyncio

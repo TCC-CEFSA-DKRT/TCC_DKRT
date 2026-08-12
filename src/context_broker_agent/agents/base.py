@@ -4,8 +4,8 @@ import asyncio
 import time
 from abc import ABC, abstractmethod
 
-from context_broker_multiagent.config import get_settings
-from context_broker_multiagent.models.messages import AgentMessage, AgentResponse
+from context_broker_agent.config import get_settings
+from context_broker_agent.models.messages import AgentMessage, AgentResponse
 
 
 class BaseAgent(ABC):

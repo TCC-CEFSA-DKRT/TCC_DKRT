@@ -6,7 +6,7 @@ cd /d "%DKRT_ROOT%"
 
 if not exist ".venv\Scripts\python.exe" goto :no_venv
 
-".venv\Scripts\python.exe" -c "import context_broker_multiagent" >nul 2>&1
+".venv\Scripts\python.exe" -c "import context_broker_agent" >nul 2>&1
 if errorlevel 1 goto :no_package
 
 REM Le SLM_PROVIDER do .env para decidir o caminho de inicializacao.
@@ -97,7 +97,7 @@ goto :run
 REM ============================================================
 :run
 echo.
-".venv\Scripts\python.exe" -m context_broker_multiagent.terminal
+".venv\Scripts\python.exe" -m context_broker_agent.terminal
 set "DKRT_EXIT=%errorlevel%"
 
 if defined DKRT_STARTED_OLLAMA (
@@ -119,7 +119,7 @@ pause
 exit /b 1
 
 :no_package
-echo [DKRT] Pacote context_broker_multiagent nao instalado no venv.
+echo [DKRT] Pacote context_broker_agent nao instalado no venv.
 echo.
 echo Execute no PowerShell ^(na pasta do projeto^):
 echo   .venv\Scripts\pip install -e .

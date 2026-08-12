@@ -18,12 +18,12 @@ from rich.json import JSON
 from rich.panel import Panel
 from rich.table import Table
 
-from context_broker_multiagent.config import PROJECT_ROOT
-from context_broker_multiagent.core.chat_engine import ChatEngine
-from context_broker_multiagent.models.ngsi import NgsiQueryParams
-from context_broker_multiagent.orchestrator import MultiAgentOrchestrator
-from context_broker_multiagent.services.fiware_client import FiwareClient
-from context_broker_multiagent.terminal.commands import TERMINAL_COMMANDS, build_command_map
+from context_broker_agent.config import PROJECT_ROOT
+from context_broker_agent.core.chat_engine import ChatEngine
+from context_broker_agent.models.ngsi import NgsiQueryParams
+from context_broker_agent.orchestrator import MultiAgentOrchestrator
+from context_broker_agent.services.fiware_client import FiwareClient
+from context_broker_agent.terminal.commands import TERMINAL_COMMANDS, build_command_map
 
 if TYPE_CHECKING:
     pass
@@ -280,7 +280,7 @@ def _configure_stdio() -> None:
 
 
 def _configure_logging() -> None:
-    from context_broker_multiagent.core.chat_engine import configure_quiet_logging
+    from context_broker_agent.core.chat_engine import configure_quiet_logging
 
     configure_quiet_logging()
 

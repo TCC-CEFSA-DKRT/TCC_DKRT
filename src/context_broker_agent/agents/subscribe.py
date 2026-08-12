@@ -1,7 +1,7 @@
 """SubscribeAgent — planejamento de subscrições NGSI-v2."""
 
-from context_broker_multiagent.agents.base import BaseAgent
-from context_broker_multiagent.models.messages import AgentMessage, AgentResponse
+from context_broker_agent.agents.base import BaseAgent
+from context_broker_agent.models.messages import AgentMessage, AgentResponse
 
 
 class SubscribeAgent(BaseAgent):

@@ -4,7 +4,7 @@ import asyncio
 
 import structlog
 
-from context_broker_multiagent.agents import (
+from context_broker_agent.agents import (
     AnalyzeAgent,
     BaseAgent,
     ProvisionAgent,
@@ -12,13 +12,13 @@ from context_broker_multiagent.agents import (
     RouteAgent,
     SubscribeAgent,
 )
-from context_broker_multiagent.models.messages import (
+from context_broker_agent.models.messages import (
     AgentMessage,
     AgentResponse,
     OrchestrationResult,
     OrchestrationStatus,
 )
-from context_broker_multiagent.services.fiware_client import FiwareClient
+from context_broker_agent.services.fiware_client import FiwareClient
 
 logger = structlog.get_logger(__name__)
 

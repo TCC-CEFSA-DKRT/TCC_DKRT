@@ -1,12 +1,12 @@
-"""ListAgent — listagem de entidades por tipo NGSI-v2."""
+"""ListHandler — listagem de entidades por tipo NGSI-v2."""
 
-from context_broker_multiagent.agents.base import BaseAgent
-from context_broker_multiagent.models.messages import AgentMessage, AgentResponse
-from context_broker_multiagent.models.ngsi import NgsiQueryParams
-from context_broker_multiagent.services.fiware_client import FiwareClient
+from context_broker_agent.agents.base import BaseAgent
+from context_broker_agent.models.messages import AgentMessage, AgentResponse
+from context_broker_agent.models.ngsi import NgsiQueryParams
+from context_broker_agent.services.fiware_client import FiwareClient
 
 
-class ListAgent(BaseAgent):
+class ListHandler(BaseAgent):
     name = "list"
 
     def __init__(self, client: FiwareClient | None = None, **kwargs) -> None:

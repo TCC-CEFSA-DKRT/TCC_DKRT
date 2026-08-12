@@ -2,10 +2,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from context_broker_multiagent.core.chat_engine import ChatEngine
-from context_broker_multiagent.models.intent import ChatIntent, ChatTurnAnalysis
-from context_broker_multiagent.models.messages import AgentResponse
-from context_broker_multiagent.utils.history_manager import HistoryManager
+from context_broker_agent.core.chat_engine import ChatEngine
+from context_broker_agent.models.intent import ChatIntent, ChatTurnAnalysis
+from context_broker_agent.models.messages import AgentResponse
+from context_broker_agent.utils.history_manager import HistoryManager
 
 
 @pytest.mark.asyncio
@@ -84,7 +84,7 @@ async def test_clarify_does_not_call_router():
 
 
 def test_heuristic_greeting():
-    from context_broker_multiagent.services.slm_service import SLMService
+    from context_broker_agent.services.slm_service import SLMService
 
     analysis = SLMService()._analyze_chat_heuristic("Ola", None, None)
     assert analysis.response_type == "conversation"

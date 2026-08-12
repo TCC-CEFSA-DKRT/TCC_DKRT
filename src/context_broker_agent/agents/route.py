@@ -1,7 +1,7 @@
 """RouteAgent — classifica intenção e papéis dos agentes."""
 
-from context_broker_multiagent.agents.base import BaseAgent
-from context_broker_multiagent.models.messages import AgentMessage, AgentResponse
+from context_broker_agent.agents.base import BaseAgent
+from context_broker_agent.models.messages import AgentMessage, AgentResponse
 
 
 class RouteAgent(BaseAgent):

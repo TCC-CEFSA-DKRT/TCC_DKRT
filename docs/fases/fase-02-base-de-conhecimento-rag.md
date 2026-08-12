@@ -42,7 +42,7 @@ Antes de gerar código ou responder com precisão, o assistente precisa de **con
 |-------|----------|------------|
 | NGSI-v2 Orion (entidades, query, subscribe) | `fiware` | Alta |
 | README e diagramas do TCC | `tcc` | Alta |
-| Código `context_broker_multiagent` | `python` | Média |
+| Código `context_broker_agent` | `python` | Média |
 | Notas de multiagentes / orquestração | `multiagent` | Média |
 
 ## 5. Entregáveis

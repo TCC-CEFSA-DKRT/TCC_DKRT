@@ -2,10 +2,10 @@ import asyncio
 
 import pytest
 
-from context_broker_multiagent.agents.query import QueryAgent
-from context_broker_multiagent.models.messages import OrchestrationStatus
-from context_broker_multiagent.models.ngsi import NgsiQueryParams
-from context_broker_multiagent.orchestrator import MultiAgentOrchestrator
+from context_broker_agent.agents.query import QueryAgent
+from context_broker_agent.models.messages import OrchestrationStatus
+from context_broker_agent.models.ngsi import NgsiQueryParams
+from context_broker_agent.orchestrator import MultiAgentOrchestrator
 
 
 class MockFiwareClient:
@@ -41,7 +41,7 @@ async def test_agent_timeout():
 
     slow = SlowAgent(client=MockFiwareClient())
     slow.timeout_seconds = 0.01
-    from context_broker_multiagent.models.messages import AgentMessage
+    from context_broker_agent.models.messages import AgentMessage
 
     resp = await slow.execute_with_timeout(
         AgentMessage(content="x", metadata={"ngsi_query": {"type": "Sensor"}})

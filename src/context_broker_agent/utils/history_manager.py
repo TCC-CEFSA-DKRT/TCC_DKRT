@@ -6,7 +6,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Any
 
-from context_broker_multiagent.models.intent import ChatIntent
+from context_broker_agent.models.intent import ChatIntent
 
 
 @dataclass

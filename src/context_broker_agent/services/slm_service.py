@@ -7,19 +7,19 @@ import json
 import logging
 import re
 
-from context_broker_multiagent.config import get_settings
-from context_broker_multiagent.models.intent import ChatIntent, ChatTurnAnalysis
-from context_broker_multiagent.models.ngsi import NgsiEntity, NgsiQueryParams, SlmInterpretation
-from context_broker_multiagent.services.llama_cpp_service import (
+from context_broker_agent.config import get_settings
+from context_broker_agent.models.intent import ChatIntent, ChatTurnAnalysis
+from context_broker_agent.models.ngsi import NgsiEntity, NgsiQueryParams, SlmInterpretation
+from context_broker_agent.services.llama_cpp_service import (
     LlamaCppClient,
     LlamaCppError,
 )
-from context_broker_multiagent.services.ollama_client import OllamaClient, OllamaError
-from context_broker_multiagent.utils.chat_turn_classifier import (
+from context_broker_agent.services.ollama_client import OllamaClient, OllamaError
+from context_broker_agent.utils.chat_turn_classifier import (
     apply_conversation_guard,
     requires_fiware_action,
 )
-from context_broker_multiagent.utils.ngsi_filters import (
+from context_broker_agent.utils.ngsi_filters import (
     normalize_entity_type,
     normalize_ngsi_q,
 )

@@ -1,12 +1,12 @@
 import pytest
 
-from context_broker_multiagent.services.slm_service import SLMService
+from context_broker_agent.services.slm_service import SLMService
 
 
 @pytest.fixture
 def heuristic_only(monkeypatch):
     """Garante que SLM caia na heurística mesmo se Ollama estiver rodando."""
-    from context_broker_multiagent import config
+    from context_broker_agent import config
 
     settings = config.get_settings()
     monkeypatch.setattr(settings, "slm_enabled", False)

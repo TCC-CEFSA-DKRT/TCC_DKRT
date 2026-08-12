@@ -3,7 +3,7 @@ name: dkrt-tcc-codegen
 description: >-
   Orquestra o pipeline completo DKRT (ingestão RAG, inferência com rewrite/HyDE/rerank,
   guardrails PII+schema) para gerar código Python/FIWARE no TCC. Use ao implementar
-  features no context_broker_multiagent, CLI, agentes ou integração Orion.
+  features no context_broker_agent, CLI, agentes ou integração Orion.
 ---
 
 # DKRT — Geração de código (pipeline completo)
@@ -54,7 +54,7 @@ Somente após validação OK: escrever arquivos listados em `files`.
 
 - Python 3.11+, type hints, docstrings Google
 - Async para I/O (FIWARE)
-- Pacote: `src/context_broker_multiagent/`
+- Pacote: `src/context_broker_agent/`
 
 ## Prompts globais
 

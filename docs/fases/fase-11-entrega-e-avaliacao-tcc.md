@@ -87,7 +87,7 @@ Esta fase fecha o ciclo iniciado na [Fase 0](fase-00-planejamento-e-escopo.md): 
 
 - README principal (análise Python).
 - `docs/entrega/pre_projeto_tcc.md`.
-- Código: `src/context_broker_multiagent/`.
+- Código: `src/context_broker_agent/`.
 - Pipeline IA: `prompts/`, `.cursor/skills/`.
 
 ## 9. Trabalhos futuros (seção padrão)

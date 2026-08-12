@@ -13,9 +13,9 @@ if (-not (Test-Path $Python)) {
     exit 1
 }
 
-& $Python -c "import context_broker_multiagent" 2>$null
+& $Python -c "import context_broker_agent" 2>$null
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "[DKRT] Pacote context_broker_multiagent nao instalado no venv." -ForegroundColor Yellow
+    Write-Host "[DKRT] Pacote context_broker_agent nao instalado no venv." -ForegroundColor Yellow
     Write-Host "       Execute: .\.venv\Scripts\pip install -e ." -ForegroundColor Yellow
     Write-Host "       Se persistir, remova .venv\Lib\site-packages\~ontext* e reinstale." -ForegroundColor Yellow
     Read-Host "Pressione ENTER para sair"
@@ -65,7 +65,7 @@ if (Test-Ollama) {
 Write-Host ""
 
 try {
-    & $Python -m context_broker_multiagent.terminal
+    & $Python -m context_broker_agent.terminal
 } finally {
     if ($DkrtStartedOllama) {
         Write-Host ""

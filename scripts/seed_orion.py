@@ -7,8 +7,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from context_broker_multiagent.models.ngsi import NgsiEntity
-from context_broker_multiagent.services.fiware_client import FiwareClient, FiwareError
+from context_broker_agent.models.ngsi import NgsiEntity
+from context_broker_agent.services.fiware_client import FiwareClient, FiwareError
 
 
 async def main() -> None:

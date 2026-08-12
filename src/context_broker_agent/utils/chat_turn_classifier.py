@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from context_broker_multiagent.models.intent import ChatTurnAnalysis
+from context_broker_agent.models.intent import ChatTurnAnalysis
 
 FIWARE_ACTION_VERBS = (
     "listar",

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from context_broker_multiagent.services.rag_retrieve import RagRetriever
+from context_broker_agent.services.rag_retrieve import RagRetriever
 
 
 @pytest.fixture

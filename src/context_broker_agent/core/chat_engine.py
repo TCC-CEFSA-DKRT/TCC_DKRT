@@ -10,14 +10,14 @@ import structlog
 from rich.console import Console
 from rich.table import Table
 
-from context_broker_multiagent.config import get_settings
-from context_broker_multiagent.core.intent_router import IntentRouter
-from context_broker_multiagent.models.intent import ChatIntent, ChatTurnAnalysis
-from context_broker_multiagent.models.messages import AgentResponse
-from context_broker_multiagent.services.fiware_client import FiwareClient, FiwareError
-from context_broker_multiagent.services.slm_service import SLMService
-from context_broker_multiagent.utils.history_manager import HistoryManager
-from context_broker_multiagent.utils.thinking_status import ThinkingStatus
+from context_broker_agent.config import get_settings
+from context_broker_agent.core.intent_router import IntentRouter
+from context_broker_agent.models.intent import ChatIntent, ChatTurnAnalysis
+from context_broker_agent.models.messages import AgentResponse
+from context_broker_agent.services.fiware_client import FiwareClient, FiwareError
+from context_broker_agent.services.slm_service import SLMService
+from context_broker_agent.utils.history_manager import HistoryManager
+from context_broker_agent.utils.thinking_status import ThinkingStatus
 
 logger = structlog.get_logger(__name__)
 
@@ -253,11 +253,11 @@ def configure_quiet_logging() -> None:
     """
     logging.basicConfig(level=logging.ERROR, format="%(message)s")
     for name in (
-        "context_broker_multiagent",
-        "context_broker_multiagent.services.slm_service",
-        "context_broker_multiagent.services.ollama_client",
-        "context_broker_multiagent.services.fiware_client",
-        "context_broker_multiagent.core.intent_router",
+        "context_broker_agent",
+        "context_broker_agent.services.slm_service",
+        "context_broker_agent.services.ollama_client",
+        "context_broker_agent.services.fiware_client",
+        "context_broker_agent.core.intent_router",
         "aiohttp",
         "asyncio",
     ):

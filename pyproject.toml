@@ -34,8 +34,8 @@ slm-cpp = [
 ]
 
 [project.scripts]
-dkrt = "context_broker_multiagent.terminal:main"
-dkrt-tools = "context_broker_multiagent.cli:app"
+dkrt = "context_broker_agent.terminal:main"
+dkrt-tools = "context_broker_agent.cli:app"
 
 [build-system]
 requires = ["setuptools>=69.0"]

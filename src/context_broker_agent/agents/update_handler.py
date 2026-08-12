@@ -1,11 +1,11 @@
-"""UpdateAgent — atualiza atributos de entidades NGSI-v2."""
+"""UpdateHandler — atualiza atributos de entidades NGSI-v2."""
 
-from context_broker_multiagent.agents.base import BaseAgent
-from context_broker_multiagent.models.messages import AgentMessage, AgentResponse
-from context_broker_multiagent.services.fiware_client import FiwareClient
+from context_broker_agent.agents.base import BaseAgent
+from context_broker_agent.models.messages import AgentMessage, AgentResponse
+from context_broker_agent.services.fiware_client import FiwareClient
 
 
-class UpdateAgent(BaseAgent):
+class UpdateHandler(BaseAgent):
     name = "update"
 
     def __init__(self, client: FiwareClient | None = None, **kwargs) -> None:

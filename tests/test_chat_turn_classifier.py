@@ -1,7 +1,7 @@
 import pytest
 
-from context_broker_multiagent.models.intent import ChatTurnAnalysis
-from context_broker_multiagent.utils.chat_turn_classifier import (
+from context_broker_agent.models.intent import ChatTurnAnalysis
+from context_broker_agent.utils.chat_turn_classifier import (
     apply_conversation_guard,
     requires_fiware_action,
     should_force_conversation,
@@ -46,7 +46,7 @@ def test_followup_after_orion_error_forces_conversation():
 
 
 def test_slm_guard_wrong_ollama_classification():
-    from context_broker_multiagent.services.slm_service import SLMService
+    from context_broker_agent.services.slm_service import SLMService
 
     slm = SLMService()
     ctx = [

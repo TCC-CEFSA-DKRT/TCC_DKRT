@@ -5,7 +5,7 @@
 | category | Conteúdo |
 |----------|----------|
 | `fiware` | NGSI-v2, Orion, entidades, subscrições |
-| `python` | Código do pacote `context_broker_multiagent` |
+| `python` | Código do pacote `context_broker_agent` |
 | `multiagent` | Orquestrador, agentes, mensagens |
 | `tcc` | Documentação acadêmica, diagramas |
 

@@ -1,9 +1,9 @@
 """QueryAgent — consultas NGSI-v2 via FiwareClient."""
 
-from context_broker_multiagent.agents.base import BaseAgent
-from context_broker_multiagent.models.messages import AgentMessage, AgentResponse
-from context_broker_multiagent.models.ngsi import NgsiQueryParams
-from context_broker_multiagent.services.fiware_client import FiwareClient
+from context_broker_agent.agents.base import BaseAgent
+from context_broker_agent.models.messages import AgentMessage, AgentResponse
+from context_broker_agent.models.ngsi import NgsiQueryParams
+from context_broker_agent.services.fiware_client import FiwareClient
 
 
 class QueryAgent(BaseAgent):

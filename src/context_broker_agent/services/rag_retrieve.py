@@ -7,7 +7,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from context_broker_multiagent.config import get_settings
+from context_broker_agent.config import get_settings
 
 
 class RagRetriever:

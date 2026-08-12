@@ -216,7 +216,7 @@ pytest tests/ -v -m integration
 ## Estrutura do projeto
 
 ```
-├── src/context_broker_multiagent/   # Pacote principal
+├── src/context_broker_agent/   # Pacote principal
 │   ├── agents/                      # Route, Query, Subscribe, Provision, Analyze
 │   ├── models/                      # Pydantic NGSI + mensagens
 │   ├── services/                    # FIWARE, SLM, RAG, MCP

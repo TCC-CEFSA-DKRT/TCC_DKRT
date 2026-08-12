@@ -10,13 +10,13 @@ from rich.console import Console
 from rich.json import JSON
 from rich.table import Table
 
-from context_broker_multiagent.config import get_settings
-from context_broker_multiagent.models.ngsi import NgsiQueryParams
-from context_broker_multiagent.orchestrator import MultiAgentOrchestrator
-from context_broker_multiagent.services.fiware_client import FiwareClient
-from context_broker_multiagent.services.mcp_server import McpServer
-from context_broker_multiagent.services.rag_retrieve import RagRetriever
-from context_broker_multiagent.services.slm_service import SLMService
+from context_broker_agent.config import get_settings
+from context_broker_agent.models.ngsi import NgsiQueryParams
+from context_broker_agent.orchestrator import MultiAgentOrchestrator
+from context_broker_agent.services.fiware_client import FiwareClient
+from context_broker_agent.services.mcp_server import McpServer
+from context_broker_agent.services.rag_retrieve import RagRetriever
+from context_broker_agent.services.slm_service import SLMService
 
 load_dotenv()
 app = typer.Typer(name="dkrt", help="DKRT — Context Broker multiagent CLI")
@@ -184,7 +184,7 @@ def _print_orchestration(result) -> None:
     console.print(JSON(json.dumps(result.aggregated_data, ensure_ascii=False, indent=2)))
 
 
-from context_broker_multiagent.repl import register_chat_command
+from context_broker_agent.repl import register_chat_command
 
 register_chat_command(app)
 

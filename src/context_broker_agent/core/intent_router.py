@@ -4,16 +4,16 @@ from __future__ import annotations
 
 import structlog
 
-from context_broker_multiagent.agents.base import BaseAgent
-from context_broker_multiagent.agents.create_agent import CreateAgent
-from context_broker_multiagent.agents.delete_agent import DeleteAgent
-from context_broker_multiagent.agents.list_agent import ListAgent
-from context_broker_multiagent.agents.query import QueryAgent
-from context_broker_multiagent.agents.update_agent import UpdateAgent
-from context_broker_multiagent.models.intent import ChatIntent
-from context_broker_multiagent.models.messages import AgentMessage, AgentResponse
-from context_broker_multiagent.services.fiware_client import FiwareClient
-from context_broker_multiagent.utils.ngsi_filters import normalize_entity_type, normalize_ngsi_q
+from context_broker_agent.agents.base import BaseAgent
+from context_broker_agent.agents.create_handler import CreateHandler
+from context_broker_agent.agents.delete_handler import DeleteHandler
+from context_broker_agent.agents.list_handler import ListHandler
+from context_broker_agent.agents.query import QueryAgent
+from context_broker_agent.agents.update_handler import UpdateHandler
+from context_broker_agent.models.intent import ChatIntent
+from context_broker_agent.models.messages import AgentMessage, AgentResponse
+from context_broker_agent.services.fiware_client import FiwareClient
+from context_broker_agent.utils.ngsi_filters import normalize_entity_type, normalize_ngsi_q
 
 logger = structlog.get_logger(__name__)
 
@@ -26,10 +26,10 @@ class IntentRouter:
         self._client = fw
         self._agents: dict[str, BaseAgent] = {
             "query": QueryAgent(client=fw),
-            "list": ListAgent(client=fw),
-            "create": CreateAgent(client=fw),
-            "update": UpdateAgent(client=fw),
-            "delete": DeleteAgent(client=fw),
+            "list": ListHandler(client=fw),
+            "create": CreateHandler(client=fw),
+            "update": UpdateHandler(client=fw),
+            "delete": DeleteHandler(client=fw),
         }
 
     @property

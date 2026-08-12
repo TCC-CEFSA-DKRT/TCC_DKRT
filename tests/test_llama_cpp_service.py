@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from context_broker_multiagent.services.llama_cpp_service import (
+from context_broker_agent.services.llama_cpp_service import (
     LlamaCppClient,
     LlamaCppError,
 )

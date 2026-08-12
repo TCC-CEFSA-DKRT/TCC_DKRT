@@ -1,6 +1,6 @@
 import pytest
 
-from context_broker_multiagent.repl.chat import InteractiveChat
+from context_broker_agent.repl.chat import InteractiveChat
 
 
 @pytest.mark.asyncio

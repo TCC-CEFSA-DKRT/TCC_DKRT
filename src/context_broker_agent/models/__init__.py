@@ -1,10 +1,10 @@
-from context_broker_multiagent.models.messages import (
+from context_broker_agent.models.messages import (
     AgentMessage,
     AgentResponse,
     OrchestrationResult,
     OrchestrationStatus,
 )
-from context_broker_multiagent.models.ngsi import (
+from context_broker_agent.models.ngsi import (
     NgsiEntity,
     NgsiQueryParams,
     SlmInterpretation,

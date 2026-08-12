@@ -16,7 +16,7 @@ Antes de FIWARE, SLM ou MCP, o projeto precisa de um **esqueleto executável**: 
 ## 2. Escopo técnico
 
 - Python **3.11+** com `pyproject.toml`.
-- Pacote `context_broker_multiagent` em `src/`.
+- Pacote `context_broker_agent` em `src/`.
 - Entry point CLI inicial.
 - `pytest` configurado.
 - `.gitignore`, estrutura `docs/`, `tests/`.
@@ -25,7 +25,7 @@ Antes de FIWARE, SLM ou MCP, o projeto precisa de um **esqueleto executável**: 
 
 ```
 agent_multi_IA_context_broker/
-├── src/context_broker_multiagent/
+├── src/context_broker_agent/
 ├── tests/
 ├── docs/
 ├── prompts/
@@ -41,7 +41,7 @@ agent_multi_IA_context_broker/
 | Entregável | Critério de aceite |
 |------------|-------------------|
 | Pacote instalável | `pip install -e .` sem erro |
-| CLI mínima | `python -m context_broker_multiagent.cli` executa |
+| CLI mínima | `python -m context_broker_agent.cli` executa |
 | Teste unitário | `pytest` com ≥ 1 teste do orquestrador |
 | Documentação de execução | README com comando de exemplo |
 
@@ -57,7 +57,7 @@ agent_multi_IA_context_broker/
 
 ## 6. Estado atual no repositório
 
-- [x] `src/context_broker_multiagent/` com `agents.py`, `cli.py`
+- [x] `src/context_broker_agent/` com `agents.py`, `cli.py`
 - [x] `tests/test_orchestrator.py`
 - [x] `pyproject.toml` com script `context-broker-agent`
 - [ ] Padronizar layout completo (models/, services/, utils/) — evolução nas fases 3–5
@@ -70,7 +70,7 @@ python -m venv .venv
 # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 pytest tests/ -v
-python -m context_broker_multiagent.cli "consultar sensores no Context Broker"
+python -m context_broker_agent.cli "consultar sensores no Context Broker"
 ```
 
 ## 8. Critérios de conclusão
