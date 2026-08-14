@@ -17,7 +17,7 @@ def heuristic_only(monkeypatch):
     "text,expected_intent",
     [
         ("listar sensores", "query"),
-        ("criar dispositivo Device:99", "provision"),
+        ("criar dispositivo Device:99", "create"),
         ("avisar quando temperatura subir", "subscribe"),
     ],
 )

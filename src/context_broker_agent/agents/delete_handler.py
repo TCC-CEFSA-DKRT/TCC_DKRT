@@ -1,7 +1,7 @@
 """DeleteHandler — remove entidades do FIWARE Orion."""
 
 from context_broker_agent.agents.base import BaseAgent
-from context_broker_agent.models.messages import AgentMessage, AgentResponse
+from context_broker_agent.models.messages import AgentMessage, AgentResponse, VerificationResult
 from context_broker_agent.services.fiware_client import FiwareClient
 
 
@@ -37,3 +37,26 @@ class DeleteHandler(BaseAgent):
                 success=False,
                 message=f"Falha ao excluir: {exc}",
             )
+
+    async def verify(self, message: AgentMessage, result: AgentResponse) -> VerificationResult:
+        """Confirma que a entidade realmente sumiu do Orion (re-consulta deve falhar)."""
+        entity_id = result.data.get("entity_id")
+        try:
+            await self._client.get_entity(entity_id)
+        except Exception:
+            # get_entity falhou (ex.: 404) => a entidade não existe mais, exatamente o esperado
+            return VerificationResult(ok=True, message=f"Entidade {entity_id} confirmada removida.")
+        # se get_entity NÃO falhou, a entidade ainda está lá — a remoção não colou
+        return VerificationResult(
+            ok=False,
+            diff={"entity_id": {"esperado": "removida", "obtido": "ainda existe"}},
+            message=f"Entidade {entity_id} ainda existe no Orion após tentativa de remoção.",
+        )
+
+    async def handle_error(self, message: AgentMessage, diff: dict) -> AgentResponse:
+        return AgentResponse(
+            agent_name=self.name,
+            success=False,
+            message="Remoção não verificada — a entidade ainda existe no Orion.",
+            data={"diff": diff},
+        )

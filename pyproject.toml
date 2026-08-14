@@ -1,5 +1,5 @@
 [project]
-name = "context-broker-multiagent"
+name = "context-broker-agent"
 version = "0.1.0"
 description = "DKRT — Sistema multiagentes para FIWARE Context Broker com CLI, SLM, RAG e MCP"
 readme = "README.md"

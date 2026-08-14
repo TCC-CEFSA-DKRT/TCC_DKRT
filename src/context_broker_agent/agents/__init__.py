@@ -1,15 +1,13 @@
-from context_broker_agent.agents.analyze import AnalyzeAgent
+from context_broker_agent.agents.analyze import AnalyzeHandler
 from context_broker_agent.agents.base import BaseAgent
-from context_broker_agent.agents.provision import ProvisionAgent
-from context_broker_agent.agents.query import QueryAgent
-from context_broker_agent.agents.route import RouteAgent
-from context_broker_agent.agents.subscribe import SubscribeAgent
+from context_broker_agent.agents.query import QueryHandler
+from context_broker_agent.agents.route import RouteDispatcher
+from context_broker_agent.agents.subscribe import SubscribeHandler
 
 __all__ = [
     "BaseAgent",
-    "RouteAgent",
-    "QueryAgent",
-    "SubscribeAgent",
-    "ProvisionAgent",
-    "AnalyzeAgent",
+    "RouteDispatcher",
+    "QueryHandler",
+    "SubscribeHandler",
+    "AnalyzeHandler",
 ]

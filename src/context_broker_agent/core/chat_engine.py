@@ -13,11 +13,13 @@ from rich.table import Table
 from context_broker_agent.config import get_settings
 from context_broker_agent.core.intent_router import IntentRouter
 from context_broker_agent.models.intent import ChatIntent, ChatTurnAnalysis
-from context_broker_agent.models.messages import AgentResponse
+from context_broker_agent.models.messages import AgentMessage, AgentResponse
 from context_broker_agent.services.fiware_client import FiwareClient, FiwareError
-from context_broker_agent.services.slm_service import SLMService
+from context_broker_agent.services.slm_service import SLMService, SLMUnavailableError
 from context_broker_agent.utils.history_manager import HistoryManager
 from context_broker_agent.utils.thinking_status import ThinkingStatus
+from context_broker_agent.agents.route import RouteDispatcher
+from context_broker_agent.agents.analyze import AnalyzeHandler
 
 logger = structlog.get_logger(__name__)
 
@@ -42,6 +44,7 @@ class ChatEngine:
         router: IntentRouter | None = None,
         history: HistoryManager | None = None,
         console: Console | None = None,
+
     ) -> None:
         settings = get_settings()
         self._slm = slm or SLMService()
@@ -50,6 +53,9 @@ class ChatEngine:
         self._history = history or HistoryManager(max_turns=settings.chat_history_max_turns)
         self._console = console or Console()
         self._status = ThinkingStatus(self._console)
+        self._route_dispatcher = RouteDispatcher()
+        self._analyze_handler = AnalyzeHandler()
+
 
     @property
     def history(self) -> HistoryManager:
@@ -75,12 +81,15 @@ class ChatEngine:
             self._status.start("Pensando...")
             self._status.update("Interpretando linguagem natural...")
 
-            analysis = await self._slm.analyze_chat_turn(
-                stripped,
-                context_messages=self._history.context_for_slm(),
-                last_intent=self._history.last_intent(),
-                pending=self._history.get_pending(),
-            )
+            try:
+                analysis = await self._slm.analyze_chat_turn(
+                    stripped,
+                    context_messages=self._history.context_for_slm(),
+                    last_intent=self._history.last_intent(),
+                    pending=self._history.get_pending(),
+                )
+            except SLMUnavailableError:
+                analysis = self._route_dispatcher.classify(stripped, self._history.last_intent(), self._history.get_pending(), self._history.context_for_slm())
 
             if analysis.response_type == "conversation":
                 self._status.stop()
@@ -131,6 +140,12 @@ class ChatEngine:
 
             self._status.update("Analisando resultados...")
             self._status.stop()
+
+            analyze_message = AgentMessage(
+                content=stripped,
+                metadata={"operation": intent.operation, "agent_response": response},
+            )
+            response = await self._analyze_handler.execute_with_timeout(analyze_message)
 
             if not response.success and "Cannot connect" in response.message:
                 summary = (

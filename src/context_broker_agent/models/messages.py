@@ -31,6 +31,15 @@ class AgentResponse(BaseModel):
     elapsed_ms: float = 0.0
 
 
+class VerificationResult(BaseModel):
+    """Resultado da verificação pós-execução (ADR-0002): compara o que foi
+    pedido com o que o Orion realmente confirmou, após re-consulta."""
+
+    ok: bool
+    diff: dict[str, Any] = Field(default_factory=dict)
+    message: str = ""
+
+
 class OrchestrationResult(BaseModel):
     """Resultado agregado da orquestração."""
 

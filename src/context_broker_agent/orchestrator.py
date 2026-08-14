@@ -5,12 +5,11 @@ import asyncio
 import structlog
 
 from context_broker_agent.agents import (
-    AnalyzeAgent,
+    AnalyzeHandler,
     BaseAgent,
-    ProvisionAgent,
-    QueryAgent,
-    RouteAgent,
-    SubscribeAgent,
+    QueryHandler,
+    RouteDispatcher,
+    SubscribeHandler,
 )
 from context_broker_agent.models.messages import (
     AgentMessage,
@@ -33,11 +32,10 @@ class MultiAgentOrchestrator:
     ) -> None:
         fw = client or FiwareClient()
         self._agents: list[BaseAgent] = agents or [
-            RouteAgent(),
-            QueryAgent(client=fw),
-            SubscribeAgent(),
-            ProvisionAgent(client=fw),
-            AnalyzeAgent(),
+            RouteDispatcher(),
+            QueryHandler(client=fw),
+            SubscribeHandler(),
+            AnalyzeHandler(),
         ]
 
     @property

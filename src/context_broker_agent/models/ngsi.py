@@ -37,7 +37,7 @@ class NgsiEntity(BaseModel):
 class SlmInterpretation(BaseModel):
     """Saída da interpretação de linguagem natural."""
 
-    intent: Literal["query", "provision", "subscribe", "analyze", "route"]
+    intent: Literal["query", "create", "subscribe", "analyze", "route"]
     ngsi_query: NgsiQueryParams | None = None
     entity: NgsiEntity | None = None
     raw_interpretation: str = ""

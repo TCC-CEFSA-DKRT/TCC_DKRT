@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-Operation = Literal["query", "create", "update", "list", "delete"]
+Operation = Literal["query", "create", "update", "list", "delete", "subscribe"]
 ResponseType = Literal["conversation", "fiware", "clarify"]
 
 

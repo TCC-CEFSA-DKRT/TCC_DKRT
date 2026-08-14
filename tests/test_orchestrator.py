@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from context_broker_agent.agents.query import QueryAgent
+from context_broker_agent.agents.query import QueryHandler
 from context_broker_agent.models.messages import OrchestrationStatus
 from context_broker_agent.models.ngsi import NgsiQueryParams
 from context_broker_agent.orchestrator import MultiAgentOrchestrator
@@ -32,7 +32,7 @@ async def test_orchestration_ok():
 
 @pytest.mark.asyncio
 async def test_agent_timeout():
-    class SlowAgent(QueryAgent):
+    class SlowAgent(QueryHandler):
         name = "slow"
 
         async def process(self, message):
@@ -51,8 +51,8 @@ async def test_agent_timeout():
 
 
 @pytest.mark.asyncio
-async def test_route_intent_provision():
+async def test_route_intent_create():
     orch = MultiAgentOrchestrator(client=MockFiwareClient())
     result = await orch.orchestrate("criar dispositivo Device:99")
     route = next(r for r in result.responses if r.agent_name == "route")
-    assert route.data.get("intent") == "provision"
+    assert route.data.get("intent") == "create"

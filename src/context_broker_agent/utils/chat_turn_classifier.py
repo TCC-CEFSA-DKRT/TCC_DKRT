@@ -29,7 +29,7 @@ FIWARE_ACTION_VERBS = (
     "deletar",
     "excluir",
     "inserir",
-    "provisionar",
+    "create",
     "quantos",
     "quantas",
     "deletar",

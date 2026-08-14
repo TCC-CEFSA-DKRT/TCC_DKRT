@@ -8,8 +8,11 @@ from context_broker_agent.agents.base import BaseAgent
 from context_broker_agent.agents.create_handler import CreateHandler
 from context_broker_agent.agents.delete_handler import DeleteHandler
 from context_broker_agent.agents.list_handler import ListHandler
-from context_broker_agent.agents.query import QueryAgent
+from context_broker_agent.agents.query import QueryHandler
+from context_broker_agent.agents.registry import MUTATION_OPERATIONS
+from context_broker_agent.agents.subscribe import SubscribeHandler
 from context_broker_agent.agents.update_handler import UpdateHandler
+from context_broker_agent.core.action_executor import ActionExecutor
 from context_broker_agent.models.intent import ChatIntent
 from context_broker_agent.models.messages import AgentMessage, AgentResponse
 from context_broker_agent.services.fiware_client import FiwareClient
@@ -19,18 +22,39 @@ logger = structlog.get_logger(__name__)
 
 
 class IntentRouter:
-    """Mapeia operation → agente e executa de forma assíncrona."""
+    """Mapeia operation → agente e executa de forma assíncrona.
+
+    Operações mutáveis (ADR-0002) passam pelo ActionExecutor, que roda o loop
+    de verificação/correção após a execução. Operações somente-leitura
+    (query, list) são executadas direto, sem verificação (não fazem sentido
+    verificar uma leitura).
+    """
 
     def __init__(self, client: FiwareClient | None = None) -> None:
         fw = client or FiwareClient()
         self._client = fw
         self._agents: dict[str, BaseAgent] = {
-            "query": QueryAgent(client=fw),
+            "query": QueryHandler(client=fw),
             "list": ListHandler(client=fw),
             "create": CreateHandler(client=fw),
             "update": UpdateHandler(client=fw),
             "delete": DeleteHandler(client=fw),
+            "subscribe": SubscribeHandler(),
         }
+        # registry de FÁBRICAS (não instâncias) para o ActionExecutor: ele cria
+        # uma instância nova a cada chamada de execute(), reaproveitando o
+        # mesmo FiwareClient (fw) para não perder cache/config.
+        action_registry = {
+            "create": lambda: CreateHandler(client=fw),
+            "update": lambda: UpdateHandler(client=fw),
+            "delete": lambda: DeleteHandler(client=fw),
+            "subscribe": lambda: SubscribeHandler(),
+        }
+        self._action_executor = ActionExecutor(
+            registry=action_registry,
+            query_handler=self._agents["query"],
+            slm_service=None,
+        )
 
     @property
     def agent_names(self) -> list[str]:
@@ -72,7 +96,12 @@ class IntentRouter:
         return meta
 
     async def route(self, intent: ChatIntent, user_text: str) -> AgentResponse:
-        """Executa o agente correspondente à operação."""
+        """Executa o agente correspondente à operação.
+
+        Mutações (create/update/delete/subscribe) passam pelo ActionExecutor
+        (verificação pós-execução, ADR-0002). Leituras (query/list) executam
+        direto via execute_with_timeout.
+        """
         agent = self._agents.get(intent.operation)
         if not agent:
             return AgentResponse(
@@ -83,4 +112,7 @@ class IntentRouter:
 
         message = AgentMessage(content=user_text, metadata=self._build_metadata(intent, user_text))
         logger.debug("intent_route", operation=intent.operation, agent=agent.name)
+
+        if intent.operation in MUTATION_OPERATIONS:
+            return await self._action_executor.execute(intent.operation, message)
         return await agent.execute_with_timeout(message)

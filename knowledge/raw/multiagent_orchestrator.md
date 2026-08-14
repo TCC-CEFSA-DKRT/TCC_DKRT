@@ -8,11 +8,10 @@ O `MultiAgentOrchestrator` coordena agentes especializados em paralelo com `asyn
 
 | Agente | Função |
 |--------|--------|
-| RouteAgent | Classifica intenção |
-| QueryAgent | Consulta NGSI-v2 |
-| SubscribeAgent | Planeja subscrições |
-| ProvisionAgent | Cria entidades |
-| AnalyzeAgent | Resume resultados |
+| RouteDispatcher | Classifica intenção |
+| QueryHandler | Consulta NGSI-v2 |
+| SubscribeHandler | Planeja subscrições |
+| AnalyzeHandler | Resume resultados |
 
 ## Contratos
 

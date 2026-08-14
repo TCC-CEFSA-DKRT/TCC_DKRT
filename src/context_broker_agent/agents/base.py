@@ -5,7 +5,7 @@ import time
 from abc import ABC, abstractmethod
 
 from context_broker_agent.config import get_settings
-from context_broker_agent.models.messages import AgentMessage, AgentResponse
+from context_broker_agent.models.messages import AgentMessage, AgentResponse, VerificationResult
 
 
 class BaseAgent(ABC):
@@ -45,3 +45,21 @@ class BaseAgent(ABC):
                 message=str(exc),
                 elapsed_ms=(time.perf_counter() - start) * 1000,
             )
+
+    async def verify(self, message: AgentMessage, result: AgentResponse) -> VerificationResult:
+        """Verificação pós-execução (ADR-0002): re-consulta e compara campo a
+        campo. Só se aplica a handlers mutáveis (create/update/delete/subscribe)
+        — cada um deve sobrescrever este método com sua própria comparação."""
+        raise NotImplementedError(
+            f"{self.__class__.__name__} não implementa verify() — "
+            "necessário para operações mutáveis (ADR-0002)."
+        )
+
+    async def handle_error(self, message: AgentMessage, diff: dict) -> AgentResponse:
+        """Resposta quando a verificação falha (dados divergentes). Cada
+        handler mutável deve sobrescrever com sua própria estratégia
+        (retry automático até max_retries, ou pedir esclarecimento)."""
+        raise NotImplementedError(
+            f"{self.__class__.__name__} não implementa handle_error() — "
+            "necessário para operações mutáveis (ADR-0002)."
+        )
