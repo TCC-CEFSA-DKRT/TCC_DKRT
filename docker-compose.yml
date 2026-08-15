@@ -15,3 +15,19 @@ services:
     command: -dbhost mongo -logLevel DEBUG
     environment:
       - ORION_MULTI_SERVICE=TRUE
+
+  crate-db:
+    image: crate:5.11
+    command: crate -Cnetwork.host=0.0.0.0
+    ports:
+      - "4200:4200"
+      - "4300:4300"
+
+  quantumleap:
+    image: orchestracities/quantumleap:latest
+    depends_on:
+      - crate-db
+    ports:
+      - "8668:8668"
+    environment:
+      - CRATE_HOST=crate-db

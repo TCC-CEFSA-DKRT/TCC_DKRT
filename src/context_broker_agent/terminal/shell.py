@@ -20,9 +20,11 @@ from rich.table import Table
 
 from context_broker_agent.config import PROJECT_ROOT
 from context_broker_agent.core.chat_engine import ChatEngine
+from context_broker_agent.core.intent_router import IntentRouter
 from context_broker_agent.models.ngsi import NgsiQueryParams
-from context_broker_agent.orchestrator import MultiAgentOrchestrator
 from context_broker_agent.services.fiware_client import FiwareClient
+from context_broker_agent.services.slm_service import SLMService
+from context_broker_agent.utils.intent_conversion import to_chat_intent
 from context_broker_agent.terminal.commands import TERMINAL_COMMANDS, build_command_map
 
 if TYPE_CHECKING:
@@ -235,18 +237,18 @@ class DkrtTerminal:
             )
 
     async def _cmd_orchestrate(self, args: str) -> None:
+        """Interpreta e despacha via IntentRouter (despachante único, ADR-0001)."""
         if not args:
             self.console.print("[yellow]Uso:[/yellow] /orchestrate consultar sensores")
             return
-        orch = MultiAgentOrchestrator()
-        result = await orch.orchestrate(args)
-        table = Table(title=f"Orquestração — {result.status.value}")
-        table.add_column("Agente")
-        table.add_column("OK")
-        table.add_column("Mensagem")
-        for resp in result.responses:
-            table.add_row(resp.agent_name, "OK" if resp.success else "FAIL", resp.message[:70])
-        self.console.print(table)
+        slm = SLMService()
+        interpretation = slm.interpret_query(args)
+        intent = to_chat_intent(interpretation, args)
+        router = IntentRouter()
+        response = await router.route(intent, args)
+        status = "OK" if response.success else "FAIL"
+        self.console.print(f"[bold]{response.agent_name}[/bold] — {status}")
+        self.console.print(response.message)
 
     def _print_banner(self) -> None:
         self.console.print(

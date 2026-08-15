@@ -6,15 +6,16 @@ from typing import Any
 from aiohttp import web
 
 from context_broker_agent.config import get_settings
+from context_broker_agent.core.intent_router import IntentRouter
 from context_broker_agent.models.ngsi import NgsiQueryParams
-from context_broker_agent.orchestrator import MultiAgentOrchestrator
 from context_broker_agent.services.fiware_client import FiwareClient
 from context_broker_agent.services.slm_service import SLMService
+from context_broker_agent.utils.intent_conversion import to_chat_intent
 
 TOOLS: list[dict[str, Any]] = [
     {
         "name": "dkrt_orchestrate",
-        "description": "Executa o orquestrador multiagentes DKRT",
+        "description": "Interpreta linguagem natural e despacha via IntentRouter",
         "inputSchema": {
             "type": "object",
             "properties": {"query": {"type": "string"}},
@@ -48,7 +49,7 @@ class McpServer:
     """Servidor aiohttp para protocolo MCP simplificado."""
 
     def __init__(self) -> None:
-        self._orchestrator = MultiAgentOrchestrator()
+        self._router = IntentRouter()
         self._fiware = FiwareClient()
         self._slm = SLMService()
 
@@ -86,7 +87,9 @@ class McpServer:
 
     async def _call_tool(self, name: str | None, arguments: dict[str, Any]) -> dict[str, Any]:
         if name == "dkrt_orchestrate":
-            result = await self._orchestrator.orchestrate(arguments.get("query", ""))
+            interpretation = self._slm.interpret_query(arguments.get("query", ""))
+            intent = to_chat_intent(interpretation, arguments.get("query", ""))
+            result = await self._router.route(intent, arguments.get("query", ""))
             return result.model_dump()
         if name == "dkrt_query_entities":
             params = NgsiQueryParams(

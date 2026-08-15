@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     fiware_broker_url: str = "http://localhost:1026"
     fiware_service: str = "openiot"
     fiware_service_path: str = "/"
+    quantumleap_url: str = "http://localhost:8668"
     fiware_api_key: str = ""
 
     slm_enabled: bool = False

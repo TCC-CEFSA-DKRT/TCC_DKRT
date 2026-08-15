@@ -135,3 +135,32 @@ class FiwareClient:
             return {"ok": True, "url": self.base_url}
         except FiwareError as exc:
             return {"ok": False, "url": self.base_url, "error": str(exc)}
+
+    async def create_subscription(self, payload: dict[str, Any]) -> str:
+        """POST /v2/subscriptions. Orion devolve 201 com corpo vazio; o id da
+        subscrição vem no header Location, não no JSON — por isso não dá para
+        reusar _request() (que não captura headers)."""
+        url = f"{self.base_url}/v2/subscriptions"
+        timeout = aiohttp.ClientTimeout(total=30)
+        try:
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.post(
+                    url, headers=self._headers(json_body=True), json=payload
+                ) as resp:
+                    text = await resp.text()
+                    if resp.status >= 400:
+                        raise FiwareError(f"HTTP {resp.status}: {text[:500]}")
+                    location = resp.headers.get("Location", "")
+                    return location.rsplit("/", 1)[-1] if location else ""
+        except aiohttp.ClientError as exc:
+            raise FiwareError(str(exc)) from exc
+
+    async def get_subscription(self, subscription_id: str) -> dict[str, Any]:
+        """GET /v2/subscriptions/{id} — usado para verificar que a subscrição
+        foi de fato registrada (ADR-0002/0008)."""
+        data = await self._request("GET", f"/v2/subscriptions/{subscription_id}")
+        return data if isinstance(data, dict) else {}
+
+    async def delete_subscription(self, subscription_id: str) -> None:
+        """DELETE /v2/subscriptions/{id}."""
+        await self._request("DELETE", f"/v2/subscriptions/{subscription_id}")

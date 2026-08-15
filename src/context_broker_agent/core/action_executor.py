@@ -15,16 +15,37 @@ class ActionExecutor:
         self.max_retries = max_retries
 
     async def execute(self, operation: str, message: AgentMessage) -> AgentResponse:
-        agent = self.registry[operation]()
-        result = await agent.execute_with_timeout(message)
+        """Executa e verifica, tentando novamente até max_retries vezes se a
+        verificação falhar (ADR-0002, passo 4 — 'corrigir automaticamente').
 
-        if operation not in MUTATION_OPERATIONS or not result.success:
-            return result
+        Cada tentativa reexecuta a operação inteira (process + verify), não só
+        a re-consulta: uma falha de verificação pode significar que a escrita
+        original não colou (ex.: latência de propagação), então repetir a
+        própria ação é a correção determinística mais simples e segura.
+        Esgotadas as tentativas, cai em handle_error() (pausa e reporta).
+        """
+        agent = None
+        result = None
+        verified = None
 
-        # agent (a instância já criada acima) é quem sabe verificar a SI MESMA —
-        # por isso chamamos agent.verify(...), não self.verify(...) nem
-        # ActionExecutor.verify(...): o método pertence ao handler, não ao executor.
-        verified = await agent.verify(message, result)
-        if verified.ok:
-            return result
+        for attempt in range(1, self.max_retries + 1):
+            agent = self.registry[operation]()
+            result = await agent.execute_with_timeout(message)
+
+            if operation not in MUTATION_OPERATIONS:
+                return result
+
+            if not result.success:
+                if attempt < self.max_retries:
+                    continue
+                return result  # esgotou tentativas; falha é da própria execução, não de verificação
+
+            verified = await agent.verify(message, result)
+            if verified.ok:
+                return result
+
+            if attempt < self.max_retries:
+                continue  # divergência: tenta de novo (correção automática)
+
+        # esgotou max_retries com verificação sempre divergente -> pausa e reporta
         return await agent.handle_error(message, verified.diff)

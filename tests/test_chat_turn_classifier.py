@@ -46,9 +46,9 @@ def test_followup_after_orion_error_forces_conversation():
 
 
 def test_slm_guard_wrong_ollama_classification():
-    from context_broker_agent.services.slm_service import SLMService
+    from context_broker_agent.agents.dispatcher import RouteDispatcher
 
-    slm = SLMService()
+    dispatcher = RouteDispatcher()
     ctx = [
         {"role": "assistant", "content": "Orion indisponível em localhost:1026."},
     ]
@@ -62,7 +62,7 @@ def test_slm_guard_wrong_ollama_classification():
     )
     fixed = apply_conversation_guard("que saco", wrong, ctx)
     assert fixed.response_type == "conversation"
-    assert slm._analyze_chat_heuristic("que saco", None, None, ctx).response_type in (
+    assert dispatcher.classify("que saco", None, None, ctx).response_type in (
         "conversation",
         "fiware",
     )

@@ -11,8 +11,10 @@ from rich.json import JSON
 from rich.table import Table
 
 from context_broker_agent.config import get_settings
+from context_broker_agent.core.intent_router import IntentRouter
+from context_broker_agent.utils.intent_conversion import to_chat_intent
 from context_broker_agent.models.ngsi import NgsiQueryParams
-from context_broker_agent.orchestrator import MultiAgentOrchestrator
+from context_broker_agent.agents.registry import AGENT_REGISTRY
 from context_broker_agent.services.fiware_client import FiwareClient
 from context_broker_agent.services.mcp_server import McpServer
 from context_broker_agent.services.rag_retrieve import RagRetriever
@@ -53,43 +55,41 @@ def ask(
     text: str = typer.Argument(..., help="Pedido em linguagem natural"),
     rag: bool = typer.Option(False, "--rag", help="Recuperar contexto RAG antes"),
 ) -> None:
-    """Interpreta NL, opcionalmente RAG, e orquestra agentes."""
+    """Interpreta NL e despacha via IntentRouter (despachante único, ADR-0001)."""
     slm = SLMService()
     interpretation = slm.interpret_query(text)
     console.print(f"[bold]Interpretação[/bold] ({interpretation.source}): {interpretation.raw_interpretation}")
-
-    metadata = {
-        "intent": interpretation.intent,
-        "ngsi_query": interpretation.ngsi_query.model_dump() if interpretation.ngsi_query else {},
-        "entity": interpretation.entity.model_dump() if interpretation.entity else None,
-    }
 
     if rag:
         retriever = RagRetriever()
         ctx = retriever.retrieve(text, intent=interpretation.intent)
         console.print(f"[dim]RAG: {len(ctx['selected'])} chunks selecionados[/dim]")
-        metadata["rag_context"] = ctx
+
+    intent = to_chat_intent(interpretation, text)
 
     async def _run():
-        orch = MultiAgentOrchestrator()
-        return await orch.orchestrate(text, metadata=metadata)
+        router = IntentRouter()
+        return await router.route(intent, text)
 
-    result = _run_async(_run())
-    _print_orchestration(result)
+    response = _run_async(_run())
+    _print_agent_response(response)
 
 
 @app.command("orchestrate")
 def orchestrate_cmd(
-    query_text: str = typer.Argument(..., help="Texto para orquestração"),
+    query_text: str = typer.Argument(..., help="Texto para despacho"),
 ) -> None:
-    """Executa o orquestrador multiagentes explicitamente."""
+    """Interpreta e despacha via IntentRouter (alias de `ask`, sem --rag)."""
+    slm = SLMService()
+    interpretation = slm.interpret_query(query_text)
+    intent = to_chat_intent(interpretation, query_text)
 
     async def _run():
-        orch = MultiAgentOrchestrator()
-        return await orch.orchestrate(query_text)
+        router = IntentRouter()
+        return await router.route(intent, query_text)
 
-    result = _run_async(_run())
-    _print_orchestration(result)
+    response = _run_async(_run())
+    _print_agent_response(response)
 
 
 @app.command("ollama-check")
@@ -126,13 +126,12 @@ def ollama_check() -> None:
 
 @app.command()
 def agents() -> None:
-    """Lista agentes registrados no orquestrador."""
-    orch = MultiAgentOrchestrator()
+    """Lista agentes registrados (AGENT_REGISTRY — fonte única de verdade, ADR-0001)."""
     table = Table(title="Agentes DKRT")
-    table.add_column("Nome")
-    table.add_column("Timeout (s)")
-    for agent in orch._agents:
-        table.add_row(agent.name, str(agent.timeout_seconds))
+    table.add_column("Operação")
+    table.add_column("Classe")
+    for operation, handler_cls in AGENT_REGISTRY.items():
+        table.add_row(operation, handler_cls.__name__)
     console.print(table)
 
 
@@ -167,21 +166,12 @@ def serve(
         console.print("Servidor encerrado.")
 
 
-def _print_orchestration(result) -> None:
-    table = Table(title=f"Orquestração — status: {result.status.value}")
-    table.add_column("Agente")
-    table.add_column("OK")
-    table.add_column("Mensagem")
-    table.add_column("ms", justify="right")
-    for resp in result.responses:
-        table.add_row(
-            resp.agent_name,
-            "OK" if resp.success else "FAIL",
-            resp.message[:80],
-            f"{resp.elapsed_ms:.1f}",
-        )
-    console.print(table)
-    console.print(JSON(json.dumps(result.aggregated_data, ensure_ascii=False, indent=2)))
+def _print_agent_response(response) -> None:
+    status = "OK" if response.success else "FAIL"
+    console.print(f"[bold]{response.agent_name}[/bold] — {status} — {response.elapsed_ms:.1f}ms")
+    console.print(response.message)
+    if response.data:
+        console.print(JSON(json.dumps(response.data, ensure_ascii=False, indent=2, default=str)))
 
 
 from context_broker_agent.repl import register_chat_command

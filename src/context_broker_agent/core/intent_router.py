@@ -8,9 +8,9 @@ from context_broker_agent.agents.base import BaseAgent
 from context_broker_agent.agents.create_handler import CreateHandler
 from context_broker_agent.agents.delete_handler import DeleteHandler
 from context_broker_agent.agents.list_handler import ListHandler
-from context_broker_agent.agents.query import QueryHandler
+from context_broker_agent.agents.query_handler import QueryHandler
 from context_broker_agent.agents.registry import MUTATION_OPERATIONS
-from context_broker_agent.agents.subscribe import SubscribeHandler
+from context_broker_agent.agents.subscribe_handler import SubscribeHandler
 from context_broker_agent.agents.update_handler import UpdateHandler
 from context_broker_agent.core.action_executor import ActionExecutor
 from context_broker_agent.models.intent import ChatIntent
@@ -39,7 +39,7 @@ class IntentRouter:
             "create": CreateHandler(client=fw),
             "update": UpdateHandler(client=fw),
             "delete": DeleteHandler(client=fw),
-            "subscribe": SubscribeHandler(),
+            "subscribe": SubscribeHandler(client=fw),
         }
         # registry de FÁBRICAS (não instâncias) para o ActionExecutor: ele cria
         # uma instância nova a cada chamada de execute(), reaproveitando o
@@ -48,7 +48,7 @@ class IntentRouter:
             "create": lambda: CreateHandler(client=fw),
             "update": lambda: UpdateHandler(client=fw),
             "delete": lambda: DeleteHandler(client=fw),
-            "subscribe": lambda: SubscribeHandler(),
+            "subscribe": lambda: SubscribeHandler(client=fw),
         }
         self._action_executor = ActionExecutor(
             registry=action_registry,

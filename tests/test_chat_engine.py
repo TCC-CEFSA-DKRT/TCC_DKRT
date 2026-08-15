@@ -84,8 +84,8 @@ async def test_clarify_does_not_call_router():
 
 
 def test_heuristic_greeting():
-    from context_broker_agent.services.slm_service import SLMService
+    from context_broker_agent.agents.dispatcher import RouteDispatcher
 
-    analysis = SLMService()._analyze_chat_heuristic("Ola", None, None)
+    analysis = RouteDispatcher().classify("Ola", None, None)
     assert analysis.response_type == "conversation"
     assert analysis.assistant_message

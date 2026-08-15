@@ -14,4 +14,7 @@ def test_cli_help():
 def test_cli_agents():
     result = runner.invoke(app, ["agents"])
     assert result.exit_code == 0
-    assert "route" in result.stdout
+    # "route" não aparece mais: é fallback determinístico (ADR-0007), não uma
+    # operação roteável do AGENT_REGISTRY (ADR-0001).
+    assert "create" in result.stdout
+    assert "subscribe" in result.stdout

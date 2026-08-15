@@ -18,7 +18,7 @@ from context_broker_agent.services.fiware_client import FiwareClient, FiwareErro
 from context_broker_agent.services.slm_service import SLMService, SLMUnavailableError
 from context_broker_agent.utils.history_manager import HistoryManager
 from context_broker_agent.utils.thinking_status import ThinkingStatus
-from context_broker_agent.agents.route import RouteDispatcher
+from context_broker_agent.agents.dispatcher import RouteDispatcher
 from context_broker_agent.agents.analyze import AnalyzeHandler
 
 logger = structlog.get_logger(__name__)
@@ -159,6 +159,30 @@ class ChatEngine:
                     summary=summary,
                     analysis=analysis,
                     intent=intent,
+                )
+
+            if not response.success and "diff" in response.data:
+                # ActionExecutor esgotou max_retries sem conseguir verificar
+                # (ADR-0002, passo 4): pausa e pergunta ao usuário, guardando o
+                # estado parcial em vez de só reportar erro e descartar tudo.
+                diff = response.data["diff"]
+                campos = ", ".join(diff.keys()) or "desconhecido"
+                msg = (
+                    f"Não consegui confirmar a operação — divergência em: {campos}. "
+                    "Pode confirmar os valores corretos, ou tentar de novo?"
+                )
+                self._print_assistant(msg, style="yellow")
+                pending_payload = intent.model_dump(exclude_none=True)
+                pending_payload["assistant_message"] = msg
+                pending_payload["verification_diff"] = diff
+                self._history.set_pending(pending_payload)
+                self._history.add(stripped, msg, intent)
+                return ChatTurnResult(
+                    kind="error",
+                    summary=msg,
+                    analysis=analysis,
+                    intent=intent,
+                    agent_response=response,
                 )
 
             summary = self._format_fiware_response(response)
