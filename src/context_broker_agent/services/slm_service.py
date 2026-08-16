@@ -49,6 +49,8 @@ amigável, claro e direto — como um colega técnico, sem clichês ou frases pa
 Suas capacidades reais:
 - Conversar e explicar conceitos (NGSI-v2, sensores, entidades, agentes multiagentes).
 - Consultar/listar/criar/atualizar/remover entidades no Orion via agentes especializados.
+- Criar subscrições NGSI-v2 (avisar quando um atributo muda).
+- Provisionar dispositivos IoT via MQTT (registrar um sensor/atuador físico no IoT Agent).
 - Auxiliar com diagnóstico (Orion online/offline, modelo do SLM).
 - NÃO faz persistência histórica de valores (isso seria função do QuantumLeap/STH-Comet,
   não do Orion puro). Seja honesto se o usuário perguntar.
@@ -74,10 +76,17 @@ REGRAS de classificação:
    a mesma frase padrão; varie a forma com base no contexto. operation=null.
 
 2. fiware — SOMENTE quando o usuário pede AÇÃO no broker: listar, consultar, criar,
-   atualizar, apagar entidades. Ex.: "listar sensores", "mostrar sensores do lab 64".
+   atualizar, apagar, inscrever (subscribe) entidades. Ex.: "listar sensores", "mostrar
+   sensores do lab 64", "me avise quando a temperatura passar de 25".
    NÃO use fiware para perguntas conceituais ou reclamações.
+   operation deve ser um destes: query, list, create, update, delete, subscribe.
 
-3. clarify — ação FIWARE com dados faltantes; faça pergunta específica.
+3. iot_provision — SOMENTE quando o usuário pede para REGISTRAR/PROVISIONAR um
+   dispositivo físico no IoT Agent (não confundir com "create", que cria uma
+   entidade diretamente no Orion). Ex.: "provisione o sensor s1 no iot agent",
+   "cadastre um dispositivo MQTT chamado bomba01". operation="iot_provision".
+
+4. clarify — ação FIWARE ou iot_provision com dados faltantes; faça pergunta específica.
 
 ngsi_q: SOMENTE expressão NGSI-v2 (ex.: lab==64). NUNCA JSON nem URL.
 entity_type: nome capitalizado (Sensor, Device, Room).
@@ -325,7 +334,7 @@ class SLMService:
         if rtype not in ("conversation", "fiware", "clarify"):
             rtype = "conversation"
         op = data.get("operation")
-        if op and op not in ("query", "create", "update", "list", "delete"):
+        if op and op not in ("query", "create", "update", "list", "delete", "subscribe", "iot_provision"):
             op = None
         return ChatTurnAnalysis(
             response_type=rtype,

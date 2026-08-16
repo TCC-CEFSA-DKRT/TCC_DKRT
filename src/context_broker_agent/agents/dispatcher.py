@@ -105,6 +105,21 @@ class RouteDispatcher(BaseAgent):
                 source="heuristic",
             )
 
+        if any(w in lower for w in ("provisionar", "provisione", "provisionamento")) or (
+            "dispositivo" in lower and ("mqtt" in lower or "iot" in lower)
+        ):
+            device_id = self._extract_entity_id(text)
+            etype = device_id.split(":")[0] if device_id else "Device"
+            return ChatTurnAnalysis(
+                response_type="fiware",
+                assistant_message=f"Vou provisionar o dispositivo {device_id or etype} no IoT Agent.",
+                operation="iot_provision",
+                entity_type=etype,
+                entity_id=device_id,
+                confidence=0.75,
+                source="heuristic",
+            )
+
         if any(w in lower for w in ("criar", "cadastrar", "inserir")):
             eid = self._extract_entity_id(text)
             etype = eid.split(":")[0] if eid else ("Device" if "device" in lower else "Sensor")
@@ -226,3 +241,5 @@ class RouteDispatcher(BaseAgent):
         # quando for fazer a limpeza final do módulo utils.
         match = re.search(r"([A-Za-z][\w-]*:[\w.-]+)", text)
         return match.group(1) if match else None
+
+        

@@ -148,10 +148,16 @@ class ChatEngine:
             response = await self._analyze_handler.execute_with_timeout(analyze_message)
 
             if not response.success and "Cannot connect" in response.message:
-                summary = (
-                    "Orion indisponível em localhost:1026. "
-                    "Execute: docker compose up -d && python scripts/seed_orion.py"
-                )
+                if intent.operation == "iot_provision":
+                    summary = (
+                        "IoT Agent indisponível em localhost:4041. "
+                        "Execute: docker compose up -d (serviço iot-agent-mqtt)"
+                    )
+                else:
+                    summary = (
+                        "Orion indisponível em localhost:1026. "
+                        "Execute: docker compose up -d && python scripts/seed_orion.py"
+                    )
                 self._console.print(f"[red]{summary}[/red]")
                 self._history.add(stripped, summary, intent)
                 return ChatTurnResult(

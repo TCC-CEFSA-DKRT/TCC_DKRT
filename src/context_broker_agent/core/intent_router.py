@@ -11,6 +11,7 @@ from context_broker_agent.agents.list_handler import ListHandler
 from context_broker_agent.agents.query_handler import QueryHandler
 from context_broker_agent.agents.registry import MUTATION_OPERATIONS
 from context_broker_agent.agents.subscribe_handler import SubscribeHandler
+from context_broker_agent.agents.iot_provision_handler import IoTProvisionHandler
 from context_broker_agent.agents.update_handler import UpdateHandler
 from context_broker_agent.core.action_executor import ActionExecutor
 from context_broker_agent.models.intent import ChatIntent
@@ -40,6 +41,7 @@ class IntentRouter:
             "update": UpdateHandler(client=fw),
             "delete": DeleteHandler(client=fw),
             "subscribe": SubscribeHandler(client=fw),
+            "iot_provision": IoTProvisionHandler(),
         }
         # registry de FÁBRICAS (não instâncias) para o ActionExecutor: ele cria
         # uma instância nova a cada chamada de execute(), reaproveitando o
@@ -49,6 +51,7 @@ class IntentRouter:
             "update": lambda: UpdateHandler(client=fw),
             "delete": lambda: DeleteHandler(client=fw),
             "subscribe": lambda: SubscribeHandler(client=fw),
+            "iot_provision": lambda: IoTProvisionHandler(),
         }
         self._action_executor = ActionExecutor(
             registry=action_registry,
@@ -92,6 +95,19 @@ class IntentRouter:
             else:
                 attrs["status"] = {"type": "Text", "value": "active"}
             meta["entity"] = {"id": eid, "type": intent.entity_type, "attrs": attrs}
+
+        if intent.operation == "iot_provision" and intent.entity_type:
+            device_id = intent.entity_id or f"{intent.entity_type.lower()}-new"
+            meta["device"] = {
+                "device_id": device_id,
+                "entity_name": f"{intent.entity_type}:{device_id}",
+                "entity_type": intent.entity_type,
+                "attributes": (
+                    [{"object_id": "v", "name": intent.attribute, "type": "Number"}]
+                    if intent.attribute
+                    else []
+                ),
+            }
 
         return meta
 

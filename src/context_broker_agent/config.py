@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     fiware_service: str = "openiot"
     fiware_service_path: str = "/"
     quantumleap_url: str = "http://localhost:8668"
+    sth_comet_url: str = "http://localhost:8666"
+    iot_agent_url: str = "http://localhost:4041"
+    iot_agent_default_apikey: str = "dkrt-default-apikey"
     fiware_api_key: str = ""
 
     slm_enabled: bool = False
