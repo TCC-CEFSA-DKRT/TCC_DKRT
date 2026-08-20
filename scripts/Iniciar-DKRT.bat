@@ -38,34 +38,37 @@ if errorlevel 1 (
 
 echo [DKRT] Iniciando Ollama em segundo plano...
 
-REM Inicia sem redirecionar stdin/stdout de forma que o Ollama aborte.
-REM Logs vão para arquivos separados via PowerShell.
-powershell -NoProfile -Command ^
-  "Start-Process -FilePath 'ollama' -ArgumentList 'serve' -WindowStyle Hidden -RedirectStandardOutput ('$env:TEMP\dkrt-ollama.log') -RedirectStandardError ('$env:TEMP\dkrt-ollama.err')" >nul 2>&1
+REM start /B direto do cmd (sem PowerShell aninhado) -- menos camadas de
+REM escape de aspas, e nao engole erro silenciosamente como o Start-Process
+REM anterior fazia (aquele tinha um ">nul 2>&1" no final que escondia
+REM qualquer falha do proprio PowerShell, nao so a saida do ollama).
+set "DKRT_OLLAMA_LOG=%TEMP%\dkrt-ollama.log"
+set "DKRT_OLLAMA_ERR=%TEMP%\dkrt-ollama.err"
+start "" /B ollama serve > "%DKRT_OLLAMA_LOG%" 2> "%DKRT_OLLAMA_ERR%"
 
 set "DKRT_STARTED_OLLAMA=1"
+
+REM Confirma que o processo realmente subiu antes de ficar esperando 45s a toa.
+timeout /t 1 /nobreak >nul
+tasklist /FI "IMAGENAME eq ollama.exe" 2>nul | findstr /I "ollama.exe" >nul
+if errorlevel 1 (
+    echo [DKRT] O processo ollama.exe nao chegou a iniciar.
+    echo [DKRT] Tente rodar manualmente para ver o erro real:  ollama serve
+    echo [DKRT] Continuando em modo heuristico.
+    goto :run
+)
 
 echo [DKRT] Aguardando Ollama (ate ~45s)...
 powershell -NoProfile -Command ^
   "$ok=$false; for($i=0;$i -lt 90;$i++){ try{ $r=Invoke-WebRequest -Uri 'http://127.0.0.1:11434/api/tags' -UseBasicParsing -TimeoutSec 1; if($r.StatusCode -eq 200){$ok=$true; break} } catch{}; Start-Sleep -Milliseconds 500 }; if($ok){exit 0}else{exit 1}" >nul 2>&1
 
 if errorlevel 1 (
-    echo [DKRT] Ollama nao respondeu a tempo.
-    echo [DKRT] Veja: %TEMP%\dkrt-ollama.err  e  %TEMP%\dkrt-ollama.log
+    echo [DKRT] Ollama iniciou mas nao respondeu em localhost:11434 a tempo.
+    echo [DKRT] Veja: %DKRT_OLLAMA_ERR%  e  %DKRT_OLLAMA_LOG%
     echo [DKRT] Continuando em modo heuristico.
 ) else (
     echo [DKRT] Ollama pronto.
 )
-goto :run
-
-:ollama_missing
-echo [DKRT] Ollama nao encontrado no PATH. Instale em https://ollama.com
-echo [DKRT] Ou troque para llama.cpp no .env: SLM_PROVIDER=llama_cpp
-echo [DKRT] Seguindo sem SLM ^(modo heuristico simplificado^).
-goto :run
-
-:ollama_ok
-echo [DKRT] Ollama ja estava rodando ^(reutilizando^).
 goto :run
 
 REM ============================================================
