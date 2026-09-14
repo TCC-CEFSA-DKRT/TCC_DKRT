@@ -1,0 +1,668 @@
+{
+  "info": {
+    "_postman_id": "04a5ddc6-0dda-4c7c-bf54-3d43bd95b712",
+    "name": "Data space FIWARE - demo didatica (FDC simplificado)",
+    "description": "Setup e operacao minima de um data space didatico com 2 produtores FIWARE (Orion + conector) e 1 consumidor. Reproduz os 5 passos: publicar oferta, descobrir, negociar, transferir e aplicar a politica de uso (soberania). Execute as pastas em ordem, de cima para baixo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseA",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "baseB",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "baseC",
+      "value": "http://localhost:8082"
+    },
+    {
+      "key": "token",
+      "value": "dataspace-demo-trust-2026"
+    },
+    {
+      "key": "consumerId",
+      "value": "connector-consumer"
+    },
+    {
+      "key": "agreementA",
+      "value": ""
+    },
+    {
+      "key": "agreementB",
+      "value": ""
+    },
+    {
+      "key": "policyA",
+      "value": ""
+    },
+    {
+      "key": "policyB",
+      "value": ""
+    },
+    {
+      "key": "dataA",
+      "value": ""
+    },
+    {
+      "key": "dataB",
+      "value": ""
+    },
+    {
+      "key": "orionA",
+      "value": "http://localhost:1026"
+    },
+    {
+      "key": "agreementNoise",
+      "value": ""
+    },
+    {
+      "key": "policyNoise",
+      "value": ""
+    },
+    {
+      "key": "dataNoise",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0 - Setup (seed dos produtores)",
+      "item": [
+        {
+          "name": "Seed Produtor A (qualidade do ar)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseA}}/seed",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Seed Produtor B (mobilidade)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseB}}/seed",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "1 - Catalogo (descoberta)",
+      "item": [
+        {
+          "name": "Catalogo do Produtor A",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseA}}/catalog"
+          },
+          "response": []
+        },
+        {
+          "name": "Catalogo do Produtor B",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseB}}/catalog"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2 - Negociacao de contrato",
+      "item": [
+        {
+          "name": "Negociar com Produtor A",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseA}}/negotiate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assetId\": \"AirQualityObserved\",\n  \"consumerId\": \"{{consumerId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('agreementA', json.agreementId);",
+                  "pm.collectionVariables.set('policyA', JSON.stringify(json.policy));",
+                  "pm.test('negociacao com Produtor A OK (200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Negociar com Produtor B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseB}}/negotiate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assetId\": \"TrafficFlowObserved\",\n  \"consumerId\": \"{{consumerId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('agreementB', json.agreementId);",
+                  "pm.collectionVariables.set('policyB', JSON.stringify(json.policy));",
+                  "pm.test('negociacao com Produtor B OK (200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3 - Transferencia de dados",
+      "item": [
+        {
+          "name": "Transferir dados do Produtor A",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseA}}/transfer",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agreementId\": \"{{agreementA}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('dataA', JSON.stringify(json.data));",
+                  "pm.test('transferencia de A OK (200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Transferir dados do Produtor B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseB}}/transfer",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agreementId\": \"{{agreementB}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('dataB', JSON.stringify(json.data));",
+                  "pm.test('transferencia de B OK (200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4 - Recebimento no consumidor",
+      "item": [
+        {
+          "name": "Receber dados de A no consumidor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseC}}/receive",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agreementId\": \"{{agreementA}}\",\n  \"assetId\": \"AirQualityObserved\",\n  \"producerId\": \"connector-a\",\n  \"policy\": {{policyA}},\n  \"data\": {{dataA}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Receber dados de B no consumidor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseC}}/receive",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agreementId\": \"{{agreementB}}\",\n  \"assetId\": \"TrafficFlowObserved\",\n  \"producerId\": \"connector-b\",\n  \"policy\": {{policyB}},\n  \"data\": {{dataB}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5 - Aplicacao da politica (soberania)",
+      "item": [
+        {
+          "name": "Visualizar dado de A (permitido)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseC}}/use",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assetId\": \"AirQualityObserved\",\n  \"action\": \"visualizar\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('uso permitido (200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tentar redistribuir dado de A (deve falhar)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseC}}/use",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assetId\": \"AirQualityObserved\",\n  \"action\": \"redistribuir\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('bloqueado pela politica (403)', () => pm.response.to.have.status(403));",
+                  "pm.test('motivo menciona redistribuicao', () => pm.expect(pm.response.text()).to.include('redistrib'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar dados recebidos pelo consumidor",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseC}}/received"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6 - Nova entidade e nova oferta (politica diferente)",
+      "item": [
+        {
+          "name": "Criar entidade direto no Orion A (NGSI-v2 puro)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{orionA}}/v2/entities",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"urn:ngsi-ld:NoiseLevelObserved:demo-001\",\n  \"type\": \"NoiseLevelObserved\",\n  \"value\": { \"value\": 67.5, \"type\": \"Number\" },\n  \"domain\": { \"value\": \"Ruido urbano\", \"type\": \"Text\" }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('entidade criada (201) ou ja existia (422)', () => [201,422].includes(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar a entidade como oferta no conector A",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseA}}/assets",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assetId\": \"NoiseLevelObserved\",\n  \"entityType\": \"NoiseLevelObserved\",\n  \"entityId\": \"urn:ngsi-ld:NoiseLevelObserved:demo-001\",\n  \"description\": \"Ruido urbano coletado por sensores municipais\",\n  \"purpose\": \"pesquisa-academica\",\n  \"ttlMinutes\": 10,\n  \"allowRedistribution\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('asset registrado (200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirmar no catalogo (agora com 2 ofertas)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseA}}/catalog"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('catalogo tem NoiseLevelObserved', () => pm.expect(json.map(a => a.assetId)).to.include('NoiseLevelObserved'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Negociar a nova oferta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseA}}/negotiate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assetId\": \"NoiseLevelObserved\",\n  \"consumerId\": \"{{consumerId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('agreementNoise', json.agreementId);",
+                  "pm.collectionVariables.set('policyNoise', JSON.stringify(json.policy));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Transferir a nova oferta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseA}}/transfer",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agreementId\": \"{{agreementNoise}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('dataNoise', JSON.stringify(json.data));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consumidor recebe a nova oferta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseC}}/receive",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agreementId\": \"{{agreementNoise}}\",\n  \"assetId\": \"NoiseLevelObserved\",\n  \"producerId\": \"connector-a\",\n  \"policy\": {{policyNoise}},\n  \"data\": {{dataNoise}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Redistribuir a nova oferta (agora deve ser PERMITIDO)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseC}}/use",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assetId\": \"NoiseLevelObserved\",\n  \"action\": \"redistribuir\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('permitido por essa politica especifica (200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

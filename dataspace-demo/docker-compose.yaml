@@ -1,0 +1,106 @@
+services:
+  # ---------------------------------------------------------------------
+  # Produtor A — domínio: qualidade do ar
+  # ---------------------------------------------------------------------
+  mongo-a:
+    image: mongo:4.4
+    command: --nojournal --wiredTigerCacheSizeGB 0.25
+    restart: unless-stopped
+    volumes:
+      - mongo-a-data:/data/db
+
+  orion-a:
+    image: fiware/orion:latest
+    platform: linux/amd64
+    restart: unless-stopped
+    depends_on:
+      - mongo-a
+    command: -dbURI mongodb://mongo-a:27017/orion -logLevel INFO
+    ports:
+      - "1026:1026"
+
+  connector-a:
+    build: ./connector
+    restart: unless-stopped
+    depends_on:
+      - orion-a
+    environment:
+      ROLE: producer
+      CONNECTOR_ID: connector-a
+      SHARED_TOKEN: dataspace-demo-trust-2026
+      DOMAIN_LABEL: "Qualidade do ar"
+      ORION_URL: "http://orion-a:1026"
+      ENTITY_TYPE: AirQualityObserved
+      ENTITY_ID: "urn:ngsi-ld:AirQualityObserved:demo-001"
+      POLICY_PURPOSE: visualizacao-academica
+      POLICY_TTL_MINUTES: "5"
+      POLICY_ALLOW_REDISTRIBUTION: "false"
+    ports:
+      - "8080:8080"
+
+  # ---------------------------------------------------------------------
+  # Produtor B — domínio: mobilidade urbana
+  # ---------------------------------------------------------------------
+  mongo-b:
+    image: mongo:4.4
+    command: --nojournal --wiredTigerCacheSizeGB 0.25
+    restart: unless-stopped
+    volumes:
+      - mongo-b-data:/data/db
+
+  orion-b:
+    image: fiware/orion:latest
+    platform: linux/amd64
+    restart: unless-stopped
+    depends_on:
+      - mongo-b
+    command: -dbURI mongodb://mongo-b:27017/orion -logLevel INFO
+    ports:
+      - "1027:1026"
+
+  connector-b:
+    build: ./connector
+    restart: unless-stopped
+    depends_on:
+      - orion-b
+    environment:
+      ROLE: producer
+      CONNECTOR_ID: connector-b
+      SHARED_TOKEN: dataspace-demo-trust-2026
+      DOMAIN_LABEL: "Mobilidade urbana"
+      ORION_URL: "http://orion-b:1026"
+      ENTITY_TYPE: TrafficFlowObserved
+      ENTITY_ID: "urn:ngsi-ld:TrafficFlowObserved:demo-001"
+      POLICY_PURPOSE: visualizacao-academica
+      POLICY_TTL_MINUTES: "5"
+      POLICY_ALLOW_REDISTRIBUTION: "false"
+    ports:
+      - "8081:8080"
+
+  # ---------------------------------------------------------------------
+  # Consumidor — sem broker próprio, só o conector
+  # ---------------------------------------------------------------------
+  connector-consumer:
+    build: ./connector
+    restart: unless-stopped
+    environment:
+      ROLE: consumer
+      CONNECTOR_ID: connector-consumer
+      SHARED_TOKEN: dataspace-demo-trust-2026
+    ports:
+      - "8082:8080"
+
+  # ---------------------------------------------------------------------
+  # Simulador web — abre em http://localhost:8090
+  # ---------------------------------------------------------------------
+  simulator:
+    image: nginx:alpine
+    restart: unless-stopped
+    volumes:
+      - ./simulator:/usr/share/nginx/html:ro
+    ports:
+      - "8090:80"
+
+volumes:
+  mongo-a-data:
+  mongo-b-data:
