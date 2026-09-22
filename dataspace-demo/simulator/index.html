@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-PT">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Data space FIWARE — simulador didático</title>
+<title>Simulador Data Space — Auditoria DKRT</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -39,22 +39,25 @@ details.config summary{cursor:pointer; padding:12px 16px; font-size:13px; color:
 .config-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 16px 16px;}
 .config-grid label{display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--text-dim);}
 .config-grid input{background:var(--surface-2); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:7px 9px; font-family:var(--mono); font-size:12px;}
+select{background:var(--surface-2); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:7px 9px; font-family:var(--sans); font-size:13px;}
 
 .section-label{font-family:var(--display); font-weight:600; font-size:15px; color:var(--text-dim); margin:30px 0 12px; text-transform:uppercase; letter-spacing:.04em;}
 
-.tickets{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
-.ticket{position:relative; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px; overflow:hidden; border-left:3px solid var(--teal);}
+.tickets{display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;}
+.ticket{position:relative; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px; overflow:hidden; border-left:3px solid var(--teal); display:flex; flex-direction:column;}
 .ticket::before, .ticket::after{content:''; position:absolute; width:16px; height:16px; background:var(--bg); border-radius:50%; top:50%; transform:translateY(-50%); border:1px solid var(--border);}
 .ticket::before{left:-8px;} .ticket::after{right:-8px;}
 .ticket .domain{font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em;}
-.ticket .asset{font-family:var(--mono); font-size:14px; margin:3px 0 10px;}
+.ticket .asset{font-family:var(--mono); font-size:13px; margin:3px 0 10px; min-height: 40px;}
 .ticket .divider{border-top:1px dashed var(--border); margin:8px 0;}
-.ticket .status-line{display:flex; justify-content:space-between; align-items:baseline; font-family:var(--mono); font-size:13px;}
+.ticket .status-line{display:flex; justify-content:space-between; align-items:baseline; font-family:var(--mono); font-size:13px; margin-bottom: 12px;}
 .ticket .state{font-size:12px; color:var(--text-dim);}
 .ticket .countdown{font-size:18px; font-weight:500;}
 .ticket.active{border-left-color:var(--teal);}
 .ticket.expired .countdown, .ticket.expired .state{color:var(--red);}
 .ticket.idle .countdown{color:var(--text-dim);}
+.ticket-btn{background:var(--surface-2); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:6px; font-size:12px; cursor:pointer; text-align:center; margin-top:auto;}
+.ticket-btn:hover{background:var(--border);}
 
 .stage{display:flex; gap:16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px; margin-bottom:12px; align-items:flex-start;}
 .stage .num{font-family:var(--display); font-size:20px; color:var(--teal); width:28px; flex-shrink:0;}
@@ -85,56 +88,76 @@ button.danger{background:var(--coral-bg); color:var(--coral); border-color:var(-
 .log-body{margin-top:8px; color:var(--text-dim); white-space:pre-wrap; word-break:break-word; display:none;}
 .log-entry.open .log-body{display:block;}
 .empty-log{padding:18px 14px; color:var(--text-dim); font-size:13px;}
+
+/* Modal Styles */
+.modal-overlay {display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;}
+.modal-box {background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:24px; width:90%; max-width:600px; max-height:85vh; overflow-y:auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5);}
+.modal-box h3 {margin-top:0; color:var(--teal); font-family:var(--display);}
+.modal-box pre {background:var(--surface-2); padding:16px; border-radius:6px; font-family:var(--mono); font-size:13px; color:var(--text); overflow-x:auto; border:1px solid var(--border);}
+.close-modal {margin-top:16px; width:100%; text-align:center; background:var(--border); color:var(--text); border:none;}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Data space FIWARE — simulador didático</h1>
-  <p>Dois produtores de contexto e um consumidor, ligados por conectores que abstraem o FDC/TRUE Connector. Cada fase abaixo dispara chamadas reais aos serviços do docker-compose.</p>
+  <h1>DKRT — Simulação de Data Space</h1>
+  <p>Prova de conceito: Demonstração de como falhas semânticas e heurísticas propagam-se de forma silenciosa numa federação FIWARE.</p>
   <div class="status-row">
-    <div class="status-chip"><span class="dot" id="dot-a"></span> connector-a :8080</div>
-    <div class="status-chip"><span class="dot" id="dot-b"></span> connector-b :8081</div>
-    <div class="status-chip"><span class="dot" id="dot-c"></span> connector-consumer :8082</div>
+    <div class="status-chip"><span class="dot" id="dot-a"></span> connector-a (Produtor)</div>
+    <div class="status-chip"><span class="dot" id="dot-c"></span> connector-consumer (Consumidor)</div>
   </div>
 </header>
 
 <main>
 
 <details class="config">
-  <summary>Configuração (endereços e token de confiança)</summary>
+  <summary>Configuração de Conectores</summary>
   <div class="config-grid">
     <label>Produtor A (base URL)<input id="cfg-baseA" value="http://localhost:8080"></label>
-    <label>Produtor B (base URL)<input id="cfg-baseB" value="http://localhost:8081"></label>
     <label>Consumidor (base URL)<input id="cfg-baseC" value="http://localhost:8082"></label>
-    <label>Token de confiança (simula a CA)<input id="cfg-token" value="dataspace-demo-trust-2026"></label>
+    <label>Token de confiança<input id="cfg-token" value="dataspace-demo-trust-2026"></label>
   </div>
 </details>
 
-<div class="section-label">Acordos ativos</div>
+<div class="section-label">Monitorização e Inspeção (Cenários TCC)</div>
 <div class="tickets">
-  <div class="ticket idle" id="ticket-a">
-    <div class="domain">Produtor A</div>
-    <div class="asset">AirQualityObserved</div>
+  <div class="ticket idle" id="ticket-1">
+    <div class="domain">Cenário 1</div>
+    <div class="asset">Dado 100% Correto</div>
     <div class="divider"></div>
-    <div class="status-line"><span class="state" id="state-a">não negociado</span><span class="countdown" id="countdown-a">--:--</span></div>
+    <div class="status-line"><span class="state" id="state-1">não negociado</span><span class="countdown" id="countdown-1">--:--</span></div>
+    <button class="ticket-btn" onclick="showDataModal(1)">🔍 Inspecionar Variáveis</button>
   </div>
-  <div class="ticket idle" id="ticket-b">
-    <div class="domain">Produtor B</div>
-    <div class="asset">TrafficFlowObserved</div>
+  <div class="ticket idle" id="ticket-2">
+    <div class="domain">Cenário 2</div>
+    <div class="asset">Erro Heurístico</div>
     <div class="divider"></div>
-    <div class="status-line"><span class="state" id="state-b">não negociado</span><span class="countdown" id="countdown-b">--:--</span></div>
+    <div class="status-line"><span class="state" id="state-2">não negociado</span><span class="countdown" id="countdown-2">--:--</span></div>
+    <button class="ticket-btn" onclick="showDataModal(2)">🔍 Inspecionar Variáveis</button>
+  </div>
+  <div class="ticket idle" id="ticket-3">
+    <div class="domain">Cenário 3</div>
+    <div class="asset">Erro Semântico</div>
+    <div class="divider"></div>
+    <div class="status-line"><span class="state" id="state-3">não negociado</span><span class="countdown" id="countdown-3">--:--</span></div>
+    <button class="ticket-btn" onclick="showDataModal(3)">🔍 Inspecionar Variáveis</button>
   </div>
 </div>
 
-<div class="section-label">Fluxo do data space</div>
+<div class="section-label">Pipeline de Simulação e Auditoria</div>
 
 <div class="stage">
   <div class="num">0</div>
   <div class="body">
-    <h3>Publicar oferta (seed)</h3>
-    <p>Cria a entidade NGSI-v2 de exemplo em cada Orion, como se o produtor estivesse publicando o asset no conector.</p>
-    <div class="btn-row"><button onclick="stageSeed()">Semear dados nos dois produtores</button></div>
+    <h3>1. Injetar e Registar Ofertas</h3>
+    <p>Escolha o domínio de Smart City. Serão geradas as 5 variáveis de telemetria por cenário no FIWARE.</p>
+    <div style="margin-bottom: 14px;">
+      <select id="model-select">
+        <option value="weather">Smart Environment (Clima Urbano)</option>
+        <option value="streetlight">Smart Streetlighting (Iluminação Pública)</option>
+      </select>
+    </div>
+    <div class="btn-row"><button onclick="stageSeed()">Gerar e Publicar Cenários</button></div>
     <div class="result-line" id="res-seed"></div>
   </div>
 </div>
@@ -142,84 +165,71 @@ button.danger{background:var(--coral-bg); color:var(--coral); border-color:var(-
 <div class="stage">
   <div class="num">1</div>
   <div class="body">
-    <h3>Descobrir oferta</h3>
-    <p>O consumidor consulta o catálogo de cada conector e vê a política de uso antes de pedir qualquer dado.</p>
-    <div class="btn-row"><button onclick="stageCatalog()">Consultar catálogos</button></div>
-    <div class="result-line" id="res-catalog"></div>
+    <h3>2. Descoberta e Negociação</h3>
+    <p>O Consumidor gera um contrato de partilha com o Produtor para aceder a estes pacotes de dados.</p>
+    <div class="btn-row"><button onclick="stageNegotiate()">Negociar os 3 Contratos</button></div>
+    <div class="result-line" id="res-negotiate"></div>
   </div>
 </div>
 
 <div class="stage">
   <div class="num">2</div>
   <div class="body">
-    <h3>Negociar contrato</h3>
-    <p>Gera um acordo (agreement) com a política anexada — finalidade, TTL e permissão de redistribuição.</p>
-    <div class="btn-row"><button onclick="stageNegotiate()">Negociar com os dois produtores</button></div>
-    <div class="result-line" id="res-negotiate"></div>
-  </div>
-</div>
-
-<div class="stage">
-  <div class="num">3</div>
-  <div class="body">
-    <h3>Transferir dados</h3>
-    <p>O data plane do conector busca a entidade real no Orion, só se o acordo ainda estiver válido.</p>
-    <div class="btn-row"><button onclick="stageTransfer()">Transferir dados dos dois produtores</button></div>
+    <h3>3. Transferência e Receção</h3>
+    <p>O data space transfere as informações sem validar o conteúdo semântico, alojando-as no destino com um falso <b>HTTP 200 OK</b>.</p>
+    <div class="btn-row"><button onclick="stageTransfer()">Transferir e Guardar Dados</button></div>
     <div class="result-line" id="res-transfer"></div>
   </div>
 </div>
 
-<div class="stage">
-  <div class="num">4</div>
+<div class="stage" style="border-color: var(--coral-dim);">
+  <div class="num" style="color: var(--coral);">3</div>
   <div class="body">
-    <h3>Consumidor recebe os dados</h3>
-    <p>O conector do consumidor registra a cópia local junto com a política — é isso que ele vai respeitar a partir de agora.</p>
-    <div class="btn-row"><button onclick="stageReceive()">Registrar recebimento no consumidor</button></div>
-    <div class="result-line" id="res-receive"></div>
-  </div>
-</div>
-
-<div class="stage">
-  <div class="num">5</div>
-  <div class="body">
-    <h3>Aplicar política de uso (soberania)</h3>
-    <p>O ponto-chave da demo: o conector do consumidor decide se o uso pedido é permitido — mesmo já tendo recebido o dado.</p>
+    <h3 style="color: var(--coral);">4. O Impacto (A Falha do Data Space)</h3>
+    <p>Sem a camada de auditoria estrutural e SLM do DKRT, veja o colapso dos algoritmos da cidade consumidora:</p>
     <div class="btn-row">
-      <button onclick="stageUse('visualizar')">Visualizar (permitido)</button>
-      <button class="danger" onclick="stageUse('redistribuir')">Tentar redistribuir (deve bloquear)</button>
+      <button onclick="simulateImpact(1)">Analisar Cenário 1</button>
+      <button class="danger" onclick="simulateImpact(2)">Analisar Cenário 2</button>
+      <button class="danger" onclick="simulateImpact(3)">Analisar Cenário 3</button>
     </div>
-    <div class="result-line" id="res-use"></div>
+    <div class="result-line" id="res-audit"></div>
   </div>
 </div>
 
 <div class="console">
-  <div class="section-label">Console de requisições</div>
-  <div class="console-log" id="log"><div class="empty-log">Nenhuma chamada ainda — execute uma fase acima.</div></div>
+  <div class="section-label">Consola de Requisições de Rede</div>
+  <div class="console-log" id="log"><div class="empty-log">Nenhuma chamada efetuada — inicie a simulação acima.</div></div>
 </div>
 
 </main>
 
+<!-- Modal Visualizador de Dados -->
+<div id="dataModal" class="modal-overlay">
+  <div class="modal-box">
+    <h3>Estrutura NGSI-v2 Recebida</h3>
+    <p style="font-size:13px; color:var(--text-dim); margin-top:-10px;">Estes são os dados exatos (raw) transferidos pelo data space.</p>
+    <pre id="modal-json-content">Aguardando dados...</pre>
+    <button class="close-modal ticket-btn" onclick="document.getElementById('dataModal').style.display='none'">Fechar Visualizador</button>
+  </div>
+</div>
+
 <script>
 const state = {
-  agreementA:null, agreementB:null,
-  policyA:null, policyB:null,
-  dataA:null, dataB:null,
-  expiresA:null, expiresB:null,
+  ag1:null, ag2:null, ag3:null,
+  pol1:null, pol2:null, pol3:null,
+  data1:null, data2:null, data3:null,
+  exp1:null, exp2:null, exp3:null,
 };
 
-// Usa o mesmo host pelo qual esta página foi acessada (localhost, IP da EC2, domínio etc.)
-// em vez de assumir "localhost" fixo — assim funciona igual em qualquer ambiente.
 (function setDefaultHosts(){
   const host = window.location.hostname || 'localhost';
   document.getElementById('cfg-baseA').value = `http://${host}:8080`;
-  document.getElementById('cfg-baseB').value = `http://${host}:8081`;
   document.getElementById('cfg-baseC').value = `http://${host}:8082`;
 })();
 
 function cfg(){
   return {
     baseA: document.getElementById('cfg-baseA').value.trim(),
-    baseB: document.getElementById('cfg-baseB').value.trim(),
     baseC: document.getElementById('cfg-baseC').value.trim(),
     token: document.getElementById('cfg-token').value.trim(),
   };
@@ -238,7 +248,7 @@ function logEntry(method, url, status, body){
     <div class="log-head" onclick="document.getElementById('${id}').closest('.log-entry').classList.toggle('open')">
       <span class="badge ${badge}">${status || 'erro'}</span>
       <span class="path">${method} ${url}</span>
-      <span class="time">${new Date().toLocaleTimeString('pt-BR')}</span>
+      <span class="time">${new Date().toLocaleTimeString('pt-PT')}</span>
     </div>
     <div class="log-body" id="${id}">${escapeHtml(typeof body === 'string' ? body : JSON.stringify(body, null, 2))}</div>
   `;
@@ -273,86 +283,86 @@ function showResult(elId, text, kind){
   el.className = 'result-line show' + (kind ? (' ' + kind) : '');
 }
 
-async function stageSeed(){
-  const c = cfg();
-  try {
-    await callApi('POST', c.baseA, '/seed', {});
-    await callApi('POST', c.baseB, '/seed', {});
-    showResult('res-seed', 'seed aplicado nos dois produtores', 'ok');
-  } catch (e) {
-    showResult('res-seed', 'falhou: ' + (e.body ? JSON.stringify(e.body) : e.message), 'blocked');
+// Lógica do Modal
+function showDataModal(scenario) {
+  const data = scenario === 1 ? state.data1 : (scenario === 2 ? state.data2 : state.data3);
+  if (!data) {
+    alert('Transfira os dados primeiro (Passo 3) para que possam ser inspecionados no destino!');
+    return;
   }
+  document.getElementById('modal-json-content').textContent = JSON.stringify(data, null, 2);
+  document.getElementById('dataModal').style.display = 'flex';
 }
 
-async function stageCatalog(){
+async function stageSeed(){
   const c = cfg();
+  const model = document.getElementById('model-select').value;
+  const type = model === 'weather' ? 'WeatherObserved' : 'Streetlight';
+  
   try {
-    const a = await callApi('GET', c.baseA, '/catalog');
-    const b = await callApi('GET', c.baseB, '/catalog');
-    showResult('res-catalog', `A: ${a[0].assetId} (${a[0].domain}) · B: ${b[0].assetId} (${b[0].domain})`, 'ok');
+    await callApi('POST', c.baseA, `/seed-dkrt?scenario=1&model=${model}`, {});
+    await callApi('POST', c.baseA, `/seed-dkrt?scenario=2&model=${model}`, {});
+    await callApi('POST', c.baseA, `/seed-dkrt?scenario=3&model=${model}`, {});
+    
+    await callApi('POST', c.baseA, '/assets', { assetId: 'Cenario1_Perfeito', entityType: type, entityId: `urn:ngsi-ld:${type}:dkrt-test-001`, description: 'Modelo 100% Correto', purpose: 'auditoria', ttlMinutes: 10, allowRedistribution: true });
+    await callApi('POST', c.baseA, '/assets', { assetId: 'Cenario2_Heuristico', entityType: type, entityId: `urn:ngsi-ld:${type}:dkrt-test-002`, description: 'Erro Heurístico Físico', purpose: 'auditoria', ttlMinutes: 10, allowRedistribution: true });
+    await callApi('POST', c.baseA, '/assets', { assetId: 'Cenario3_Semantico', entityType: type, entityId: `urn:ngsi-ld:${type}:dkrt-test-003`, description: 'Erro Semântico de Tradução', purpose: 'auditoria', ttlMinutes: 10, allowRedistribution: true });
+    
+    showResult('res-seed', `Concluído: 3 Cenários (5 variáveis cada) gerados no FIWARE (${type}).`, 'ok');
   } catch (e) {
-    showResult('res-catalog', 'falhou: ' + (e.body ? JSON.stringify(e.body) : e.message), 'blocked');
+    showResult('res-seed', 'Falha: ' + (e.body ? JSON.stringify(e.body) : e.message), 'blocked');
   }
 }
 
 async function stageNegotiate(){
   const c = cfg();
   try {
-    const a = await callApi('POST', c.baseA, '/negotiate', {assetId:'AirQualityObserved', consumerId:'connector-consumer'});
-    state.agreementA = a.agreementId; state.policyA = a.policy; state.expiresA = new Date(a.policy.expiresAt);
-    const b = await callApi('POST', c.baseB, '/negotiate', {assetId:'TrafficFlowObserved', consumerId:'connector-consumer'});
-    state.agreementB = b.agreementId; state.policyB = b.policy; state.expiresB = new Date(b.policy.expiresAt);
-    showResult('res-negotiate', `acordo A: ${a.agreementId.slice(0,8)}… · acordo B: ${b.agreementId.slice(0,8)}…`, 'ok');
+    const a1 = await callApi('POST', c.baseA, '/negotiate', {assetId:'Cenario1_Perfeito', consumerId:'connector-consumer'});
+    state.ag1 = a1.agreementId; state.pol1 = a1.policy; state.exp1 = new Date(a1.policy.expiresAt);
+    
+    const a2 = await callApi('POST', c.baseA, '/negotiate', {assetId:'Cenario2_Heuristico', consumerId:'connector-consumer'});
+    state.ag2 = a2.agreementId; state.pol2 = a2.policy; state.exp2 = new Date(a2.policy.expiresAt);
+    
+    const a3 = await callApi('POST', c.baseA, '/negotiate', {assetId:'Cenario3_Semantico', consumerId:'connector-consumer'});
+    state.ag3 = a3.agreementId; state.pol3 = a3.policy; state.exp3 = new Date(a3.policy.expiresAt);
+    
+    showResult('res-negotiate', `3 acordos gerados. O data space autorizou a partilha de informações.`, 'ok');
     updateTickets();
   } catch (e) {
-    showResult('res-negotiate', 'falhou: ' + (e.body ? JSON.stringify(e.body) : e.message), 'blocked');
+    showResult('res-negotiate', 'Falha: Primeiro garanta que gerou as ofertas no passo anterior.', 'blocked');
   }
 }
 
 async function stageTransfer(){
   const c = cfg();
-  if (!state.agreementA || !state.agreementB){
-    showResult('res-transfer', 'negocie um contrato antes de transferir', 'blocked'); return;
-  }
+  if (!state.ag1){ showResult('res-transfer', 'Negocie os contratos antes de transferir.', 'blocked'); return; }
   try {
-    const a = await callApi('POST', c.baseA, '/transfer', {agreementId: state.agreementA});
-    state.dataA = a.data;
-    const b = await callApi('POST', c.baseB, '/transfer', {agreementId: state.agreementB});
-    state.dataB = b.data;
-    showResult('res-transfer', 'dados recebidos do data plane dos dois produtores', 'ok');
+    const t1 = await callApi('POST', c.baseA, '/transfer', {agreementId: state.ag1}); state.data1 = t1.data;
+    const t2 = await callApi('POST', c.baseA, '/transfer', {agreementId: state.ag2}); state.data2 = t2.data;
+    const t3 = await callApi('POST', c.baseA, '/transfer', {agreementId: state.ag3}); state.data3 = t3.data;
+    
+    await callApi('POST', c.baseC, '/receive', { agreementId: state.ag1, assetId:'Cenario1_Perfeito', producerId:'connector-a', policy: state.pol1, data: state.data1 });
+    await callApi('POST', c.baseC, '/receive', { agreementId: state.ag2, assetId:'Cenario2_Heuristico', producerId:'connector-a', policy: state.pol2, data: state.data2 });
+    await callApi('POST', c.baseC, '/receive', { agreementId: state.ag3, assetId:'Cenario3_Semantico', producerId:'connector-a', policy: state.pol3, data: state.data3 });
+    
+    showResult('res-transfer', 'Sucesso logístico: Dados (corretos e anómalos) alojados no destino com HTTP 200.', 'ok');
   } catch (e) {
-    showResult('res-transfer', 'falhou: ' + (e.body ? JSON.stringify(e.body) : e.message), 'blocked');
+    showResult('res-transfer', 'Falha na transferência: ' + (e.body ? JSON.stringify(e.body) : e.message), 'blocked');
   }
 }
 
-async function stageReceive(){
-  const c = cfg();
-  if (!state.dataA || !state.dataB){
-    showResult('res-receive', 'transfira os dados antes de registrar o recebimento', 'blocked'); return;
-  }
-  try {
-    await callApi('POST', c.baseC, '/receive', {
-      agreementId: state.agreementA, assetId:'AirQualityObserved', producerId:'connector-a',
-      policy: state.policyA, data: state.dataA,
-    });
-    await callApi('POST', c.baseC, '/receive', {
-      agreementId: state.agreementB, assetId:'TrafficFlowObserved', producerId:'connector-b',
-      policy: state.policyB, data: state.dataB,
-    });
-    showResult('res-receive', 'consumidor registrou as duas cópias locais', 'ok');
-  } catch (e) {
-    showResult('res-receive', 'falhou: ' + (e.body ? JSON.stringify(e.body) : e.message), 'blocked');
-  }
-}
+function simulateImpact(scenario){
+  if (!state.data1){ showResult('res-audit', 'Efetue a transferência dos dados no passo anterior.', 'blocked'); return; }
+  const model = document.getElementById('model-select').value;
 
-async function stageUse(action){
-  const c = cfg();
-  try {
-    const r = await callApi('POST', c.baseC, '/use', {assetId:'AirQualityObserved', action});
-    showResult('res-use', `permitido: ${action} (uso nº ${r.usageCount})`, 'ok');
-  } catch (e) {
-    const msg = e.body && e.body.detail ? e.body.detail : e.message;
-    showResult('res-use', 'BLOQUEADO: ' + msg, 'blocked');
+  if (scenario === 1) {
+      showResult('res-audit', '✅ SUCESSO: Algoritmos processaram as 5 variáveis corretamente. Dashboard operacional.', 'ok');
+  } else if (scenario === 2) {
+      if(model === 'weather') showResult('res-audit', '❌ FALHA HEURÍSTICA: Humidade a 150% e vento a -5 gravados. Dashboards meteorológicos corrompidos silenciosamente.', 'blocked');
+      else showResult('res-audit', '❌ FALHA HEURÍSTICA: Algoritmo de eficiência estoirou! Lâmpada reporta estar desligada mas regista consumo de 450W e altura de -2m.', 'blocked');
+  } else if (scenario === 3) {
+      const wrongKey = Object.keys(state.data3).find(k => k !== 'id' && k !== 'type' && k !== 'domain');
+      showResult('res-audit', '❌ FALHA DE INTEROPERABILIDADE: A IA não encontrou os campos oficiais exigidos pelo Smart Data Model. Recebeu chaves traduzidas ("' + wrongKey + '").', 'blocked');
   }
 }
 
@@ -365,7 +375,7 @@ function fmtCountdown(ms){
 }
 function updateTickets(){
   const now = Date.now();
-  [['a', state.expiresA, 'agreementA'], ['b', state.expiresB, 'agreementB']].forEach(([k, exp]) => {
+  [['1', state.exp1], ['2', state.exp2], ['3', state.exp3]].forEach(([k, exp]) => {
     const ticket = document.getElementById('ticket-' + k);
     const stateEl = document.getElementById('state-' + k);
     const cdEl = document.getElementById('countdown-' + k);
@@ -390,14 +400,14 @@ setInterval(updateTickets, 1000);
 
 async function pingHealth(){
   const c = cfg();
-  const targets = [['a', c.baseA], ['b', c.baseB], ['c', c.baseC]];
+  const targets = [['a', c.baseA], ['c', c.baseC]];
   for (const [id, base] of targets){
     const dot = document.getElementById('dot-' + id);
     try {
       const res = await fetch(base + '/health');
       dot.className = 'dot ' + (res.ok ? 'ok' : 'fail');
     } catch (e) {
-      dot.className = 'dot fail';
+      if(dot) dot.className = 'dot fail';
     }
   }
 }

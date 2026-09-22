@@ -1,22 +1,5 @@
 """
 Conector didático de data space.
-
-Este serviço simula, de forma simplificada, o papel de um conector de data space
-(o FDC / TRUE Connector da FIWARE) na frente de um broker Orion. Não implementa o
-protocolo IDS/Dataspace Protocol real -- é uma redução pedagógica feita para deixar
-visíveis os 5 conceitos centrais: catálogo, negociação, transferência, recebimento
-e aplicação da política de uso (soberania).
-
-O mesmo código roda em 3 papéis diferentes, configurados via variável de ambiente ROLE:
-  - producer: expõe /seed, /assets, /catalog, /negotiate, /transfer, /agreements
-  - consumer: expõe /receive, /use, /received
-
-O catálogo é dinâmico: cada produtor já nasce com o asset configurado via variável de
-ambiente, e novos assets podem ser publicados em tempo de execução via POST /assets
-(ex.: depois de criar uma entidade nova direto no Orion).
-
-A "confiança" entre conectores é simulada com um token compartilhado (SHARED_TOKEN),
-no lugar de mTLS + DAPS/Gaia-X Clearing House que seriam usados em produção.
 """
 
 import os
@@ -54,7 +37,6 @@ AGREEMENTS: dict = {}
 RECEIVED: dict = {}
 ASSETS: dict = {}
 
-
 def _default_asset() -> dict:
     return {
         "assetId": ENTITY_TYPE,
@@ -70,12 +52,8 @@ def _default_asset() -> dict:
         },
     }
 
-
 if ROLE == "producer":
-    # o asset configurado via variaveis de ambiente sempre comeca disponivel no catalogo;
-    # novos assets podem ser registrados depois via POST /assets
     ASSETS[ENTITY_TYPE] = _default_asset()
-
 
 def check_token(authorization: Optional[str]):
     if authorization != f"Bearer {SHARED_TOKEN}":
@@ -84,20 +62,14 @@ def check_token(authorization: Optional[str]):
             detail="conector não confiável: token de confiança ausente ou inválido",
         )
 
-
 def now() -> datetime:
     return datetime.now(timezone.utc)
-
 
 def iso(dt: datetime) -> str:
     return dt.isoformat()
 
-
 def ngsi_date(dt: datetime) -> str:
-    """Formato estrito que o NGSI-v2 exige para atributos DateTime: milissegundos + 'Z',
-    nunca microssegundos nem offset '+00:00' (formato que o Orion rejeita)."""
     return dt.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
-
 
 def require_role(expected: str, endpoint: str):
     if ROLE != expected:
@@ -106,19 +78,15 @@ def require_role(expected: str, endpoint: str):
             detail=f"este conector está no papel '{ROLE}'; {endpoint} só existe em conectores '{expected}'",
         )
 
-
 @app.get("/health")
 def health():
     return {"status": "ok", "role": ROLE, "connectorId": CONNECTOR_ID}
-
 
 # ---------------------------------------------------------------------------
 # Lado produtor
 # ---------------------------------------------------------------------------
 
 def orion_request(method: str, url: str, **kwargs):
-    """Chama o Orion tolerando falhas transitorias (DNS interno do Docker, broker
-    ainda subindo etc). Tenta algumas vezes com pequena espera antes de desistir."""
     last_exc = None
     for attempt in range(5):
         try:
@@ -132,35 +100,84 @@ def orion_request(method: str, url: str, **kwargs):
         detail=f"orion inacessivel apos varias tentativas: {last_exc}",
     )
 
-
 @app.post("/seed-dkrt")
-def seed_dkrt(scenario: int, authorization: Optional[str] = Header(None)):
+def seed_dkrt(scenario: int, model: str = "weather", authorization: Optional[str] = Header(None)):
     check_token(authorization)
     require_role("producer", "/seed-dkrt")
     
-    # Base da entidade (comum a todos os cenários)
-    entity = {
-        "id": f"urn:ngsi-ld:AirQualityObserved:dkrt-test-00{scenario}",
-        "type": "AirQualityObserved",
-        "domain": {"value": DOMAIN_LABEL, "type": "Text"}
-    }
-    
-    if scenario == 1:
-        # Cenário 1: 100% aderente ao Smart Data Model
-        entity["NO2"] = {"value": 42.5, "type": "Number"}
-        entity["dateObserved"] = {"value": ngsi_date(now()), "type": "DateTime"}
+    if model not in ["weather", "streetlight"]:
+        raise HTTPException(status_code=400, detail="Use model 'weather' ou 'streetlight'")
+
+    # ==========================================
+    # MODELO 1: Smart Environment (WeatherObserved)
+    # ==========================================
+    if model == "weather":
+        entity = {
+            "id": f"urn:ngsi-ld:WeatherObserved:dkrt-test-00{scenario}",
+            "type": "WeatherObserved",
+            "domain": {"value": "Clima Urbano", "type": "Text"}
+        }
         
-    elif scenario == 2:
-        # Cenário 2: Erro Heurístico (Física impossível e tipagem fraca)
-        # O validador Nível 1 pode deixar passar (se não checar tipos estritos), mas a heurística/SLM pega.
-        entity["NO2"] = {"value": "-999.99", "type": "Text"} 
-        entity["dateObserved"] = {"value": ngsi_date(now()), "type": "DateTime"}
+        if scenario == 1:
+            # Cenário 1: 100% Correto
+            entity["temperature"] = {"value": 22.5, "type": "Number"}
+            entity["relativeHumidity"] = {"value": 60.0, "type": "Number"}
+            entity["windSpeed"] = {"value": 12.5, "type": "Number"}
+            entity["atmosphericPressure"] = {"value": 1013.25, "type": "Number"}
+            entity["dateObserved"] = {"value": ngsi_date(now()), "type": "DateTime"}
+            
+        elif scenario == 2:
+            # Cenário 2: Erro Heurístico (Aprovação Estrutural cega, falha nas Leis da Física)
+            # Humidade > 100% e Velocidade do Vento negativa.
+            entity["temperature"] = {"value": 22.5, "type": "Number"}
+            entity["relativeHumidity"] = {"value": 150.0, "type": "Number"} 
+            entity["windSpeed"] = {"value": -5.0, "type": "Number"}
+            entity["atmosphericPressure"] = {"value": 1013.25, "type": "Number"}
+            entity["dateObserved"] = {"value": ngsi_date(now()), "type": "DateTime"}
+            
+        elif scenario == 3:
+            # Cenário 3: Erro Semântico (Quebra de contrato do modelo com traduções indevidas)
+            entity["temperatura"] = {"value": 22.5, "type": "Number"}
+            entity["umidadeRelativa"] = {"value": 60.0, "type": "Number"}
+            entity["velocidadeVento"] = {"value": 12.5, "type": "Number"}
+            entity["pressaoAtmosferica"] = {"value": 1013.25, "type": "Number"}
+            # dateObserved omitido propositadamente
+
+    # ==========================================
+    # MODELO 2: Smart Streetlighting (Streetlight)
+    # ==========================================
+    elif model == "streetlight":
+        entity = {
+            "id": f"urn:ngsi-ld:Streetlight:dkrt-test-00{scenario}",
+            "type": "Streetlight",
+            "domain": {"value": "Iluminacao Publica", "type": "Text"}
+        }
         
-    elif scenario == 3:
-        # Cenário 3: Erro Semântico (Quebra de contrato do modelo)
-        # Omissão da data obrigatória e atributo traduzido fora do padrão NGSI-v2
-        entity["dioxidoNitrogenio"] = {"value": 45.0, "type": "Number"} 
-        
+        if scenario == 1:
+            # Cenário 1: 100% Correto
+            entity["powerState"] = {"value": "on", "type": "Text"}
+            entity["powerConsumption"] = {"value": 120.5, "type": "Number"}
+            entity["illuminanceLevel"] = {"value": 50.0, "type": "Number"}
+            entity["lanternHeight"] = {"value": 8.5, "type": "Number"}
+            entity["circuitId"] = {"value": "C-34", "type": "Text"}
+            
+        elif scenario == 2:
+            # Cenário 2: Erro Heurístico (Contradição Lógica entre Sensores)
+            # Lâmpada desligada ('off') mas a consumir 450W, e poste com altura negativa.
+            entity["powerState"] = {"value": "off", "type": "Text"}
+            entity["powerConsumption"] = {"value": 450.0, "type": "Number"}
+            entity["illuminanceLevel"] = {"value": 0.0, "type": "Number"}
+            entity["lanternHeight"] = {"value": -2.0, "type": "Number"}
+            entity["circuitId"] = {"value": "C-34", "type": "Text"}
+            
+        elif scenario == 3:
+            # Cenário 3: Erro Semântico (Tradução e tipos primitivos errados)
+            entity["estadoEnergia"] = {"value": "on", "type": "Text"}
+            entity["consumoEletrico"] = {"value": 120.5, "type": "Number"}
+            entity["nivelIluminacao"] = {"value": 50.0, "type": "Number"}
+            entity["alturaPoste"] = {"value": 8.5, "type": "Number"}
+            entity["circuito"] = {"value": "C-34", "type": "Text"}
+
     else:
         raise HTTPException(status_code=400, detail="Use scenario 1, 2 ou 3")
 
@@ -168,7 +185,7 @@ def seed_dkrt(scenario: int, authorization: Optional[str] = Header(None)):
     if r.status_code not in (201, 422):
         raise HTTPException(status_code=502, detail=f"Erro no Orion: {r.status_code} {r.text}")
         
-    return {"status": "Seed DKRT aplicado", "cenario": scenario, "entityId": entity["id"]}
+    return {"status": f"Seed DKRT ({model}) aplicado", "cenario": scenario, "entityId": entity["id"]}
 
 class RegisterAssetRequest(BaseModel):
     assetId: str
@@ -178,7 +195,6 @@ class RegisterAssetRequest(BaseModel):
     purpose: str = "visualizacao-academica"
     ttlMinutes: int = 5
     allowRedistribution: bool = False
-
 
 @app.post("/assets")
 def register_asset(body: RegisterAssetRequest, authorization: Optional[str] = Header(None)):
@@ -200,18 +216,15 @@ def register_asset(body: RegisterAssetRequest, authorization: Optional[str] = He
     ASSETS[body.assetId] = asset
     return asset
 
-
 @app.get("/catalog")
 def catalog(authorization: Optional[str] = Header(None)):
     check_token(authorization)
     require_role("producer", "/catalog")
     return list(ASSETS.values())
 
-
 class NegotiateRequest(BaseModel):
     assetId: str
     consumerId: str
-
 
 @app.post("/negotiate")
 def negotiate(body: NegotiateRequest, authorization: Optional[str] = Header(None)):
@@ -241,10 +254,8 @@ def negotiate(body: NegotiateRequest, authorization: Optional[str] = Header(None
     AGREEMENTS[agreement_id] = agreement
     return agreement
 
-
 class TransferRequest(BaseModel):
     agreementId: str
-
 
 @app.post("/transfer")
 def transfer(body: TransferRequest, authorization: Optional[str] = Header(None)):
@@ -262,13 +273,11 @@ def transfer(body: TransferRequest, authorization: Optional[str] = Header(None))
 
     return {"agreement": agreement, "data": r.json()}
 
-
 @app.get("/agreements")
 def list_agreements(authorization: Optional[str] = Header(None)):
     check_token(authorization)
     require_role("producer", "/agreements")
     return list(AGREEMENTS.values())
-
 
 # ---------------------------------------------------------------------------
 # Lado consumidor
@@ -280,7 +289,6 @@ class ReceiveRequest(BaseModel):
     producerId: str
     policy: dict
     data: dict
-
 
 @app.post("/receive")
 def receive(body: ReceiveRequest, authorization: Optional[str] = Header(None)):
@@ -298,11 +306,9 @@ def receive(body: ReceiveRequest, authorization: Optional[str] = Header(None)):
     RECEIVED[body.assetId] = record
     return record
 
-
 class UseRequest(BaseModel):
     assetId: str
-    action: str  # "visualizar" | "redistribuir"
-
+    action: str
 
 @app.post("/use")
 def use(body: UseRequest, authorization: Optional[str] = Header(None)):
@@ -329,7 +335,6 @@ def use(body: UseRequest, authorization: Optional[str] = Header(None)):
         "action": body.action,
         "usageCount": record["usageCount"],
     }
-
 
 @app.get("/received")
 def list_received(authorization: Optional[str] = Header(None)):
