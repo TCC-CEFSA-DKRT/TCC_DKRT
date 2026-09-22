@@ -1,0 +1,5 @@
+{
+  "description": "Caso fixo temp/temperature do Streetlight (.cursor/specs/fase7.spec.md, secao 7) — snapshot de FORMA, nao de prosa: quais rule/attribute_path/action aparecem, nao o texto de rationale/message. Editar so' quando uma mudanca de prompt/modelo for deliberada, nunca para 'fazer o teste passar'.",
+  "expected_recommendation_actions": ["rename_attribute"],
+  "expected_recommendation_attribute_paths_any_of": ["temp", "temperature"]
+}

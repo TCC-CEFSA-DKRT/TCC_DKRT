@@ -1,0 +1,11 @@
+# Copie para terraform.tfvars (gitignored) e ajuste. Nenhum valor real de
+# credencial vai aqui -- credenciais AWS vêm de variáveis de ambiente
+# (AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY, e AWS_SESSION_TOKEN se for uma
+# credencial temporária) ou de ~/.aws/credentials, nunca de arquivos
+# .tf/.tfvars versionados.
+
+region           = "us-east-1"
+name_prefix      = "auditor-homolog"
+key_name         = null # ou o nome de um key pair já existente na conta
+ollama_model     = "qwen2.5:3b-instruct"
+provision_ollama = true

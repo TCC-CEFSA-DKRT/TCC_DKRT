@@ -5,7 +5,7 @@
 | **Propósito** | Base de conhecimento do TCC DKRT sobre FIWARE, NGSI e Orion |
 | **Escopo** | Conceitos verificáveis em documentação oficial, repositórios e literatura |
 | **Atualização** | Maio de 2026 |
-| **Uso no projeto** | Integração NGSI-v2 com `telefonicaid/fiware-orion` (ver [fase 4](../fases/fase-04-integracao-fiware-ngsi.md)) |
+| **Uso no projeto** | Integração NGSI-v2 com `telefonicaid/fiware-orion` (ver [Fase 4](../../.cursor/specs/fase4.spec.md)) |
 
 Este documento não substitui as especificações normativas. Ele organiza, em profundidade, o que a comunidade FIWARE, a ETSI e os mantenedores do Orion publicam oficialmente — com distinção explícita entre **plataforma (FIWARE)**, **padrão de API (NGSI-v2 / NGSI-LD)**, **papel arquitetural (Context Broker)** e **implementação de referência (Orion)**.
 
@@ -352,23 +352,9 @@ Artigo de visão geral da plataforma ([Cirillo et al., IEEE IoT Magazine, 2019](
 
 ---
 
-## 8. Implicações para o projeto TCC DKRT
+## 8. (Removido) Implicações para o projeto
 
-O [pre-projeto](../entrega/pre_projeto_tcc.md) define orquestração multiagente sobre **Orion** via **NGSI-v2**. Consequências diretas:
-
-| Decisão | Fundamentação |
-|---------|---------------|
-| Endpoints `/v2/entities`, `/v2/subscriptions` | API NGSI-v2 / Orion ([fase 4](../fases/fase-04-integracao-fiware-ngsi.md)) |
-| Modelos `NgsiEntity` com `id`, `type`, attrs `{value,type}` | Modelo normativo NGSI-v2 §4 |
-| Cabeçalhos `Fiware-Service` | Multi-tenancy Orion |
-| NGSI-LD fora do escopo v1 | Spec e broker distintos; migração é projeto separado |
-
-Erros comuns a evitar na implementação:
-
-- Tratar `entity.type` como opcional em todas as operações (a unicidade é `id`+`type`).
-- Enviar JSON NGSI-LD para Orion v2 sem adaptação.
-- Assumir que o broker valida Smart Data Models automaticamente (harmonização é responsabilidade do integrador).
-- Ignorar `406` por `Accept` incorreto.
+Esta seção descrevia a arquitetura multiagente descartada e foi movida para [`docs/legacy/base-secao8-implicacoes-dkrt.md`](legacy/base-secao8-implicacoes-dkrt.md). Ver `.cursor/specs/` para o desenho atual do projeto.
 
 ---
 
@@ -446,7 +432,7 @@ Erros comuns a evitar na implementação:
 
 ### 12.5 Documentação interna do repositório
 
-- [Fase 4 — Integração FIWARE NGSI-v2](../fases/fase-04-integracao-fiware-ngsi.md)
+- [Fase 4 — Nível 1 ponta a ponta (spec vigente)](../../.cursor/specs/fase4.spec.md)
 - [Pre-projeto TCC](../entrega/pre_projeto_tcc.md)
 
 ---

@@ -1,3 +1,6 @@
+# Stack de desenvolvimento local — ver docs/plano_refatoracao_v3.md, Fase 0.
+# Orion + Mongo reaproveitados do projeto anterior (Parte IV do plano).
+# Postgres com pgvector adicionado: persistencia (Fase 3) + RAG (Fase 6).
 services:
   mongo:
     image: mongo:4.4
@@ -27,62 +30,21 @@ services:
       timeout: 5s
       retries: 10
 
-  crate-db:
-    image: crate:5.10.16
-    command: crate -Cnetwork.host=0.0.0.0
+  postgres:
+    image: pgvector/pgvector:pg16
     ports:
-      - "4200:4200"
-      - "4300:4300"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4200"]
-      interval: 5s
-      timeout: 5s
-      retries: 15
-
-  quantumleap:
-    image: orchestracities/quantumleap:latest
-    depends_on:
-      crate-db:
-        condition: service_healthy
-    ports:
-      - "8668:8668"
+      - "5433:5432"  # host:container — 5432 do host ja estava ocupado nesta maquina
     environment:
-      - CRATE_HOST=crate-db
+      - POSTGRES_USER=auditor
+      - POSTGRES_PASSWORD=auditor
+      - POSTGRES_DB=auditor
+    volumes:
+      - auditor-postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "curl", "--fail", "-s", "http://localhost:8668/v2/version"]
+      test: ["CMD-SHELL", "pg_isready -U auditor -d auditor"]
       interval: 5s
       timeout: 5s
-      retries: 15
+      retries: 10
 
-  mosquitto:
-    image: eclipse-mosquitto:2
-    ports:
-      - "1883:1883"
-
-  iot-agent-mqtt:
-    image: fiware/iotagent-json:latest
-    depends_on:
-      mongo:
-        condition: service_healthy
-      orion:
-        condition: service_healthy
-      mosquitto:
-        condition: service_started
-    ports:
-      - "4041:4041"
-    environment:
-      - IOTA_CB_HOST=orion
-      - IOTA_CB_PORT=1026
-      - IOTA_NORTH_PORT=4041
-      - IOTA_REGISTRY_TYPE=mongodb
-      - IOTA_MONGO_URI=mongodb://mongo:27017/iotagentjson
-      - IOTA_MQTT_HOST=mosquitto
-      - IOTA_MQTT_PORT=1883
-      - IOTA_DEFAULT_RESOURCE=/iot/json
-      - IOTA_PROVIDER_URL=http://iot-agent-mqtt:4041
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:4041/iot/about || wget -qO- http://localhost:4041/iot/about || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 15
-      
+volumes:
+  auditor-postgres-data:

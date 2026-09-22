@@ -1,0 +1,87 @@
+@switch (state()) {
+  @case ('loading') {
+    <app-loading-skeleton [rows]="8" />
+  }
+  @case ('error') {
+    <app-error-state message="Não foi possível carregar este relatório." (retry)="load()" />
+  }
+  @case ('empty') {
+    <app-empty-state
+      message="Esta auditoria não encontrou nenhuma entidade."
+      hint="O broker não retornou entidades deste tipo para o tenant no momento do run."
+    />
+  }
+  @case ('loaded') {
+    <header class="run-header">
+      <h1 class="page-title">Relatório — {{ run()?.entity_type ?? 'Todos os tipos' }}</h1>
+      <app-status-badge [status]="run()!.status" />
+      <span class="run-header__meta">{{ totalReports() }} entidade(s)</span>
+    </header>
+
+    @for (report of run()!.reports; track report.entity_id) {
+      <section class="entity-report">
+        <div class="entity-report__header">
+          <h2 class="entity-report__id">{{ report.entity_id }}</h2>
+          <app-status-badge [status]="report.status" />
+        </div>
+
+        @if (report.semantic_analysis_skipped) {
+          <p class="semantic-skipped-note">
+            Análise semântica (Nível 2) não executada para esta entidade — o diagnóstico
+            reflete apenas a validação estrutural (Nível 1).
+          </p>
+        }
+
+        @for (group of violationsBySeverity(report.violations); track group.severity) {
+          <div class="violation-group">
+            <h3 class="violation-group__title">{{ group.severity }}</h3>
+            @for (violation of group.items; track violation.attribute_path) {
+              <article class="violation">
+                <div class="violation__meta">
+                  <span class="violation__path">{{ violation.attribute_path }}</span>
+                  <span
+                    class="violation__source"
+                    [class.violation__source--structural]="violation.detected_by === 'structural'"
+                    [class.violation__source--semantic]="violation.detected_by === 'semantic'"
+                  >
+                    {{ violation.detected_by === 'structural' ? 'Nível 1' : 'Nível 2' }}
+                  </span>
+                </div>
+                <p class="violation__message">{{ violation.message }}</p>
+                <app-diff-view
+                  currentLabel="Encontrado"
+                  proposedLabel="Esperado"
+                  [currentValue]="violation.found"
+                  [proposedValue]="violation.expected"
+                />
+              </article>
+            }
+          </div>
+        }
+
+        @if (report.recommendations.length > 0) {
+          <div class="recommendations">
+            <h3 class="recommendations__title">Recomendações</h3>
+            @for (rec of report.recommendations; track rec.attribute_path + rec.action) {
+              <article class="recommendation">
+                <div class="recommendation__meta">
+                  <span class="recommendation__action">{{ rec.action }}</span>
+                  <span class="recommendation__confidence">
+                    confiança {{ rec.confidence | number: '1.0-2' }}
+                  </span>
+                </div>
+                <p class="recommendation__rationale">{{ rec.rationale }}</p>
+                <app-diff-view
+                  currentLabel="Atual"
+                  proposedLabel="Patch proposto"
+                  [currentValue]="rec.attribute_path"
+                  [proposedValue]="rec.proposed_patch"
+                />
+              </article>
+            }
+          </div>
+        }
+      </section>
+    }
+  }
+}

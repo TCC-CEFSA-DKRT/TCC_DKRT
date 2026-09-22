@@ -1,0 +1,56 @@
+/* Tokens do design system — ver docs/design/design-system.md. Definidos
+   uma vez aqui, usados via var(--token) em todos os componentes (nenhuma
+   cor/espaçamento "avulso" introduzido ad hoc numa tela, fase8.spec.md
+   seção 2). */
+:root {
+  --color-bg: #f7f8fa;
+  --color-surface: #ffffff;
+  --color-border: #e2e5ea;
+  --color-text-primary: #1a1d24;
+  --color-text-secondary: #5b6270;
+  --color-accent: #0f6e5c;
+  --color-accent-hover: #0b5647;
+
+  --color-conformant: #1a7f4b;
+  --color-partial: #b57a0a;
+  --color-non-conformant: #b23a3a;
+  --color-no-model: #6b7280;
+  --color-schema-unavailable: #8a6d9c;
+  --color-warning: #b57a0a;
+  --color-info: #3b6fa0;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  background: var(--color-bg);
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+}

@@ -1,0 +1,1 @@
+# Ambiente descontinuado — a AWS Academy Learner Lab não é mais usada neste projeto (ADR-0018). Conteúdo movido para ../homolog/ (ou ../../modules/... sem mudança, para scripts/). Ver docs/adr/adr-0018.md.

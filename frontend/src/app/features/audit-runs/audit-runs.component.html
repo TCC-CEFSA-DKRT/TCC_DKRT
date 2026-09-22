@@ -1,0 +1,78 @@
+<h1 class="page-title">Audit Runs</h1>
+
+<form
+  class="filters"
+  #filtersForm="ngForm"
+  (ngSubmit)="applyFilters({ entity_type: entityTypeInput, status: statusInput || undefined, page: 1, page_size: 20 })"
+>
+  <input
+    class="filters__input"
+    name="entity_type"
+    placeholder="Tipo (ex.: Streetlight)"
+    [(ngModel)]="entityTypeInput"
+  />
+  <select class="filters__input" name="status" [(ngModel)]="statusInput">
+    <option value="">Todos os status</option>
+    @for (option of statusOptions; track option) {
+      <option [value]="option">{{ option }}</option>
+    }
+  </select>
+  <button type="submit" class="filters__submit">Filtrar</button>
+</form>
+
+@switch (state()) {
+  @case ('loading') {
+    <app-loading-skeleton [rows]="6" />
+  }
+  @case ('error') {
+    <app-error-state message="Não foi possível carregar os runs." (retry)="load()" />
+  }
+  @case ('empty') {
+    <app-empty-state
+      message="Nenhum run encontrado para os filtros atuais."
+      hint="Ajuste os filtros acima ou inicie uma nova auditoria."
+    />
+  }
+  @case ('loaded') {
+    <table class="runs-table">
+      <thead>
+        <tr>
+          <th>Tipo</th>
+          <th>Status</th>
+          <th>Progresso</th>
+          <th>Iniciado em</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (run of runs(); track run.id) {
+          <tr>
+            <td>{{ run.entity_type ?? '—' }}</td>
+            <td><app-status-badge [status]="run.status" /></td>
+            <td>
+              @if (run.status === 'running') {
+                @if (progressByRunId()[run.id]?.total === null || progressByRunId()[run.id]?.total === undefined) {
+                  <span class="progress progress--indeterminate">processando…</span>
+                } @else {
+                  <span class="progress">
+                    {{ progressByRunId()[run.id]?.processed }} /
+                    {{ progressByRunId()[run.id]?.total }}
+                  </span>
+                }
+              } @else {
+                <span class="progress">
+                  {{ run.summary.total_entities }} entidade(s)
+                </span>
+              }
+            </td>
+            <td>{{ run.started_at | date: 'dd/MM/yyyy HH:mm' }}</td>
+            <td>
+              <a class="runs-table__link" [routerLink]="['/audit-runs', run.id]">Ver relatório</a>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <p class="runs-table__total">{{ total() }} run(s) no total</p>
+  }
+}

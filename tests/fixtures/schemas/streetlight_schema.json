@@ -1,0 +1,22 @@
+{
+  "_comment": "Subconjunto representativo, apenas para teste, do schema.json real do Smart Data Model Streetlight. Ver a nota no topo de .cursor/specs/fase1.spec.md: a lista definitiva de 'required' vem do schema.json ao vivo via SchemaCatalogPort a partir da Fase 2 — este fixture nao e a transcricao oficial.",
+  "required": ["id", "type", "illuminanceLevel", "lanternHeight", "dateCreated", "dateModified"],
+  "anyOf": [
+    {"required": ["location"]},
+    {"required": ["address"]}
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string"},
+    "type": {"type": "string"},
+    "location": {"type": "object"},
+    "address": {"type": "object"},
+    "illuminanceLevel": {"type": "number", "minimum": 0, "maximum": 1},
+    "lanternHeight": {"type": "number"},
+    "areaServed": {"type": "string"},
+    "refStreetlightModel": {"type": "string"},
+    "lanternMaterial": {"type": "string", "enum": ["steel", "aluminium", "wood", "other"]},
+    "dateCreated": {"type": "string", "format": "date-time"},
+    "dateModified": {"type": "string", "format": "date-time"}
+  }
+}

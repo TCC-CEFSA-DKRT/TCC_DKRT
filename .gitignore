@@ -1,4 +1,5 @@
 .venv/
+venv/
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -8,9 +9,18 @@ build/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-knowledge/chunks/*.jsonl
-!knowledge/chunks/.gitkeep
+.coverage
+.coverage.*
+htmlcov/
 *.log
 .DS_Store
-.dkrt_chat_history
-.dkrt_terminal_history
+
+# Terraform (Fase 9)
+**/.terraform/
+**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log

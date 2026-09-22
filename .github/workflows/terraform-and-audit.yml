@@ -1,0 +1,121 @@
+name: Terraform plan + pip-audit
+
+# Fase 9 (.cursor/specs/fase9.spec.md, secao 7). Duas responsabilidades
+# separadas neste workflow:
+#   1. `terraform plan` em PRs que tocam infra/terraform/ -- validação
+#      antes do merge, nunca `apply` automático (apply é manual, feito
+#      pelo usuário com as credenciais reais da sessão da Academy -- ver
+#      README/decisão em docs/decisions/0001-ollama-ec2-vs-bedrock.md).
+#   2. `pip-audit` sobre as dependências Python -- fecha uma lacuna de
+#      segurança deixada em aberto desde a Fase 0 (nenhum scanner de
+#      dependências rodava em CI até aqui). Lint/type-check completos
+#      (mypy/ruff em 100% do código) continuam fora de escopo -- débito
+#      conhecido, documentado, não bloqueante para este TCC.
+
+on:
+  pull_request:
+    paths:
+      - "infra/terraform/**"
+      - ".github/workflows/terraform-and-audit.yml"
+  push:
+    branches: [main]
+    paths:
+      - "infra/terraform/**"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-plan:
+    name: terraform plan (academy)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    defaults:
+      run:
+        working-directory: infra/terraform/environments/academy
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+
+      - name: terraform fmt -check
+        run: terraform fmt -check -recursive ../../
+
+      # terraform init/plan aqui exigem credenciais AWS reais da sessão da
+      # Academy (secrets do repositório: AWS_ACCESS_KEY_ID,
+      # AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN -- a Academy usa
+      # credenciais temporárias com session token). Se não configurados,
+      # este passo falha explicitamente em vez de fingir sucesso --
+      # configurar os secrets é um passo manual do usuário, fora do que
+      # pode ser feito a partir daqui.
+      - name: terraform init
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
+            -backend-config="key=academy/terraform.tfstate" \
+            -backend-config="region=us-east-1" \
+            -backend-config="dynamodb_table=${{ secrets.TF_STATE_LOCK_TABLE }}"
+
+      - name: terraform plan
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+        run: terraform plan -input=false
+
+  terraform-apply-academy:
+    name: terraform apply (academy, manual)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    environment: academy-apply # ambiente do GitHub com approval manual obrigatório
+    defaults:
+      run:
+        working-directory: infra/terraform/environments/academy
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+
+      - name: terraform init
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
+            -backend-config="key=academy/terraform.tfstate" \
+            -backend-config="region=us-east-1" \
+            -backend-config="dynamodb_table=${{ secrets.TF_STATE_LOCK_TABLE }}"
+
+      - name: terraform apply
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+        run: terraform apply -auto-approve -input=false
+
+  pip-audit:
+    name: pip-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pip-audit
+        run: pip install --quiet pip-audit
+
+      - name: Run pip-audit against requirements.txt
+        run: pip-audit -r requirements.txt --desc

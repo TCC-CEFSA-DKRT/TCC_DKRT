@@ -1,0 +1,12 @@
+{
+  "id": "urn:ngsi-ld:Streetlight:002",
+  "type": "Streetlight",
+  "location": {"type": "Point", "coordinates": [-46.633309, -23.55052]},
+  "illuminanceLevel": 0.6,
+  "lanternHeight": 5.0,
+  "areaServed": "Vila Madalena",
+  "refStreetlightModel": "urn:ngsi-ld:StreetlightModel:001",
+  "dateCreated": "2026-01-10T08:00:00Z",
+  "dateModified": "2026-08-15T10:00:00Z",
+  "temp": 21.5
+}
