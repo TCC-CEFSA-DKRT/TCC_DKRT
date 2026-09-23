@@ -23,25 +23,49 @@
 }
 *{box-sizing:border-box;}
 body{margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); line-height:1.5;}
-header{padding:28px 32px 18px; border-bottom:1px solid var(--border);}
-header h1{font-family:var(--display); font-weight:600; font-size:24px; margin:0 0 4px;}
-header p{margin:0; color:var(--text-dim); font-size:14px;}
+header{padding:28px 32px 18px; border-bottom:1px solid var(--border); position:relative;}
+header h1{font-family:var(--display); font-weight:600; font-size:24px; margin:0 0 4px; padding-right:110px;}
+header p{margin:0; color:var(--text-dim); font-size:14px; max-width:760px;}
 .status-row{display:flex; gap:18px; margin-top:14px; flex-wrap:wrap;}
 .status-chip{display:flex; align-items:center; gap:7px; font-size:13px; color:var(--text-dim); font-family:var(--mono);}
 .dot{width:8px; height:8px; border-radius:50%; background:var(--text-dim); transition:background .2s;}
 .dot.ok{background:var(--teal);}
 .dot.fail{background:var(--red);}
 
-main{max-width:920px; margin:0 auto; padding:24px 32px 60px;}
+.lang-switch{position:absolute; top:28px; right:32px;}
+.lang-switch select{background:var(--surface-2); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:6px 8px; font-family:var(--mono); font-size:12px; cursor:pointer;}
+
+main{max-width:1240px; margin:0 auto; padding:24px 32px 60px;}
+.layout{display:grid; grid-template-columns:340px 1fr; gap:28px; align-items:start;}
+.side{position:sticky; top:20px;}
+.content{min-width:0;}
+@media (max-width:880px){
+  .layout{display:block;}
+  .side{position:static; margin-bottom:22px;}
+}
 
 details.config{margin-bottom:22px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface);}
 details.config summary{cursor:pointer; padding:12px 16px; font-size:13px; color:var(--text-dim); font-family:var(--mono);}
 .config-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 16px 16px;}
 .config-grid label{display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--text-dim);}
 .config-grid input{background:var(--surface-2); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:7px 9px; font-family:var(--mono); font-size:12px;}
-select{background:var(--surface-2); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:7px 9px; font-family:var(--sans); font-size:13px;}
 
 .section-label{font-family:var(--display); font-weight:600; font-size:15px; color:var(--text-dim); margin:30px 0 12px; text-transform:uppercase; letter-spacing:.04em;}
+.domain-heading{font-family:var(--mono); font-size:12px; color:var(--text-dim); margin:16px 0 8px; text-transform:uppercase; letter-spacing:.04em;}
+.domain-heading:first-child{margin-top:0;}
+
+/* Topology diagram — coluna fixa (.side é sticky), conteúdo rola do lado. */
+figure.topology-figure{margin:0; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); padding:14px 16px 12px; box-shadow:0 10px 28px rgba(0,0,0,.5);}
+.topology svg{width:100%; height:auto; display:block;}
+.topology .node-box{fill:var(--surface-2); stroke:var(--border); stroke-width:1.2; transition:stroke .25s, fill .25s, filter .25s;}
+.topology .node-label{fill:var(--text-dim); font-family:var(--mono); font-size:11px; transition:fill .25s;}
+.topology .node.active .node-box{stroke:var(--teal); fill:var(--teal-bg); filter:drop-shadow(0 0 5px var(--teal-dim));}
+.topology .node.active .node-label{fill:var(--teal);}
+.topology .edge{stroke:var(--border); stroke-width:1.4; fill:none;}
+.topology .edge.main{stroke-dasharray:6 5;}
+.topology .edge.main.flowing{stroke:var(--teal); animation:flowdash .6s linear infinite;}
+@keyframes flowdash{ to { stroke-dashoffset:-22; } }
+.topology-caption{font-size:12px; color:var(--text-dim); margin:10px 0 26px;}
 
 .tickets{display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;}
 .ticket{position:relative; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px; overflow:hidden; border-left:3px solid var(--teal); display:flex; flex-direction:column;}
@@ -69,7 +93,7 @@ button{background:var(--teal-bg); color:var(--teal); border:1px solid var(--teal
 button:hover{opacity:.85;}
 button:disabled{opacity:.4; cursor:default;}
 button.danger{background:var(--coral-bg); color:var(--coral); border-color:var(--coral-dim);}
-.result-line{margin-top:10px; font-family:var(--mono); font-size:12.5px; padding:9px 11px; border-radius:6px; background:var(--surface-2); border:1px solid var(--border); display:none;}
+.result-line{margin-top:10px; font-family:var(--mono); font-size:12.5px; padding:9px 11px; border-radius:6px; background:var(--surface-2); border:1px solid var(--border); display:none; white-space:pre-wrap;}
 .result-line.show{display:block;}
 .result-line.ok{color:var(--teal); border-color:var(--teal-dim);}
 .result-line.blocked{color:var(--red); background:var(--red-bg); border-color:var(--red);}
@@ -100,64 +124,90 @@ button.danger{background:var(--coral-bg); color:var(--coral); border-color:var(-
 <body>
 
 <header>
-  <h1>DKRT — Simulação de Data Space</h1>
-  <p>Prova de conceito: Demonstração de como falhas semânticas e heurísticas propagam-se de forma silenciosa numa federação FIWARE.</p>
+  <div class="lang-switch">
+    <select id="lang-select" onchange="setLang(this.value)">
+      <option value="pt">PT</option>
+      <option value="en">EN</option>
+    </select>
+  </div>
+  <h1 data-i18n="title">DKRT — Simulação de Data Space</h1>
+  <p data-i18n="subtitle">Dois produtores soberanos (broker Orion + Mongo próprios cada um), um consumidor — prova de conceito de como falhas semânticas e heurísticas se propagam silenciosamente por uma federação FIWARE real.</p>
   <div class="status-row">
-    <div class="status-chip"><span class="dot" id="dot-a"></span> connector-a (Produtor)</div>
-    <div class="status-chip"><span class="dot" id="dot-c"></span> connector-consumer (Consumidor)</div>
+    <div class="status-chip"><span class="dot" id="dot-a"></span> <span data-i18n="chip_a">connector-a — Clima Urbano (Produtor A)</span></div>
+    <div class="status-chip"><span class="dot" id="dot-b"></span> <span data-i18n="chip_b">connector-b — Iluminação Pública (Produtor B)</span></div>
+    <div class="status-chip"><span class="dot" id="dot-c"></span> <span data-i18n="chip_c">connector-consumer (Consumidor)</span></div>
   </div>
 </header>
 
 <main>
+<div class="layout">
+
+<aside class="side">
+  <figure class="topology-figure">
+    <div class="topology">
+      <svg viewBox="0 0 300 220" role="img" aria-label="Topologia do data space: dois produtores com broker e banco proprios, ligados a um conector consumidor comum">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" style="fill:var(--border)"></path>
+          </marker>
+        </defs>
+
+        <!-- Produtor A row -->
+        <g class="node" id="node-mongo-a"><rect class="node-box" x="4" y="8" width="82" height="30" rx="6"></rect><text class="node-label" x="45" y="27" text-anchor="middle">mongo-a</text></g>
+        <g class="node" id="node-orion-a"><rect class="node-box" x="94" y="8" width="82" height="30" rx="6"></rect><text class="node-label" x="135" y="27" text-anchor="middle">orion-a</text></g>
+        <g class="node" id="node-conn-a"><rect class="node-box" x="184" y="8" width="112" height="30" rx="6"></rect><text class="node-label" x="240" y="27" text-anchor="middle">connector-a</text></g>
+
+        <!-- Produtor B row -->
+        <g class="node" id="node-mongo-b"><rect class="node-box" x="4" y="64" width="82" height="30" rx="6"></rect><text class="node-label" x="45" y="83" text-anchor="middle">mongo-b</text></g>
+        <g class="node" id="node-orion-b"><rect class="node-box" x="94" y="64" width="82" height="30" rx="6"></rect><text class="node-label" x="135" y="83" text-anchor="middle">orion-b</text></g>
+        <g class="node" id="node-conn-b"><rect class="node-box" x="184" y="64" width="112" height="30" rx="6"></rect><text class="node-label" x="240" y="83" text-anchor="middle">connector-b</text></g>
+
+        <!-- shared consumer -->
+        <g class="node" id="node-consumer"><rect class="node-box" x="58" y="160" width="184" height="38" rx="6"></rect><text class="node-label" x="150" y="183" text-anchor="middle">connector-consumer</text></g>
+
+        <!-- internal static edges: mongo -> orion -> connector -->
+        <line class="edge" x1="86" y1="23" x2="92" y2="23" marker-end="url(#arrow)"></line>
+        <line class="edge" x1="176" y1="23" x2="182" y2="23" marker-end="url(#arrow)"></line>
+        <line class="edge" x1="86" y1="79" x2="92" y2="79" marker-end="url(#arrow)"></line>
+        <line class="edge" x1="176" y1="79" x2="182" y2="79" marker-end="url(#arrow)"></line>
+
+        <!-- animated cross-boundary edges: this IS the data-space hop (negotiate + transfer) -->
+        <path class="edge main" id="edge-a" d="M235,38 C235,105 155,105 135,160" marker-end="url(#arrow)"></path>
+        <path class="edge main" id="edge-b" d="M235,94 C235,125 195,125 185,160" marker-end="url(#arrow)"></path>
+      </svg>
+    </div>
+  </figure>
+  <p class="topology-caption" data-i18n="topology_caption">Topologia real do stack: cada produtor tem broker Orion e MongoDB próprios (soberania de dados); os nós acendem em verde enquanto uma chamada HTTP real está em curso. As duas curvas tracejadas são a única fronteira do data space — o ponto onde negociação e transferência realmente cruzam de um domínio para o outro.</p>
+</aside>
+
+<div class="content">
 
 <details class="config">
-  <summary>Configuração de Conectores</summary>
+  <summary data-i18n="config_summary">Configuração de Conectores</summary>
   <div class="config-grid">
-    <label>Produtor A (base URL)<input id="cfg-baseA" value="http://localhost:8080"></label>
-    <label>Consumidor (base URL)<input id="cfg-baseC" value="http://localhost:8082"></label>
-    <label>Token de confiança<input id="cfg-token" value="dataspace-demo-trust-2026"></label>
+    <label><span data-i18n="cfg_baseA_label">Produtor A — Clima Urbano (base URL)</span><input id="cfg-baseA" value="http://localhost:8080"></label>
+    <label><span data-i18n="cfg_baseB_label">Produtor B — Iluminação Pública (base URL)</span><input id="cfg-baseB" value="http://localhost:8081"></label>
+    <label><span data-i18n="cfg_baseC_label">Consumidor (base URL)</span><input id="cfg-baseC" value="http://localhost:8082"></label>
+    <label><span data-i18n="cfg_token_label">Token de confiança</span><input id="cfg-token" value="dataspace-demo-trust-2026"></label>
   </div>
 </details>
 
-<div class="section-label">Monitorização e Inspeção (Cenários TCC)</div>
-<div class="tickets">
-  <div class="ticket idle" id="ticket-1">
-    <div class="domain">Cenário 1</div>
-    <div class="asset">Dado 100% Correto</div>
-    <div class="divider"></div>
-    <div class="status-line"><span class="state" id="state-1">não negociado</span><span class="countdown" id="countdown-1">--:--</span></div>
-    <button class="ticket-btn" onclick="showDataModal(1)">🔍 Inspecionar Variáveis</button>
-  </div>
-  <div class="ticket idle" id="ticket-2">
-    <div class="domain">Cenário 2</div>
-    <div class="asset">Erro Heurístico</div>
-    <div class="divider"></div>
-    <div class="status-line"><span class="state" id="state-2">não negociado</span><span class="countdown" id="countdown-2">--:--</span></div>
-    <button class="ticket-btn" onclick="showDataModal(2)">🔍 Inspecionar Variáveis</button>
-  </div>
-  <div class="ticket idle" id="ticket-3">
-    <div class="domain">Cenário 3</div>
-    <div class="asset">Erro Semântico</div>
-    <div class="divider"></div>
-    <div class="status-line"><span class="state" id="state-3">não negociado</span><span class="countdown" id="countdown-3">--:--</span></div>
-    <button class="ticket-btn" onclick="showDataModal(3)">🔍 Inspecionar Variáveis</button>
-  </div>
-</div>
+<div class="section-label" data-i18n="sect_monitor">Monitorização e Inspeção (Cenários TCC)</div>
 
-<div class="section-label">Pipeline de Simulação e Auditoria</div>
+<div class="domain-heading" data-i18n="domain_a_heading">Produtor A — Clima Urbano (WeatherObserved · orion-a · mongo-a)</div>
+<div class="tickets" id="tickets-weather"></div>
+
+<div class="domain-heading" data-i18n="domain_b_heading">Produtor B — Iluminação Pública (Streetlight · orion-b · mongo-b)</div>
+<div class="tickets" id="tickets-streetlight"></div>
+
+<div class="section-label" data-i18n="sect_pipeline">Pipeline de Simulação e Auditoria</div>
 
 <div class="stage">
   <div class="num">0</div>
   <div class="body">
-    <h3>1. Injetar e Registar Ofertas</h3>
-    <p>Escolha o domínio de Smart City. Serão geradas as 5 variáveis de telemetria por cenário no FIWARE.</p>
-    <div style="margin-bottom: 14px;">
-      <select id="model-select">
-        <option value="weather">Smart Environment (Clima Urbano)</option>
-        <option value="streetlight">Smart Streetlighting (Iluminação Pública)</option>
-      </select>
-    </div>
-    <div class="btn-row"><button onclick="stageSeed()">Gerar e Publicar Cenários</button></div>
+    <h3 data-i18n="stage0_title">1. Injetar e Registar Ofertas</h3>
+    <p data-i18n-html="stage0_desc">Gera os 3 cenários (correto / erro heurístico / erro semântico) em <b>cada</b> produtor — Clima Urbano no orion-a via connector-a, Iluminação Pública no orion-b via connector-b. Dois brokers, dois Mongos, dois conectores, de verdade.</p>
+    <div class="btn-row"><button onclick="stageSeed()" data-i18n="stage0_btn">Gerar e Publicar nos Dois Produtores</button></div>
     <div class="result-line" id="res-seed"></div>
   </div>
 </div>
@@ -165,9 +215,9 @@ button.danger{background:var(--coral-bg); color:var(--coral); border-color:var(-
 <div class="stage">
   <div class="num">1</div>
   <div class="body">
-    <h3>2. Descoberta e Negociação</h3>
-    <p>O Consumidor gera um contrato de partilha com o Produtor para aceder a estes pacotes de dados.</p>
-    <div class="btn-row"><button onclick="stageNegotiate()">Negociar os 3 Contratos</button></div>
+    <h3 data-i18n="stage1_title">2. Descoberta e Negociação</h3>
+    <p data-i18n="stage1_desc">O Consumidor negocia um contrato de partilha com cada produtor, para cada um dos 3 cenários — 6 acordos ao todo.</p>
+    <div class="btn-row"><button onclick="stageNegotiate()" data-i18n="stage1_btn">Negociar os 6 Contratos</button></div>
     <div class="result-line" id="res-negotiate"></div>
   </div>
 </div>
@@ -175,9 +225,9 @@ button.danger{background:var(--coral-bg); color:var(--coral); border-color:var(-
 <div class="stage">
   <div class="num">2</div>
   <div class="body">
-    <h3>3. Transferência e Receção</h3>
-    <p>O data space transfere as informações sem validar o conteúdo semântico, alojando-as no destino com um falso <b>HTTP 200 OK</b>.</p>
-    <div class="btn-row"><button onclick="stageTransfer()">Transferir e Guardar Dados</button></div>
+    <h3 data-i18n="stage2_title">3. Transferência e Receção</h3>
+    <p data-i18n-html="stage2_desc">O data space transfere as informações dos dois produtores sem validar o conteúdo semântico, alojando-as no destino com um falso <b>HTTP 200 OK</b>.</p>
+    <div class="btn-row"><button onclick="stageTransfer()" data-i18n="stage2_btn">Transferir e Guardar Dados</button></div>
     <div class="result-line" id="res-transfer"></div>
   </div>
 </div>
@@ -185,51 +235,237 @@ button.danger{background:var(--coral-bg); color:var(--coral); border-color:var(-
 <div class="stage" style="border-color: var(--coral-dim);">
   <div class="num" style="color: var(--coral);">3</div>
   <div class="body">
-    <h3 style="color: var(--coral);">4. O Impacto (A Falha do Data Space)</h3>
-    <p>Sem a camada de auditoria estrutural e SLM do DKRT, veja o colapso dos algoritmos da cidade consumidora:</p>
+    <h3 style="color: var(--coral);" data-i18n="stage3_title">4. O Impacto (A Falha do Data Space)</h3>
+    <p data-i18n="stage3_desc">Sem a camada de auditoria estrutural e SLM do DKRT, veja o colapso dos algoritmos das duas cidades consumidoras — clima e iluminação — ao mesmo tempo:</p>
     <div class="btn-row">
-      <button onclick="simulateImpact(1)">Analisar Cenário 1</button>
-      <button class="danger" onclick="simulateImpact(2)">Analisar Cenário 2</button>
-      <button class="danger" onclick="simulateImpact(3)">Analisar Cenário 3</button>
+      <button onclick="simulateImpact(1)" data-i18n="stage3_btn1">Analisar Cenário 1</button>
+      <button class="danger" onclick="simulateImpact(2)" data-i18n="stage3_btn2">Analisar Cenário 2</button>
+      <button class="danger" onclick="simulateImpact(3)" data-i18n="stage3_btn3">Analisar Cenário 3</button>
     </div>
     <div class="result-line" id="res-audit"></div>
   </div>
 </div>
 
 <div class="console">
-  <div class="section-label">Consola de Requisições de Rede</div>
-  <div class="console-log" id="log"><div class="empty-log">Nenhuma chamada efetuada — inicie a simulação acima.</div></div>
+  <div class="section-label" data-i18n="console_title">Consola de Requisições de Rede</div>
+  <div class="console-log" id="log"><div class="empty-log" data-i18n="log_empty">Nenhuma chamada efetuada — inicie a simulação acima.</div></div>
 </div>
 
+</div><!-- /.content -->
+</div><!-- /.layout -->
 </main>
 
 <!-- Modal Visualizador de Dados -->
 <div id="dataModal" class="modal-overlay">
   <div class="modal-box">
-    <h3>Estrutura NGSI-v2 Recebida</h3>
-    <p style="font-size:13px; color:var(--text-dim); margin-top:-10px;">Estes são os dados exatos (raw) transferidos pelo data space.</p>
-    <pre id="modal-json-content">Aguardando dados...</pre>
-    <button class="close-modal ticket-btn" onclick="document.getElementById('dataModal').style.display='none'">Fechar Visualizador</button>
+    <h3 data-i18n="modal_title">Estrutura NGSI-v2 Recebida</h3>
+    <p style="font-size:13px; color:var(--text-dim); margin-top:-10px;" data-i18n="modal_desc">Estes são os dados exatos (raw) transferidos pelo data space.</p>
+    <pre id="modal-json-content" data-i18n="modal_placeholder">Aguardando dados...</pre>
+    <button class="close-modal ticket-btn" onclick="document.getElementById('dataModal').style.display='none'" data-i18n="modal_close">Fechar Visualizador</button>
   </div>
 </div>
 
 <script>
-const state = {
-  ag1:null, ag2:null, ag3:null,
-  pol1:null, pol2:null, pol3:null,
-  data1:null, data2:null, data3:null,
-  exp1:null, exp2:null, exp3:null,
+// ---------------------------------------------------------------------------
+// i18n — dicionario simples: chave -> string (ou string com {placeholders}).
+// applyI18n() varre [data-i18n]/[data-i18n-html] e troca o texto; funcoes que
+// geram mensagens dinamicamente (result-line, alert, log) chamam t() direto.
+// ---------------------------------------------------------------------------
+const I18N = {
+  pt: {
+    title: 'DKRT — Simulação de Data Space',
+    subtitle: 'Dois produtores soberanos (broker Orion + Mongo próprios cada um), um consumidor — prova de conceito de como falhas semânticas e heurísticas se propagam silenciosamente por uma federação FIWARE real.',
+    chip_a: 'connector-a — Clima Urbano (Produtor A)',
+    chip_b: 'connector-b — Iluminação Pública (Produtor B)',
+    chip_c: 'connector-consumer (Consumidor)',
+    config_summary: 'Configuração de Conectores',
+    cfg_baseA_label: 'Produtor A — Clima Urbano (base URL)',
+    cfg_baseB_label: 'Produtor B — Iluminação Pública (base URL)',
+    cfg_baseC_label: 'Consumidor (base URL)',
+    cfg_token_label: 'Token de confiança',
+    topology_caption: 'Topologia real do stack: cada produtor tem broker Orion e MongoDB próprios (soberania de dados); os nós acendem em verde enquanto uma chamada HTTP real está em curso. As duas curvas tracejadas são a única fronteira do data space — o ponto onde negociação e transferência realmente cruzam de um domínio para o outro.',
+    sect_monitor: 'Monitorização e Inspeção (Cenários TCC)',
+    domain_a_heading: 'Produtor A — Clima Urbano (WeatherObserved · orion-a · mongo-a)',
+    domain_b_heading: 'Produtor B — Iluminação Pública (Streetlight · orion-b · mongo-b)',
+    sect_pipeline: 'Pipeline de Simulação e Auditoria',
+    stage0_title: '1. Injetar e Registar Ofertas',
+    stage0_desc: 'Gera os 3 cenários (correto / erro heurístico / erro semântico) em <b>cada</b> produtor — Clima Urbano no orion-a via connector-a, Iluminação Pública no orion-b via connector-b. Dois brokers, dois Mongos, dois conectores, de verdade.',
+    stage0_btn: 'Gerar e Publicar nos Dois Produtores',
+    stage1_title: '2. Descoberta e Negociação',
+    stage1_desc: 'O Consumidor negocia um contrato de partilha com cada produtor, para cada um dos 3 cenários — 6 acordos ao todo.',
+    stage1_btn: 'Negociar os 6 Contratos',
+    stage2_title: '3. Transferência e Receção',
+    stage2_desc: 'O data space transfere as informações dos dois produtores sem validar o conteúdo semântico, alojando-as no destino com um falso <b>HTTP 200 OK</b>.',
+    stage2_btn: 'Transferir e Guardar Dados',
+    stage3_title: '4. O Impacto (A Falha do Data Space)',
+    stage3_desc: 'Sem a camada de auditoria estrutural e SLM do DKRT, veja o colapso dos algoritmos das duas cidades consumidoras — clima e iluminação — ao mesmo tempo:',
+    stage3_btn1: 'Analisar Cenário 1',
+    stage3_btn2: 'Analisar Cenário 2',
+    stage3_btn3: 'Analisar Cenário 3',
+    console_title: 'Consola de Requisições de Rede',
+    log_empty: 'Nenhuma chamada efetuada — inicie a simulação acima.',
+    modal_title: 'Estrutura NGSI-v2 Recebida',
+    modal_desc: 'Estes são os dados exatos (raw) transferidos pelo data space.',
+    modal_placeholder: 'Aguardando dados...',
+    modal_close: 'Fechar Visualizador',
+    modal_alert: 'Transfira os dados primeiro (Passo 3) para que possam ser inspecionados no destino!',
+    ticket_scenario: 'Cenário {n}',
+    scenario_1: 'Dado 100% Correto',
+    scenario_2: 'Erro Heurístico',
+    scenario_3: 'Erro Semântico',
+    ticket_inspect_btn: '🔍 Inspecionar Variáveis',
+    ticket_state_idle: 'não negociado',
+    ticket_state_active: 'ativo',
+    ticket_state_expired: 'expirado',
+    seed_ok: 'Concluído: 3 cenários publicados em CADA produtor — Clima Urbano (orion-a) e Iluminação Pública (orion-b).',
+    seed_fail: 'Falha: {detail}',
+    negotiate_ok: '6 acordos gerados (3 por produtor). O data space autorizou a partilha em ambos os domínios.',
+    negotiate_fail: 'Falha: primeiro garanta que gerou as ofertas no passo anterior.',
+    transfer_blocked: 'Negocie os contratos antes de transferir.',
+    transfer_ok: 'Sucesso logístico: dados (corretos e anómalos) dos dois produtores alojados no consumidor com HTTP 200.',
+    transfer_fail: 'Falha na transferência: {detail}',
+    impact_blocked: 'Efetue a transferência dos dados no passo anterior.',
+    impact1_weather: '✅ Clima Urbano: algoritmos processaram as variáveis corretamente. Dashboard operacional.',
+    impact1_streetlight: '✅ Iluminação Pública: algoritmos processaram as variáveis corretamente. Dashboard operacional.',
+    impact2_weather: '❌ Clima Urbano (FALHA HEURÍSTICA): humidade a 150% e vento a -5 gravados. Dashboard meteorológico corrompido silenciosamente.',
+    impact2_streetlight: '❌ Iluminação Pública (FALHA HEURÍSTICA): lâmpada reporta "off" mas regista consumo de 450W e altura de -2m. Algoritmo de eficiência estoura.',
+    impact3_weather: '❌ Clima Urbano (INTEROPERABILIDADE): campos oficiais do Smart Data Model ausentes — recebeu chave traduzida ("{key}").',
+    impact3_streetlight: '❌ Iluminação Pública (INTEROPERABILIDADE): campos oficiais do Smart Data Model ausentes — recebeu chave traduzida ("{key}").',
+  },
+  en: {
+    title: 'DKRT — Data Space Simulation',
+    subtitle: 'Two sovereign producers (each with its own Orion broker + MongoDB), one consumer — a proof of concept for how semantic and heuristic failures propagate silently through a real FIWARE federation.',
+    chip_a: 'connector-a — Urban Weather (Producer A)',
+    chip_b: 'connector-b — Public Lighting (Producer B)',
+    chip_c: 'connector-consumer (Consumer)',
+    config_summary: 'Connector Configuration',
+    cfg_baseA_label: 'Producer A — Urban Weather (base URL)',
+    cfg_baseB_label: 'Producer B — Public Lighting (base URL)',
+    cfg_baseC_label: 'Consumer (base URL)',
+    cfg_token_label: 'Trust token',
+    topology_caption: "Actual stack topology: each producer has its own Orion broker and MongoDB (data sovereignty); nodes light up green while a real HTTP call is in flight. The two dashed curves are the data space's only boundary — the point where negotiation and transfer actually cross from one domain into the other.",
+    sect_monitor: 'Monitoring & Inspection (Thesis Scenarios)',
+    domain_a_heading: 'Producer A — Urban Weather (WeatherObserved · orion-a · mongo-a)',
+    domain_b_heading: 'Producer B — Public Lighting (Streetlight · orion-b · mongo-b)',
+    sect_pipeline: 'Simulation & Audit Pipeline',
+    stage0_title: '1. Seed & Register Offers',
+    stage0_desc: 'Generates the 3 scenarios (correct / heuristic error / semantic error) on <b>each</b> producer — Urban Weather on orion-a via connector-a, Public Lighting on orion-b via connector-b. Two brokers, two Mongos, two connectors, for real.',
+    stage0_btn: 'Generate & Publish on Both Producers',
+    stage1_title: '2. Discovery & Negotiation',
+    stage1_desc: 'The Consumer negotiates a sharing agreement with each producer, for each of the 3 scenarios — 6 agreements in total.',
+    stage1_btn: 'Negotiate the 6 Contracts',
+    stage2_title: '3. Transfer & Receipt',
+    stage2_desc: 'The data space transfers the information from both producers without validating semantic content, storing it at the destination with a false <b>HTTP 200 OK</b>.',
+    stage2_btn: 'Transfer & Store Data',
+    stage3_title: '4. The Impact (The Data Space Failure)',
+    stage3_desc: 'Without the DKRT structural + SLM audit layer, watch the algorithms of both consuming cities — weather and lighting — collapse at the same time:',
+    stage3_btn1: 'Analyze Scenario 1',
+    stage3_btn2: 'Analyze Scenario 2',
+    stage3_btn3: 'Analyze Scenario 3',
+    console_title: 'Network Request Console',
+    log_empty: 'No calls made yet — start the simulation above.',
+    modal_title: 'Received NGSI-v2 Structure',
+    modal_desc: 'This is the exact (raw) data transferred by the data space.',
+    modal_placeholder: 'Waiting for data...',
+    modal_close: 'Close Viewer',
+    modal_alert: 'Transfer the data first (Step 3) so it can be inspected at the destination!',
+    ticket_scenario: 'Scenario {n}',
+    scenario_1: '100% Correct Data',
+    scenario_2: 'Heuristic Error',
+    scenario_3: 'Semantic Error',
+    ticket_inspect_btn: '🔍 Inspect Variables',
+    ticket_state_idle: 'not negotiated',
+    ticket_state_active: 'active',
+    ticket_state_expired: 'expired',
+    seed_ok: 'Done: 3 scenarios published on EACH producer — Urban Weather (orion-a) and Public Lighting (orion-b).',
+    seed_fail: 'Failed: {detail}',
+    negotiate_ok: '6 agreements generated (3 per producer). The data space authorized sharing in both domains.',
+    negotiate_fail: 'Failed: make sure you generated the offers in the previous step first.',
+    transfer_blocked: 'Negotiate the contracts before transferring.',
+    transfer_ok: 'Logistical success: data (correct and anomalous) from both producers stored on the consumer with HTTP 200.',
+    transfer_fail: 'Transfer failed: {detail}',
+    impact_blocked: 'Run the data transfer in the previous step first.',
+    impact1_weather: '✅ Urban Weather: algorithms processed the variables correctly. Dashboard operational.',
+    impact1_streetlight: '✅ Public Lighting: algorithms processed the variables correctly. Dashboard operational.',
+    impact2_weather: '❌ Urban Weather (HEURISTIC FAILURE): humidity at 150% and wind at -5 recorded. Weather dashboard silently corrupted.',
+    impact2_streetlight: '❌ Public Lighting (HEURISTIC FAILURE): lamp reports "off" but logs 450W consumption and -2m height. Efficiency algorithm blows up.',
+    impact3_weather: '❌ Urban Weather (INTEROPERABILITY): official Smart Data Model fields missing — received a translated key ("{key}").',
+    impact3_streetlight: '❌ Public Lighting (INTEROPERABILITY): official Smart Data Model fields missing — received a translated key ("{key}").',
+  },
 };
+let LANG = 'pt';
+try { const saved = localStorage.getItem('dkrt-lang'); if (saved && I18N[saved]) LANG = saved; } catch (e) {}
+
+function t(key, vars){
+  let s = (I18N[LANG] && I18N[LANG][key]) ?? I18N.pt[key] ?? key;
+  if (vars) Object.keys(vars).forEach(k => { s = s.replace(new RegExp('\\{' + k + '\\}', 'g'), vars[k]); });
+  return s;
+}
+
+function applyI18n(){
+  document.documentElement.lang = LANG === 'pt' ? 'pt-PT' : 'en';
+  document.getElementById('lang-select').value = LANG;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.getAttribute('data-i18n')); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.getAttribute('data-i18n-html')); });
+  buildTickets();
+  updateTickets();
+  if (logCount === 0) document.getElementById('log').innerHTML = `<div class="empty-log">${t('log_empty')}</div>`;
+}
+
+function setLang(l){
+  if (!I18N[l]) return;
+  LANG = l;
+  try { localStorage.setItem('dkrt-lang', l); } catch (e) {}
+  applyI18n();
+}
+
+// ---------------------------------------------------------------------------
+// Cada produtor é um domínio (Smart Data Model) real, com seu próprio
+// connector/Orion/Mongo — nada de dropdown escolhendo "um ou outro": os
+// dois rodam sempre juntos, como um data space de verdade teria.
+// ---------------------------------------------------------------------------
+const DOMAINS = [
+  { key: 'weather', producerLabel: 'Produtor A', domainLabel: 'Clima Urbano', type: 'WeatherObserved', base: () => cfg().baseA, connectorId: 'connector-a',
+    nodes: ['node-mongo-a', 'node-orion-a', 'node-conn-a'], connNode: 'node-conn-a', edge: 'edge-a' },
+  { key: 'streetlight', producerLabel: 'Produtor B', domainLabel: 'Iluminação Pública', type: 'Streetlight', base: () => cfg().baseB, connectorId: 'connector-b',
+    nodes: ['node-mongo-b', 'node-orion-b', 'node-conn-b'], connNode: 'node-conn-b', edge: 'edge-b' },
+];
+const SCENARIOS = [
+  { n: 1, assetId: 'Cenario1_Perfeito' },
+  { n: 2, assetId: 'Cenario2_Heuristico' },
+  { n: 3, assetId: 'Cenario3_Semantico' },
+];
+
+// state[domainKey] = { ag: [null,null,null], pol: [...], data: [...], exp: [...] } (índice = cenário-1)
+const state = {};
+DOMAINS.forEach(d => { state[d.key] = { ag: [null, null, null], pol: [null, null, null], data: [null, null, null], exp: [null, null, null] }; });
+
+function buildTickets(){
+  DOMAINS.forEach(d => {
+    const wrap = document.getElementById('tickets-' + d.key);
+    wrap.innerHTML = SCENARIOS.map(s => `
+      <div class="ticket idle" id="ticket-${d.key}-${s.n}">
+        <div class="domain">${t('ticket_scenario', {n: s.n})}</div>
+        <div class="asset">${t('scenario_' + s.n)}</div>
+        <div class="divider"></div>
+        <div class="status-line"><span class="state" id="state-${d.key}-${s.n}">${t('ticket_state_idle')}</span><span class="countdown" id="countdown-${d.key}-${s.n}">--:--</span></div>
+        <button class="ticket-btn" onclick="showDataModal('${d.key}', ${s.n})">${t('ticket_inspect_btn')}</button>
+      </div>
+    `).join('');
+  });
+}
 
 (function setDefaultHosts(){
   const host = window.location.hostname || 'localhost';
   document.getElementById('cfg-baseA').value = `http://${host}:8080`;
+  document.getElementById('cfg-baseB').value = `http://${host}:8081`;
   document.getElementById('cfg-baseC').value = `http://${host}:8082`;
 })();
 
 function cfg(){
   return {
     baseA: document.getElementById('cfg-baseA').value.trim(),
+    baseB: document.getElementById('cfg-baseB').value.trim(),
     baseC: document.getElementById('cfg-baseC').value.trim(),
     token: document.getElementById('cfg-token').value.trim(),
   };
@@ -248,7 +484,7 @@ function logEntry(method, url, status, body){
     <div class="log-head" onclick="document.getElementById('${id}').closest('.log-entry').classList.toggle('open')">
       <span class="badge ${badge}">${status || 'erro'}</span>
       <span class="path">${method} ${url}</span>
-      <span class="time">${new Date().toLocaleTimeString('pt-PT')}</span>
+      <span class="time">${new Date().toLocaleTimeString(LANG === 'pt' ? 'pt-PT' : 'en-US')}</span>
     </div>
     <div class="log-body" id="${id}">${escapeHtml(typeof body === 'string' ? body : JSON.stringify(body, null, 2))}</div>
   `;
@@ -283,86 +519,138 @@ function showResult(elId, text, kind){
   el.className = 'result-line show' + (kind ? (' ' + kind) : '');
 }
 
-// Lógica do Modal
-function showDataModal(scenario) {
-  const data = scenario === 1 ? state.data1 : (scenario === 2 ? state.data2 : state.data3);
+function showDataModal(domainKey, scenario) {
+  const data = state[domainKey].data[scenario - 1];
   if (!data) {
-    alert('Transfira os dados primeiro (Passo 3) para que possam ser inspecionados no destino!');
+    alert(t('modal_alert'));
     return;
   }
   document.getElementById('modal-json-content').textContent = JSON.stringify(data, null, 2);
   document.getElementById('dataModal').style.display = 'flex';
 }
 
+// ---------------------------------------------------------------------------
+// Diagrama de topologia: os nós/arestas acendem em volta das chamadas reais
+// (nao ha timers falsos — a animacao segue a duracao real do fetch).
+// ---------------------------------------------------------------------------
+function setActive(ids, on){ ids.forEach(id => document.getElementById(id)?.classList.toggle('active', on)); }
+function setFlow(id, on){ document.getElementById(id)?.classList.toggle('flowing', on); }
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+// Chamadas reais na rede interna do Docker levam poucos ms — sem um piso, o
+// pulso acende e apaga rápido demais pro olho humano perceber. Isto garante
+// que cada estágio fica visivelmente aceso por pelo menos MIN_PULSE_MS,
+// sem esconder o tempo real quando ele já é maior que isso.
+const MIN_PULSE_MS = 600;
+async function withMinPulse(work){
+  const started = Date.now();
+  const result = await work();
+  const rest = MIN_PULSE_MS - (Date.now() - started);
+  if (rest > 0) await sleep(rest);
+  return result;
+}
+
 async function stageSeed(){
-  const c = cfg();
-  const model = document.getElementById('model-select').value;
-  const type = model === 'weather' ? 'WeatherObserved' : 'Streetlight';
-  
   try {
-    await callApi('POST', c.baseA, `/seed-dkrt?scenario=1&model=${model}`, {});
-    await callApi('POST', c.baseA, `/seed-dkrt?scenario=2&model=${model}`, {});
-    await callApi('POST', c.baseA, `/seed-dkrt?scenario=3&model=${model}`, {});
-    
-    await callApi('POST', c.baseA, '/assets', { assetId: 'Cenario1_Perfeito', entityType: type, entityId: `urn:ngsi-ld:${type}:dkrt-test-001`, description: 'Modelo 100% Correto', purpose: 'auditoria', ttlMinutes: 10, allowRedistribution: true });
-    await callApi('POST', c.baseA, '/assets', { assetId: 'Cenario2_Heuristico', entityType: type, entityId: `urn:ngsi-ld:${type}:dkrt-test-002`, description: 'Erro Heurístico Físico', purpose: 'auditoria', ttlMinutes: 10, allowRedistribution: true });
-    await callApi('POST', c.baseA, '/assets', { assetId: 'Cenario3_Semantico', entityType: type, entityId: `urn:ngsi-ld:${type}:dkrt-test-003`, description: 'Erro Semântico de Tradução', purpose: 'auditoria', ttlMinutes: 10, allowRedistribution: true });
-    
-    showResult('res-seed', `Concluído: 3 Cenários (5 variáveis cada) gerados no FIWARE (${type}).`, 'ok');
+    for (const d of DOMAINS) {
+      const base = d.base();
+      setActive(d.nodes, true);
+      try {
+        await withMinPulse(async () => {
+          for (const s of SCENARIOS) {
+            await callApi('POST', base, `/seed-dkrt?scenario=${s.n}&model=${d.key}`, {});
+          }
+          for (const s of SCENARIOS) {
+            await callApi('POST', base, '/assets', {
+              assetId: s.assetId, entityType: d.type, entityId: `urn:ngsi-ld:${d.type}:dkrt-test-00${s.n}`,
+              description: `${t('scenario_' + s.n)} (${d.domainLabel})`, purpose: 'auditoria', ttlMinutes: 10, allowRedistribution: true,
+            });
+          }
+        });
+      } finally {
+        setActive(d.nodes, false);
+      }
+    }
+    showResult('res-seed', t('seed_ok'), 'ok');
   } catch (e) {
-    showResult('res-seed', 'Falha: ' + (e.body ? JSON.stringify(e.body) : e.message), 'blocked');
+    showResult('res-seed', t('seed_fail', {detail: e.body ? JSON.stringify(e.body) : e.message}), 'blocked');
   }
 }
 
 async function stageNegotiate(){
-  const c = cfg();
   try {
-    const a1 = await callApi('POST', c.baseA, '/negotiate', {assetId:'Cenario1_Perfeito', consumerId:'connector-consumer'});
-    state.ag1 = a1.agreementId; state.pol1 = a1.policy; state.exp1 = new Date(a1.policy.expiresAt);
-    
-    const a2 = await callApi('POST', c.baseA, '/negotiate', {assetId:'Cenario2_Heuristico', consumerId:'connector-consumer'});
-    state.ag2 = a2.agreementId; state.pol2 = a2.policy; state.exp2 = new Date(a2.policy.expiresAt);
-    
-    const a3 = await callApi('POST', c.baseA, '/negotiate', {assetId:'Cenario3_Semantico', consumerId:'connector-consumer'});
-    state.ag3 = a3.agreementId; state.pol3 = a3.policy; state.exp3 = new Date(a3.policy.expiresAt);
-    
-    showResult('res-negotiate', `3 acordos gerados. O data space autorizou a partilha de informações.`, 'ok');
+    for (const d of DOMAINS) {
+      const base = d.base();
+      setActive([d.connNode], true);
+      try {
+        await withMinPulse(async () => {
+          for (const s of SCENARIOS) {
+            const a = await callApi('POST', base, '/negotiate', {assetId: s.assetId, consumerId: 'connector-consumer'});
+            state[d.key].ag[s.n - 1] = a.agreementId;
+            state[d.key].pol[s.n - 1] = a.policy;
+            state[d.key].exp[s.n - 1] = new Date(a.policy.expiresAt);
+          }
+        });
+      } finally {
+        setActive([d.connNode], false);
+      }
+    }
+    showResult('res-negotiate', t('negotiate_ok'), 'ok');
     updateTickets();
   } catch (e) {
-    showResult('res-negotiate', 'Falha: Primeiro garanta que gerou as ofertas no passo anterior.', 'blocked');
+    showResult('res-negotiate', t('negotiate_fail'), 'blocked');
   }
 }
 
 async function stageTransfer(){
-  const c = cfg();
-  if (!state.ag1){ showResult('res-transfer', 'Negocie os contratos antes de transferir.', 'blocked'); return; }
+  const anyNegotiated = DOMAINS.some(d => state[d.key].ag[0]);
+  if (!anyNegotiated){ showResult('res-transfer', t('transfer_blocked'), 'blocked'); return; }
   try {
-    const t1 = await callApi('POST', c.baseA, '/transfer', {agreementId: state.ag1}); state.data1 = t1.data;
-    const t2 = await callApi('POST', c.baseA, '/transfer', {agreementId: state.ag2}); state.data2 = t2.data;
-    const t3 = await callApi('POST', c.baseA, '/transfer', {agreementId: state.ag3}); state.data3 = t3.data;
-    
-    await callApi('POST', c.baseC, '/receive', { agreementId: state.ag1, assetId:'Cenario1_Perfeito', producerId:'connector-a', policy: state.pol1, data: state.data1 });
-    await callApi('POST', c.baseC, '/receive', { agreementId: state.ag2, assetId:'Cenario2_Heuristico', producerId:'connector-a', policy: state.pol2, data: state.data2 });
-    await callApi('POST', c.baseC, '/receive', { agreementId: state.ag3, assetId:'Cenario3_Semantico', producerId:'connector-a', policy: state.pol3, data: state.data3 });
-    
-    showResult('res-transfer', 'Sucesso logístico: Dados (corretos e anómalos) alojados no destino com HTTP 200.', 'ok');
+    for (const d of DOMAINS) {
+      const base = d.base();
+      setActive([d.connNode, 'node-consumer'], true);
+      setFlow(d.edge, true);
+      try {
+        await withMinPulse(async () => {
+          for (const s of SCENARIOS) {
+            const tr = await callApi('POST', base, '/transfer', {agreementId: state[d.key].ag[s.n - 1]});
+            state[d.key].data[s.n - 1] = tr.data;
+            await callApi('POST', cfg().baseC, '/receive', {
+              agreementId: state[d.key].ag[s.n - 1], assetId: s.assetId, producerId: d.connectorId,
+              policy: state[d.key].pol[s.n - 1], data: tr.data,
+            });
+          }
+        });
+      } finally {
+        setActive([d.connNode, 'node-consumer'], false);
+        setFlow(d.edge, false);
+      }
+    }
+    showResult('res-transfer', t('transfer_ok'), 'ok');
   } catch (e) {
-    showResult('res-transfer', 'Falha na transferência: ' + (e.body ? JSON.stringify(e.body) : e.message), 'blocked');
+    showResult('res-transfer', t('transfer_fail', {detail: e.body ? JSON.stringify(e.body) : e.message}), 'blocked');
   }
 }
 
 function simulateImpact(scenario){
-  if (!state.data1){ showResult('res-audit', 'Efetue a transferência dos dados no passo anterior.', 'blocked'); return; }
-  const model = document.getElementById('model-select').value;
+  const weatherData = state.weather.data[scenario - 1];
+  const streetlightData = state.streetlight.data[scenario - 1];
+  if (!weatherData || !streetlightData){ showResult('res-audit', t('impact_blocked'), 'blocked'); return; }
 
+  const lines = [];
   if (scenario === 1) {
-      showResult('res-audit', '✅ SUCESSO: Algoritmos processaram as 5 variáveis corretamente. Dashboard operacional.', 'ok');
+    lines.push(t('impact1_weather'));
+    lines.push(t('impact1_streetlight'));
+    showResult('res-audit', lines.join('\n'), 'ok');
   } else if (scenario === 2) {
-      if(model === 'weather') showResult('res-audit', '❌ FALHA HEURÍSTICA: Humidade a 150% e vento a -5 gravados. Dashboards meteorológicos corrompidos silenciosamente.', 'blocked');
-      else showResult('res-audit', '❌ FALHA HEURÍSTICA: Algoritmo de eficiência estoirou! Lâmpada reporta estar desligada mas regista consumo de 450W e altura de -2m.', 'blocked');
+    lines.push(t('impact2_weather'));
+    lines.push(t('impact2_streetlight'));
+    showResult('res-audit', lines.join('\n'), 'blocked');
   } else if (scenario === 3) {
-      const wrongKey = Object.keys(state.data3).find(k => k !== 'id' && k !== 'type' && k !== 'domain');
-      showResult('res-audit', '❌ FALHA DE INTEROPERABILIDADE: A IA não encontrou os campos oficiais exigidos pelo Smart Data Model. Recebeu chaves traduzidas ("' + wrongKey + '").', 'blocked');
+    const wrongKeyW = Object.keys(weatherData).find(k => k !== 'id' && k !== 'type' && k !== 'domain');
+    const wrongKeyS = Object.keys(streetlightData).find(k => k !== 'id' && k !== 'type' && k !== 'domain');
+    lines.push(t('impact3_weather', {key: wrongKeyW}));
+    lines.push(t('impact3_streetlight', {key: wrongKeyS}));
+    showResult('res-audit', lines.join('\n'), 'blocked');
   }
 }
 
@@ -375,32 +663,37 @@ function fmtCountdown(ms){
 }
 function updateTickets(){
   const now = Date.now();
-  [['1', state.exp1], ['2', state.exp2], ['3', state.exp3]].forEach(([k, exp]) => {
-    const ticket = document.getElementById('ticket-' + k);
-    const stateEl = document.getElementById('state-' + k);
-    const cdEl = document.getElementById('countdown-' + k);
-    if (!exp){
-      ticket.className = 'ticket idle';
-      stateEl.textContent = 'não negociado';
-      cdEl.textContent = '--:--';
-      return;
-    }
-    const remaining = exp.getTime() - now;
-    if (remaining <= 0){
-      ticket.className = 'ticket expired';
-      stateEl.textContent = 'expirado';
-    } else {
-      ticket.className = 'ticket active';
-      stateEl.textContent = 'ativo';
-    }
-    cdEl.textContent = fmtCountdown(remaining);
+  DOMAINS.forEach(d => {
+    SCENARIOS.forEach(s => {
+      const k = d.key + '-' + s.n;
+      const exp = state[d.key].exp[s.n - 1];
+      const ticket = document.getElementById('ticket-' + k);
+      const stateEl = document.getElementById('state-' + k);
+      const cdEl = document.getElementById('countdown-' + k);
+      if (!ticket || !stateEl || !cdEl) return;
+      if (!exp){
+        ticket.className = 'ticket idle';
+        stateEl.textContent = t('ticket_state_idle');
+        cdEl.textContent = '--:--';
+        return;
+      }
+      const remaining = exp.getTime() - now;
+      if (remaining <= 0){
+        ticket.className = 'ticket expired';
+        stateEl.textContent = t('ticket_state_expired');
+      } else {
+        ticket.className = 'ticket active';
+        stateEl.textContent = t('ticket_state_active');
+      }
+      cdEl.textContent = fmtCountdown(remaining);
+    });
   });
 }
 setInterval(updateTickets, 1000);
 
 async function pingHealth(){
   const c = cfg();
-  const targets = [['a', c.baseA], ['c', c.baseC]];
+  const targets = [['a', c.baseA], ['b', c.baseB], ['c', c.baseC]];
   for (const [id, base] of targets){
     const dot = document.getElementById('dot-' + id);
     try {
@@ -413,6 +706,9 @@ async function pingHealth(){
 }
 pingHealth();
 setInterval(pingHealth, 5000);
+
+buildTickets();
+applyI18n();
 </script>
 
 </body>

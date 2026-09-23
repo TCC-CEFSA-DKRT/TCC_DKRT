@@ -1,6 +1,6 @@
 services:
   # ---------------------------------------------------------------------
-  # Produtor A — domínio: qualidade do ar
+  # Produtor A — domínio: clima urbano (WeatherObserved)
   # ---------------------------------------------------------------------
   mongo-a:
     image: mongo:4.4
@@ -17,7 +17,12 @@ services:
       - mongo-a
     command: -dbURI mongodb://mongo-a:27017/orion -logLevel INFO
     ports:
-      - "1026:1026"
+      # 1026 já é usado pelo orion do projeto principal
+      # (agent_multi_IA_context_broker/docker-compose.yml) quando os dois
+      # stacks rodam ao mesmo tempo na mesma máquina — porta externa
+      # diferente aqui só para não colidir; internamente (orion-a:1026,
+      # rede do próprio compose deste stack) nada muda.
+      - "1030:1026"
 
   connector-a:
     build: ./connector
@@ -28,10 +33,10 @@ services:
       ROLE: producer
       CONNECTOR_ID: connector-a
       SHARED_TOKEN: dataspace-demo-trust-2026
-      DOMAIN_LABEL: "Qualidade do ar"
+      DOMAIN_LABEL: "Clima Urbano"
       ORION_URL: "http://orion-a:1026"
-      ENTITY_TYPE: AirQualityObserved
-      ENTITY_ID: "urn:ngsi-ld:AirQualityObserved:demo-001"
+      ENTITY_TYPE: WeatherObserved
+      ENTITY_ID: "urn:ngsi-ld:WeatherObserved:dkrt-test-001"
       POLICY_PURPOSE: visualizacao-academica
       POLICY_TTL_MINUTES: "5"
       POLICY_ALLOW_REDISTRIBUTION: "false"
@@ -39,7 +44,7 @@ services:
       - "8080:8080"
 
   # ---------------------------------------------------------------------
-  # Produtor B — domínio: mobilidade urbana
+  # Produtor B — domínio: iluminação pública (Streetlight)
   # ---------------------------------------------------------------------
   mongo-b:
     image: mongo:4.4
@@ -67,10 +72,10 @@ services:
       ROLE: producer
       CONNECTOR_ID: connector-b
       SHARED_TOKEN: dataspace-demo-trust-2026
-      DOMAIN_LABEL: "Mobilidade urbana"
+      DOMAIN_LABEL: "Iluminação Pública"
       ORION_URL: "http://orion-b:1026"
-      ENTITY_TYPE: TrafficFlowObserved
-      ENTITY_ID: "urn:ngsi-ld:TrafficFlowObserved:demo-001"
+      ENTITY_TYPE: Streetlight
+      ENTITY_ID: "urn:ngsi-ld:Streetlight:dkrt-test-001"
       POLICY_PURPOSE: visualizacao-academica
       POLICY_TTL_MINUTES: "5"
       POLICY_ALLOW_REDISTRIBUTION: "false"
