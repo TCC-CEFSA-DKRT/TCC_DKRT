@@ -1,0 +1,21 @@
+# Glossario de sinonimos — atributo canonico do schema oficial e' as formas
+# comuns/abreviadas como ele aparece em dados reais mal-nomeados (ver
+# .cursor/specs/fase6.spec.md, secao 2). to_chunk_text() inclui TODOS os
+# sinonimos no mesmo texto: buscar por qualquer um deve recuperar este
+# unico chunk.
+
+- id: synonym-illuminance-level
+  canonical: illuminanceLevel
+  seen_as: [lum, illuminance, luminosity]
+
+- id: synonym-temperature
+  canonical: temperature
+  seen_as: [temp, tempC, temperatura]
+
+- id: synonym-humidity
+  canonical: humidity
+  seen_as: [hum, umidade]
+
+- id: synonym-address
+  canonical: address
+  seen_as: [addr, endereco]

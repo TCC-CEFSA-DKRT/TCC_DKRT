@@ -1,0 +1,636 @@
+<title>Implantação AWS do Auditor</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --surface-2: #eef0ec;
+    --ink: #1c1f1a;
+    --ink-soft: #52584c;
+    --line: #d7d9d1;
+    --accent: #1f5fa8;
+    --accent-soft: #e4edf7;
+    --accent-warm: #b6621c;
+    --accent-warm-soft: #f7e9db;
+    --neutral-box: #ffffff;
+    --boundary: #8a8f80;
+    --shadow: 0 1px 2px rgba(28,31,26,0.06);
+    /* AWS service-category colors (brand colors, fixed across themes) */
+    --aws-compute: #ED7100;
+    --aws-storage: #7AA116;
+    --aws-database: #527FFF;
+    --aws-network: #8C4FFF;
+    --aws-security: #DD344C;
+    --aws-integration: #E7157B;
+    --aws-client: #F2617A;
+    --aws-external: #6b7280;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14160f;
+      --surface: #1c1f17;
+      --surface-2: #23261b;
+      --ink: #eceae2;
+      --ink-soft: #a7ab9d;
+      --line: #3a3d30;
+      --accent: #6fa8dc;
+      --accent-soft: #223447;
+      --accent-warm: #d99a5b;
+      --accent-warm-soft: #3c2c1c;
+      --neutral-box: #1c1f17;
+      --boundary: #6b6f60;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #14160f;
+    --surface: #1c1f17;
+    --surface-2: #23261b;
+    --ink: #eceae2;
+    --ink-soft: #a7ab9d;
+    --line: #3a3d30;
+    --accent: #6fa8dc;
+    --accent-soft: #223447;
+    --accent-warm: #d99a5b;
+    --accent-warm-soft: #3c2c1c;
+    --neutral-box: #1c1f17;
+    --boundary: #6b6f60;
+    --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+    padding: 40px 24px 72px;
+  }
+
+  main { max-width: 1260px; margin: 0 auto; }
+
+  header { margin-bottom: 32px; }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+
+  h1 {
+    font-size: clamp(28px, 4vw, 38px);
+    font-weight: 600;
+    margin: 0 0 12px;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+
+  header p {
+    max-width: 780px;
+    color: var(--ink-soft);
+    font-size: 15px;
+    margin: 0;
+  }
+
+  .callout {
+    max-width: 780px;
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    font-size: 13.5px;
+    color: var(--ink);
+  }
+
+  .callout strong { color: var(--accent); }
+
+  figure {
+    margin: 0 0 40px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px 20px 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .diagram-scroll { overflow-x: auto; }
+
+  .diagram-scroll svg {
+    display: block;
+    min-width: 1200px;
+    width: 100%;
+    height: auto;
+  }
+
+  figcaption {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+
+  .legend {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-top: 12px;
+    align-items: center;
+  }
+
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 20px; height: 2px; display: inline-block; }
+  .swatch.sync { background: var(--accent); }
+  .swatch.async { background: var(--accent-warm); }
+  .swatch.boundary { background: none; border-top: 2px dashed var(--boundary); width: 20px; height: 0; }
+  .dot { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .card h2 { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+
+  .card .tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    margin: 0 0 12px;
+    display: block;
+  }
+
+  .card ul { margin: 0; padding-left: 18px; font-size: 13.5px; color: var(--ink-soft); }
+  .card li { margin-bottom: 6px; }
+  .card li:last-child { margin-bottom: 0; }
+
+  .card code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    background: var(--surface-2);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--ink);
+  }
+
+  @media (max-width: 1000px) { .cards { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .cards { grid-template-columns: 1fr; } }
+
+  /* ===== SVG diagram styling ===== */
+  .boundary-box {
+    fill: none;
+    stroke: var(--boundary);
+    stroke-width: 1.3;
+    stroke-dasharray: 6 5;
+  }
+
+  .boundary-label {
+    fill: var(--ink-soft);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+  }
+
+  .node rect.frame {
+    fill: var(--neutral-box);
+    stroke: var(--ink-soft);
+    stroke-width: 1.3;
+  }
+
+  .node.external rect.frame { stroke-dasharray: 3 3; }
+
+  .node text.label {
+    fill: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    font-size: 13.5px;
+  }
+
+  .node text.sub {
+    fill: var(--ink-soft);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+  }
+
+  .subbox { fill: none; stroke: currentColor; stroke-width: 1; opacity: 0.55; color: var(--ink-soft); }
+
+  .badge-compute { fill: var(--aws-compute); }
+  .badge-storage { fill: var(--aws-storage); }
+  .badge-database { fill: var(--aws-database); }
+  .badge-network { fill: var(--aws-network); }
+  .badge-security { fill: var(--aws-security); }
+  .badge-integration { fill: var(--aws-integration); }
+  .badge-client { fill: var(--aws-client); }
+  .badge-external { fill: var(--aws-external); }
+
+  .edge.sync { stroke: var(--accent); }
+  .edge.async { stroke: var(--accent-warm); }
+  .edge { fill: none; stroke-width: 1.6; }
+
+  marker#arrow-sync path { fill: var(--accent); }
+  marker#arrow-async path { fill: var(--accent-warm); }
+
+  .edge-label { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; }
+  .edge-label.sync { fill: var(--accent); }
+  .edge-label.async { fill: var(--accent-warm); }
+  .edge-label-bg { fill: var(--surface); }
+</style>
+
+<main>
+  <header>
+    <p class="eyebrow">TCC · Engenharia de Software</p>
+    <h1>Implantação AWS do Auditor</h1>
+    <p>Recomendação de arquitetura para o Auditor em produção: Frontend em <strong>CloudFront + S3</strong>, API e Worker como funções <strong>AWS Lambda</strong> atrás de um Application Load Balancer, RDS PostgreSQL Multi-AZ com pgvector, fila SQS e Parameter Store. Ollama continua em EC2 por decisão própria (ADR-0013), não por limitação de conta.</p>
+    <div class="callout"><strong>Por que Lambda, e não ECS/EC2:</strong> o Auditor é uma ferramenta de baixo tráfego, de uso esporádico — o perfil clássico onde pagar por invocação bate um serviço sempre ligado. API e Worker escalam a zero fora de uso (custo de compute ≈ R$0 quando ninguém audita) e o ALB aponta direto para a Lambda da API, sem precisar de API Gateway. Ver o card "Compute" para as alternativas descartadas e por quê.</div>
+  </header>
+
+  <figure>
+    <div class="diagram-scroll">
+      <svg viewBox="0 0 1700 1320" role="img" aria-label="Diagrama da arquitetura recomendada na AWS: o navegador acessa o frontend via CloudFront, que serve arquivos estaticos de um bucket S3, e acessa a API via um Application Load Balancer que aponta direto para uma funcao Lambda. Dentro de uma VPC multi-AZ, subnets publicas contem o ALB e um NAT Gateway; subnets privadas de compute contem duas funcoes Lambda (API e Worker) anexadas a VPC, e uma instancia EC2 rodando Ollama como SLM; uma subnet privada de dados contem o RDS PostgreSQL Multi-AZ com pgvector. Fora da VPC mas dentro da conta ficam a fila SQS de auditorias com dead-letter queue e o Parameter Store, alcancados pela API/Worker via VPC Interface Endpoints dedicados, sem sair da rede da AWS. A fila SQS invoca a Lambda Worker nativamente (event source mapping). O Worker acessa o broker Orion do cliente, fora da AWS, atraves do NAT Gateway — a unica saida realmente externa da VPC.">
+        <defs>
+          <marker id="arrow-sync" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 Z"/>
+          </marker>
+          <marker id="arrow-async" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 Z"/>
+          </marker>
+
+          <symbol id="icon-client" viewBox="0 0 24 24">
+            <rect x="2" y="3" width="13" height="18" rx="1.5" fill="none" stroke="#fff" stroke-width="1.6"/>
+            <rect x="14.5" y="7.5" width="7.5" height="12.5" rx="1.2" fill="none" stroke="#fff" stroke-width="1.6"/>
+            <line x1="6" y1="17.5" x2="11" y2="17.5" stroke="#fff" stroke-width="1.6"/>
+          </symbol>
+          <symbol id="icon-cloudfront" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9" fill="none" stroke="#fff" stroke-width="1.6"/>
+            <ellipse cx="12" cy="12" rx="9" ry="3.6" fill="none" stroke="#fff" stroke-width="1.4"/>
+            <line x1="12" y1="3" x2="12" y2="21" stroke="#fff" stroke-width="1.4"/>
+          </symbol>
+          <symbol id="icon-s3" viewBox="0 0 24 24">
+            <path d="M5,7 L5,17 Q5,19.5 12,19.5 Q19,19.5 19,17 L19,7" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>
+            <ellipse cx="12" cy="7" rx="7" ry="2.6" fill="none" stroke="#fff" stroke-width="1.6"/>
+          </symbol>
+          <symbol id="icon-ec2" viewBox="0 0 24 24">
+            <rect x="5" y="5" width="14" height="14" rx="1.5" fill="none" stroke="#fff" stroke-width="1.6"/>
+            <line x1="8" y1="9" x2="16" y2="9" stroke="#fff" stroke-width="1.3"/>
+            <line x1="8" y1="12" x2="16" y2="12" stroke="#fff" stroke-width="1.3"/>
+            <line x1="8" y1="15" x2="16" y2="15" stroke="#fff" stroke-width="1.3"/>
+          </symbol>
+          <symbol id="icon-rds" viewBox="0 0 24 24">
+            <ellipse cx="12" cy="6.4" rx="7" ry="2.6" fill="none" stroke="#fff" stroke-width="1.6"/>
+            <path d="M5,6.4 L5,17.6 Q5,20.2 12,20.2 Q19,20.2 19,17.6 L19,6.4" fill="none" stroke="#fff" stroke-width="1.6"/>
+            <path d="M5,12 Q5,14.6 12,14.6 Q19,14.6 19,12" fill="none" stroke="#fff" stroke-width="1.2"/>
+          </symbol>
+          <symbol id="icon-sqs" viewBox="0 0 24 24">
+            <rect x="3" y="6" width="18" height="13" rx="1.5" fill="none" stroke="#fff" stroke-width="1.6"/>
+            <polyline points="3,7 12,15 21,7" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>
+          </symbol>
+          <symbol id="icon-secrets" viewBox="0 0 24 24">
+            <circle cx="8" cy="8" r="4.2" fill="none" stroke="#fff" stroke-width="1.6"/>
+            <line x1="11" y1="11" x2="20" y2="20" stroke="#fff" stroke-width="1.6"/>
+            <line x1="15" y1="15" x2="17.6" y2="12.4" stroke="#fff" stroke-width="1.6"/>
+            <line x1="17.6" y1="17.6" x2="20" y2="15.2" stroke="#fff" stroke-width="1.6"/>
+          </symbol>
+          <symbol id="icon-external" viewBox="0 0 24 24">
+            <rect x="4" y="5" width="16" height="11" rx="1.5" fill="none" stroke="#fff" stroke-width="1.6"/>
+            <line x1="9" y1="19" x2="15" y2="19" stroke="#fff" stroke-width="1.6"/>
+            <line x1="12" y1="16" x2="12" y2="19" stroke="#fff" stroke-width="1.6"/>
+          </symbol>
+          <symbol id="icon-alb" viewBox="0 0 24 24">
+            <rect x="2" y="9" width="6" height="6" rx="1.2" fill="none" stroke="#fff" stroke-width="1.6"/>
+            <circle cx="19" cy="5" r="2.1" fill="none" stroke="#fff" stroke-width="1.6"/>
+            <circle cx="19" cy="12" r="2.1" fill="none" stroke="#fff" stroke-width="1.6"/>
+            <circle cx="19" cy="19" r="2.1" fill="none" stroke="#fff" stroke-width="1.6"/>
+            <line x1="8" y1="11" x2="17" y2="5.6" stroke="#fff" stroke-width="1.3"/>
+            <line x1="8" y1="12" x2="17" y2="12" stroke="#fff" stroke-width="1.3"/>
+            <line x1="8" y1="13" x2="17" y2="18.4" stroke="#fff" stroke-width="1.3"/>
+          </symbol>
+          <symbol id="icon-nat" viewBox="0 0 24 24">
+            <rect x="3" y="6" width="18" height="12" rx="2" fill="none" stroke="#fff" stroke-width="1.6"/>
+            <line x1="6.5" y1="12" x2="15.5" y2="12" stroke="#fff" stroke-width="1.4"/>
+            <polyline points="12.5,8.3 16.5,12 12.5,15.7" fill="none" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/>
+          </symbol>
+          <symbol id="icon-ecs" viewBox="0 0 24 24">
+            <rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.2" fill="none" stroke="#fff" stroke-width="1.5"/>
+            <rect x="13" y="3.5" width="7.5" height="7.5" rx="1.2" fill="none" stroke="#fff" stroke-width="1.5"/>
+            <rect x="3.5" y="13" width="7.5" height="7.5" rx="1.2" fill="none" stroke="#fff" stroke-width="1.5"/>
+            <rect x="13" y="13" width="7.5" height="7.5" rx="1.2" fill="none" stroke="#fff" stroke-width="1.5"/>
+          </symbol>
+          <symbol id="icon-lambda" viewBox="0 0 24 24">
+            <path d="M8,4 L11.2,11.5 L6,20" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M9.6,11.5 L14,20" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="14.5" y1="20" x2="18.5" y2="20" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+          </symbol>
+          <symbol id="icon-paramstore" viewBox="0 0 24 24">
+            <rect x="6" y="11" width="12" height="9.5" rx="1.6" fill="none" stroke="#fff" stroke-width="1.6"/>
+            <path d="M8.4,11 L8.4,7.2 Q8.4,3.2 12,3.2 Q15.6,3.2 15.6,7.2 L15.6,11" fill="none" stroke="#fff" stroke-width="1.6"/>
+            <circle cx="12" cy="15.2" r="1.5" fill="#fff" stroke="none"/>
+            <line x1="12" y1="16.6" x2="12" y2="18.4" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
+          </symbol>
+          <symbol id="icon-vpce" viewBox="0 0 24 24">
+            <path d="M12,2.4 L20.5,7.2 L20.5,16.8 L12,21.6 L3.5,16.8 L3.5,7.2 Z" fill="none" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>
+            <circle cx="12" cy="12" r="2.4" fill="#fff" stroke="none"/>
+          </symbol>
+        </defs>
+
+        <!-- ===== Boundaries ===== -->
+        <rect x="380" y="40" width="1280" height="1260" rx="10" class="boundary-box"/>
+        <text x="396" y="64" class="boundary-label">AWS · PRODUÇÃO (conta única, 1 região)</text>
+
+        <rect x="560" y="270" width="1080" height="700" rx="8" class="boundary-box"/>
+        <text x="576" y="292" class="boundary-label">VPC — auditor-vpc (multi-AZ)</text>
+
+        <rect x="590" y="310" width="1020" height="170" rx="6" class="boundary-box"/>
+        <text x="606" y="330" class="boundary-label">SUBNETS PÚBLICAS (2 AZs) · ALB + NAT Gateway</text>
+
+        <rect x="590" y="510" width="1020" height="230" rx="6" class="boundary-box"/>
+        <text x="606" y="530" class="boundary-label">SUBNETS PRIVADAS — COMPUTE (2 AZs)</text>
+
+        <rect x="590" y="770" width="520" height="170" rx="6" class="boundary-box"/>
+        <text x="606" y="790" class="boundary-label">SUBNETS PRIVADAS — DADOS (Multi-AZ)</text>
+
+        <!-- ===== Nodes ===== -->
+
+        <g class="node external">
+          <rect class="frame" x="30" y="150" width="180" height="130" rx="8"/>
+          <rect class="badge-client" x="100" y="164" width="40" height="40" rx="8"/>
+          <use href="#icon-client" x="100" y="164" width="40" height="40"/>
+          <text x="120" y="226" text-anchor="middle" class="label">Cliente</text>
+          <text x="120" y="242" text-anchor="middle" class="sub">navegador do usuário</text>
+          <text x="120" y="256" text-anchor="middle" class="sub">fora da AWS</text>
+        </g>
+
+        <g class="node external">
+          <rect class="frame" x="30" y="1140" width="180" height="130" rx="8"/>
+          <rect class="badge-external" x="100" y="1154" width="40" height="40" rx="8"/>
+          <use href="#icon-external" x="100" y="1154" width="40" height="40"/>
+          <text x="120" y="1216" text-anchor="middle" class="label">Orion</text>
+          <text x="120" y="1232" text-anchor="middle" class="sub">FIWARE Broker (cliente)</text>
+          <text x="120" y="1246" text-anchor="middle" class="sub">fora da AWS</text>
+        </g>
+
+        <g class="node">
+          <rect class="frame" x="470" y="90" width="200" height="150" rx="8"/>
+          <rect class="badge-network" x="550" y="104" width="40" height="40" rx="8"/>
+          <use href="#icon-cloudfront" x="550" y="104" width="40" height="40"/>
+          <text x="570" y="166" text-anchor="middle" class="label">CloudFront</text>
+          <text x="570" y="182" text-anchor="middle" class="sub">CDN · HTTPS, cache</text>
+          <text x="570" y="196" text-anchor="middle" class="sub">domínio próprio (Route 53)</text>
+        </g>
+
+        <g class="node">
+          <rect class="frame" x="810" y="90" width="200" height="150" rx="8"/>
+          <rect class="badge-storage" x="890" y="104" width="40" height="40" rx="8"/>
+          <use href="#icon-s3" x="890" y="104" width="40" height="40"/>
+          <text x="910" y="166" text-anchor="middle" class="label">S3 (frontend)</text>
+          <text x="910" y="182" text-anchor="middle" class="sub">bucket privado + OAC</text>
+          <text x="910" y="196" text-anchor="middle" class="sub">build Angular (ng build)</text>
+        </g>
+
+        <g class="node">
+          <rect class="frame" x="650" y="350" width="220" height="110" rx="8"/>
+          <rect class="badge-network" x="740" y="364" width="40" height="40" rx="8"/>
+          <use href="#icon-alb" x="740" y="364" width="40" height="40"/>
+          <text x="760" y="426" text-anchor="middle" class="label">ALB</text>
+          <text x="760" y="442" text-anchor="middle" class="sub">HTTPS :443 → target group</text>
+          <text x="760" y="456" text-anchor="middle" class="sub">2 AZs</text>
+        </g>
+
+        <g class="node">
+          <rect class="frame" x="950" y="350" width="220" height="110" rx="8"/>
+          <rect class="badge-network" x="1040" y="364" width="40" height="40" rx="8"/>
+          <use href="#icon-nat" x="1040" y="364" width="40" height="40"/>
+          <text x="1060" y="426" text-anchor="middle" class="label">NAT Gateway</text>
+          <text x="1060" y="442" text-anchor="middle" class="sub">saída p/ internet</text>
+          <text x="1060" y="456" text-anchor="middle" class="sub">1x (ideal: 1 por AZ)</text>
+        </g>
+
+        <g class="node">
+          <rect class="frame" x="610" y="550" width="280" height="170" rx="8"/>
+          <rect class="badge-compute" x="730" y="564" width="40" height="40" rx="8"/>
+          <use href="#icon-lambda" x="730" y="564" width="40" height="40"/>
+          <text x="750" y="626" text-anchor="middle" class="label">API (Lambda)</text>
+          <text x="750" y="642" text-anchor="middle" class="sub">FastAPI + Mangum · target do ALB</text>
+          <text x="750" y="656" text-anchor="middle" class="sub">ENI na subnet privada (VPC)</text>
+          <text x="750" y="670" text-anchor="middle" class="sub">paga só por invocação</text>
+        </g>
+
+        <g class="node">
+          <rect class="frame" x="920" y="550" width="280" height="170" rx="8"/>
+          <rect class="badge-compute" x="1040" y="564" width="40" height="40" rx="8"/>
+          <use href="#icon-lambda" x="1040" y="564" width="40" height="40"/>
+          <text x="1060" y="626" text-anchor="middle" class="label">Worker (Lambda)</text>
+          <text x="1060" y="642" text-anchor="middle" class="sub">mesmo RunAuditUseCase</text>
+          <text x="1060" y="656" text-anchor="middle" class="sub">invocada via SQS event source</text>
+          <text x="1060" y="670" text-anchor="middle" class="sub">mapping — sem loop de polling</text>
+        </g>
+
+        <g class="node">
+          <rect class="frame" x="1220" y="550" width="300" height="170" rx="8"/>
+          <rect class="badge-compute" x="1350" y="564" width="40" height="40" rx="8"/>
+          <use href="#icon-ec2" x="1350" y="564" width="40" height="40"/>
+          <text x="1370" y="626" text-anchor="middle" class="label">Ollama (SLM)</text>
+          <text x="1370" y="642" text-anchor="middle" class="sub">EC2 t3.large · CPU (sem GPU)</text>
+          <text x="1370" y="656" text-anchor="middle" class="sub">Qwen2.5 3B/4B · always-on</text>
+          <text x="1370" y="670" text-anchor="middle" class="sub">decisão própria (ADR-0013)</text>
+        </g>
+
+        <g class="node">
+          <rect class="frame" x="620" y="800" width="460" height="110" rx="8"/>
+          <rect class="badge-database" x="830" y="814" width="40" height="40" rx="8"/>
+          <use href="#icon-rds" x="830" y="814" width="40" height="40"/>
+          <text x="850" y="876" text-anchor="middle" class="label">RDS PostgreSQL</text>
+          <text x="850" y="892" text-anchor="middle" class="sub">pgvector · Multi-AZ</text>
+          <text x="850" y="906" text-anchor="middle" class="sub">sem IP público</text>
+        </g>
+
+        <g class="node">
+          <rect class="frame" x="590" y="1020" width="300" height="230" rx="8"/>
+          <rect class="badge-integration" x="606" y="1034" width="24" height="24" rx="6"/>
+          <use href="#icon-sqs" x="606" y="1034" width="24" height="24"/>
+          <text x="638" y="1051" class="boundary-label">AMAZON SQS</text>
+          <g>
+            <rect class="subbox" x="615" y="1068" width="250" height="82" rx="6"/>
+            <text x="740" y="1096" text-anchor="middle" class="label" style="font-size:13px">audit-jobs</text>
+            <text x="740" y="1114" text-anchor="middle" class="sub">visibility_timeout · redrive</text>
+            <text x="740" y="1129" text-anchor="middle" class="sub">maxReceiveCount → DLQ</text>
+          </g>
+          <g>
+            <rect class="subbox" x="615" y="1165" width="250" height="72" rx="6"/>
+            <text x="740" y="1193" text-anchor="middle" class="label" style="font-size:13px">audit-jobs-dlq</text>
+            <text x="740" y="1211" text-anchor="middle" class="sub">retenção estendida</text>
+          </g>
+        </g>
+
+        <g class="node">
+          <rect class="frame" x="930" y="1020" width="300" height="230" rx="8"/>
+          <rect class="badge-security" x="1060" y="1034" width="40" height="40" rx="8"/>
+          <use href="#icon-paramstore" x="1060" y="1034" width="40" height="40"/>
+          <text x="1080" y="1096" text-anchor="middle" class="label">Parameter Store</text>
+          <text x="1080" y="1112" text-anchor="middle" class="sub">SecureString + KMS · tier standard</text>
+          <text x="1080" y="1132" text-anchor="middle" class="sub">orion-credentials</text>
+          <text x="1080" y="1146" text-anchor="middle" class="sub">jwt-signing-key</text>
+          <text x="1080" y="1170" text-anchor="middle" class="sub">sem custo de armazenamento</text>
+          <text x="1080" y="1184" text-anchor="middle" class="sub">(vs. $0,40/segredo do Secrets Mgr)</text>
+        </g>
+
+        <!-- ===== Edges ===== -->
+
+        <!-- Client -> CloudFront -->
+        <path d="M 210 190 L 470 165" class="edge sync" marker-end="url(#arrow-sync)"/>
+        <rect x="230" y="148" width="180" height="14" class="edge-label-bg"/>
+        <text x="235" y="159" class="edge-label sync">GET / (HTTPS, cache)</text>
+
+        <!-- CloudFront -> S3 -->
+        <path d="M 670 165 L 810 165" class="edge sync" marker-end="url(#arrow-sync)"/>
+        <rect x="676" y="147" width="128" height="14" class="edge-label-bg"/>
+        <text x="680" y="158" class="edge-label sync">origin fetch (OAC)</text>
+
+        <!-- Client -> ALB -->
+        <path d="M 120 280 L 650 405" class="edge sync" marker-end="url(#arrow-sync)"/>
+        <rect x="180" y="330" width="230" height="14" class="edge-label-bg"/>
+        <text x="185" y="341" class="edge-label sync">HTTPS :443 (via IGW → ALB)</text>
+
+        <!-- ALB -> API Lambda (native Lambda target group, no API Gateway) -->
+        <path d="M 760 460 L 750 550" class="edge sync" marker-end="url(#arrow-sync)"/>
+        <rect x="560" y="475" width="180" height="14" class="edge-label-bg"/>
+        <text x="564" y="486" class="edge-label sync">target group: Lambda</text>
+
+        <!-- API Lambda -> RDS -->
+        <path d="M 750 720 L 850 800" class="edge sync" marker-end="url(#arrow-sync)"/>
+        <rect x="630" y="745" width="210" height="26" class="edge-label-bg"/>
+        <text x="634" y="757" class="edge-label sync">5432 · persist</text>
+        <text x="634" y="770" class="edge-label sync">AuditRun/EntityReport</text>
+
+        <!-- Worker Lambda -> RDS -->
+        <path d="M 1060 720 L 950 800" class="edge sync" marker-end="url(#arrow-sync)"/>
+        <rect x="870" y="745" width="210" height="26" class="edge-label-bg"/>
+        <text x="874" y="757" class="edge-label sync">5432 · consulta RAG</text>
+        <text x="874" y="770" class="edge-label sync">contexto (pgvector)</text>
+
+        <!-- API Lambda -> Ollama (elbow above the compute band) -->
+        <path d="M 750 550 L 750 495 L 1370 495 L 1370 550" class="edge sync" marker-end="url(#arrow-sync)"/>
+        <rect x="1000" y="480" width="190" height="14" class="edge-label-bg"/>
+        <text x="1004" y="491" class="edge-label sync">11434 · interpret command</text>
+
+        <!-- Worker Lambda -> Ollama (elbow above the compute band, parallel to the API->Ollama elbow) -->
+        <path d="M 1000 550 L 1000 505 L 1390 505 L 1390 550" class="edge async" marker-end="url(#arrow-async)"/>
+        <rect x="1000" y="508" width="180" height="14" class="edge-label-bg"/>
+        <text x="1004" y="519" class="edge-label async">11434 · Nível 2 (RAG)</text>
+
+        <!-- API Lambda -> SQS (enqueue), via VPC Interface Endpoint -->
+        <path d="M 700 720 L 700 730 L 585 730 L 585 990 L 715 990 L 715 1020" class="edge async" marker-end="url(#arrow-async)"/>
+        <rect x="400" y="850" width="175" height="14" class="edge-label-bg"/>
+        <text x="404" y="861" class="edge-label async">enqueue (SendMessage)</text>
+        <rect class="badge-network" x="571" y="956" width="28" height="28" rx="6"/>
+        <use href="#icon-vpce" x="571" y="956" width="28" height="28"/>
+        <rect x="524" y="992" width="122" height="24" class="edge-label-bg"/>
+        <text x="528" y="1002" class="edge-label async">VPC Endpoint</text>
+        <text x="528" y="1013" class="edge-label async">(Interface · SQS)</text>
+
+        <!-- SQS -> Worker Lambda (native event source mapping, invoca — não é polling do Worker) -->
+        <path d="M 785 1020 L 785 995 L 1150 995 L 1150 720" class="edge async" marker-end="url(#arrow-async)"/>
+        <rect x="845" y="958" width="180" height="26" class="edge-label-bg"/>
+        <text x="849" y="970" class="edge-label async">invoca (event source</text>
+        <text x="849" y="983" class="edge-label async">mapping, em lote)</text>
+
+        <!-- audit_jobs -> DLQ -->
+        <line x1="740" y1="1150" x2="740" y2="1165" class="edge async" marker-end="url(#arrow-async)"/>
+        <rect x="748" y="1142" width="118" height="14" class="edge-label-bg"/>
+        <text x="750" y="1153" class="edge-label async">redrive: maxReceive</text>
+
+        <!-- API + Worker Lambda -> Parameter Store (combined), via VPC Interface Endpoint -->
+        <path d="M 1000 720 L 1000 725 L 1080 725 L 1080 1020" class="edge sync" marker-end="url(#arrow-sync)"/>
+        <rect x="1090" y="850" width="190" height="14" class="edge-label-bg"/>
+        <text x="1094" y="861" class="edge-label sync">GetParameter (API + Worker)</text>
+        <rect class="badge-network" x="1066" y="956" width="28" height="28" rx="6"/>
+        <use href="#icon-vpce" x="1066" y="956" width="28" height="28"/>
+        <rect x="1019" y="992" width="150" height="24" class="edge-label-bg"/>
+        <text x="1023" y="1002" class="edge-label sync">VPC Endpoint</text>
+        <text x="1023" y="1013" class="edge-label sync">(Interface · SSM/Param.)</text>
+
+        <!-- Worker Lambda -> NAT (egress: Orion externo, endpoints públicos da AWS) -->
+        <path d="M 1060 550 L 1060 460" class="edge async" marker-end="url(#arrow-async)"/>
+        <rect x="850" y="458" width="140" height="14" class="edge-label-bg"/>
+        <text x="854" y="469" class="edge-label async">saída via NAT</text>
+
+        <!-- NAT -> Orion (via IGW, corridor left of the VPC) -->
+        <path d="M 1010 460 L 1010 340 L 545 340 L 545 1205 L 210 1205" class="edge async" marker-end="url(#arrow-async)"/>
+        <rect x="420" y="600" width="250" height="14" class="edge-label-bg"/>
+        <text x="424" y="611" class="edge-label async">GET /v2/entities (NGSI-v2)</text>
+      </svg>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--aws-compute)"></span>Compute</span>
+      <span><span class="dot" style="background:var(--aws-storage)"></span>Storage</span>
+      <span><span class="dot" style="background:var(--aws-database)"></span>Banco de dados</span>
+      <span><span class="dot" style="background:var(--aws-network)"></span>Rede</span>
+      <span><span class="dot" style="background:var(--aws-security)"></span>Segurança</span>
+      <span><span class="dot" style="background:var(--aws-integration)"></span>Integração</span>
+      <span><span class="swatch sync"></span>chamada direta / dados</span>
+      <span><span class="swatch async"></span>fila / saída externa</span>
+      <span><span class="swatch boundary"></span>fronteira de rede</span>
+    </div>
+    <figcaption>O navegador fala com dois pontos de entrada: CloudFront (que serve o build estático do Angular a partir do S3) e o ALB, que encaminha direto para a Lambda da API — sem API Gateway no meio. API e Worker rodam como funções Lambda independentes, anexadas à VPC (ENI nas subnets privadas de compute): a API é invocada pelo ALB a cada requisição, e o Worker é invocado nativamente pela fila SQS via <em>event source mapping</em> — esse gatilho roda no plano de controle do Lambda, fora da VPC, então não passa nem pelo NAT nem por endpoint nenhum. Já as chamadas feitas pelo <em>código</em> da API/Worker às APIs da AWS (<code>SendMessage</code> no SQS, <code>GetParameter</code> no Parameter Store) saem por <strong>VPC Interface Endpoints</strong> (PrivateLink) dedicados a cada serviço — o tráfego nunca sai da rede da AWS. Isso deixa o <strong>NAT Gateway reservado só para a única saída realmente externa</strong>: o Worker chamando o Orion do cliente, fora da AWS. O RDS fica isolado na subnet de dados, Multi-AZ, sem rota para a internet. Ollama continua em EC2 — decisão registrada na ADR-0013, independente de qualquer restrição de conta ou do compute escolhido para API/Worker.</figcaption>
+  </figure>
+
+  <div class="cards">
+    <div class="card">
+      <h2>Entrega do Frontend</h2>
+      <span class="tag">CloudFront · S3 · Route 53</span>
+      <ul>
+        <li>Bucket S3 privado com o build de produção (<code>ng build</code>), sem acesso público direto.</li>
+        <li>CloudFront na frente do bucket via Origin Access Control (OAC), com HTTPS, cache de borda e domínio próprio via Route 53 + ACM.</li>
+        <li>Chamadas de API vão direto ao ALB — este desenho não coloca a API atrás do CloudFront.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>Rede & Segurança</h2>
+      <span class="tag">VPC · 2 AZs</span>
+      <ul>
+        <li>1 VPC, subnets públicas (ALB, NAT) e privadas (compute, dados) replicadas em 2 AZs para alta disponibilidade real.</li>
+        <li>Security groups encadeados por camada, nunca um único SG compartilhado: <code>sg-alb</code> abre 443 ao mundo; <code>sg-lambda</code> (API e Worker) só aceita do <code>sg-alb</code>/do serviço SQS; <code>sg-ollama-ec2</code> e <code>sg-rds</code> só aceitam do <code>sg-lambda</code> — cada referência é a outro SG, nunca um CIDR aberto.</li>
+        <li><strong>VPC Interface Endpoints</strong> (PrivateLink) dedicados para SQS e Parameter Store — as chamadas de API/Worker a esses serviços nunca saem da rede da AWS. Isso libera o <strong>NAT Gateway para a única saída realmente externa</strong>: Worker → Orion do cliente, fora da AWS.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>Compute</h2>
+      <span class="tag">AWS Lambda (API + Worker) · EC2 (Ollama)</span>
+      <ul>
+        <li><strong>API e Worker como Lambda</strong>, anexadas à VPC: a API roda o mesmo FastAPI de hoje atrás de um adapter Mangum, alvo direto do ALB (sem API Gateway); o Worker é invocado pelo <em>event source mapping</em> nativo do SQS, reaproveitando o <code>RunAuditUseCase</code> sem tocar a lógica de negócio.</li>
+        <li><strong>Por que não ECS Fargate:</strong> Fargate cobra por vCPU/memória-segundo mesmo com poucas requisições — para um app de baixo tráfego, isso é custo ocioso. Zerar o <code>desired_count</code> por agenda economiza, mas não acorda sozinho quando alguém acessa (a requisição cai em 503 até alguém religar). Lambda entrega esse "liga sob demanda" nativamente.</li>
+        <li><strong>Por que não EC2 direto (estado atual do Terraform):</strong> 2 instâncias rodando 24/7 só para API/Worker, cobrando parado — o pior caso de custo ocioso para esse perfil de uso.</li>
+        <li>Ollama continua em EC2 <code>t3.large</code> (CPU, sem GPU) rodando Qwen2.5 3B/4B, <strong>always-on</strong> — decisão própria (ADR-0013), não uma limitação de conta, e não depende de qual compute a API/Worker usam: um LLM residente em memória não é candidato a serverless.</li>
+        <li>Trade-off aceito: cold start na primeira requisição após ociosidade (centenas de ms a poucos segundos) — aceitável para uma ferramenta interna de auditoria; mitigável com Provisioned Concurrency se algum dia incomodar.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>Dados & Filas</h2>
+      <span class="tag">RDS · SQS · Parameter Store</span>
+      <ul>
+        <li>RDS PostgreSQL Multi-AZ com a extensão pgvector (criada pela migration Alembic) para o catálogo semântico e o RAG do SLM.</li>
+        <li>Fila <code>audit-jobs</code> + DLQ <code>audit-jobs-dlq</code> com redrive policy — mesmo contrato de hoje, só que consumida por invocação em vez de polling manual.</li>
+        <li>Parameter Store (SecureString, tier standard) guarda credenciais do Orion do cliente e a chave de assinatura JWT — mesma criptografia via KMS do Secrets Manager, sem o custo de $0,40/segredo/mês; só abre mão da rotação automática nativa, que este projeto não usa hoje.</li>
+      </ul>
+    </div>
+  </div>
+</main>

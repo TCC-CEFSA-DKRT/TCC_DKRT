@@ -1,0 +1,11 @@
+{
+  "id": "urn:ngsi-ld:Streetlight:001",
+  "type": "Streetlight",
+  "location": {"type": "Point", "coordinates": [-46.633309, -23.55052]},
+  "illuminanceLevel": 0.8,
+  "lanternHeight": 6.5,
+  "areaServed": "Centro",
+  "refStreetlightModel": "urn:ngsi-ld:StreetlightModel:001",
+  "dateCreated": "2026-01-10T08:00:00Z",
+  "dateModified": "2026-08-15T10:00:00Z"
+}

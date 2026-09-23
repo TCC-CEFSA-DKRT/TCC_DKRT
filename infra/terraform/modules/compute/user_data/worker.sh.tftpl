@@ -1,0 +1,39 @@
+#!/bin/bash
+# Fase 9 -- bootstrap da instância do worker (consumidor da fila SQS de
+# jobs de auditoria). Mesmo escopo/limite do api.sh.tftpl: infraestrutura,
+# não deploy de código.
+set -euo pipefail
+
+apt-get update -y
+apt-get install -y python3.11 python3.11-venv git
+
+mkdir -p /opt/auditor
+cat > /opt/auditor/.env <<ENV
+DATABASE_URL=${database_url}
+FIWARE_BROKER_URL=${fiware_broker_url}
+OLLAMA_BASE_URL=${ollama_base_url}
+OLLAMA_MODEL=${ollama_model}
+QUEUE_BACKEND=sqs
+SQS_QUEUE_URL=${queue_url}
+ENV
+chmod 600 /opt/auditor/.env
+
+cat > /etc/systemd/system/auditor-worker.service <<'UNIT'
+[Unit]
+Description=Auditor Worker (consome fila de jobs de auditoria)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/auditor
+EnvironmentFile=/opt/auditor/.env
+ExecStart=/opt/auditor/.venv/bin/python -m auditor.interfaces.worker.main
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable auditor-worker.service

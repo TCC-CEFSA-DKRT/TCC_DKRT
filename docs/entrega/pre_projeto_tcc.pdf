@@ -548,7 +548,7 @@ T*
 T*
 (  src/) Tj
 T*
-(    context_broker_multiagent/) Tj
+(    context_broker_agent/) Tj
 T*
 (      __init__.py) Tj
 T*
@@ -611,7 +611,7 @@ T*
 T*
 () Tj
 T*
-(python -m context_broker_multiagent.cli "consultar sensores no Context Broker") Tj
+(python -m context_broker_agent.cli "consultar sensores no Context Broker") Tj
 T*
 () Tj
 T*
@@ -675,7 +675,7 @@ T*
 T*
 (- Cronograma em docs/cronograma/.) Tj
 T*
-(- Estrutura inicial Python em src/context_broker_multiagent/.) Tj
+(- Estrutura inicial Python em src/context_broker_agent/.) Tj
 T*
 (- Funcionalidade basica de CLI e orquestracao multiagentes.) Tj
 T*

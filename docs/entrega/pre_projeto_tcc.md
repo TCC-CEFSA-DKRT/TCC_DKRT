@@ -196,7 +196,7 @@ agent_multi_IA_context_broker/
     *.png
     *.svg
   src/
-    context_broker_multiagent/
+    context_broker_agent/
       __init__.py
       agents.py
       cli.py
@@ -221,7 +221,7 @@ Componentes implementados:
 Exemplo de uso previsto:
 
 ```bash
-python -m context_broker_multiagent.cli "consultar sensores no Context Broker"
+python -m context_broker_agent.cli "consultar sensores no Context Broker"
 ```
 
 ## 13. Evidencias de commits individuais
@@ -251,7 +251,7 @@ Registros disponiveis ate o momento:
 - Documentacao tecnica no `README.md`.
 - Diagramas de arquitetura em `docs/`.
 - Cronograma em `docs/cronograma/`.
-- Estrutura inicial Python em `src/context_broker_multiagent/`.
+- Estrutura inicial Python em `src/context_broker_agent/`.
 - Funcionalidade basica de CLI e orquestracao multiagentes.
 - Teste unitario inicial em `tests/test_orchestrator.py`.
 

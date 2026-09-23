@@ -1,17 +1,50 @@
+# Stack de desenvolvimento local — ver docs/plano_refatoracao_v3.md, Fase 0.
+# Orion + Mongo reaproveitados do projeto anterior (Parte IV do plano).
+# Postgres com pgvector adicionado: persistencia (Fase 3) + RAG (Fase 6).
 services:
   mongo:
     image: mongo:4.4
     command: --nojournal
     ports:
       - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   orion:
     image: fiware/orion:3.10.1
     platform: linux/amd64
     depends_on:
-      - mongo
+      mongo:
+        condition: service_healthy
     ports:
       - "1026:1026"
     command: -dbhost mongo -logLevel DEBUG
     environment:
       - ORION_MULTI_SERVICE=TRUE
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1026/version"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "5433:5432"  # host:container — 5432 do host ja estava ocupado nesta maquina
+    environment:
+      - POSTGRES_USER=auditor
+      - POSTGRES_PASSWORD=auditor
+      - POSTGRES_DB=auditor
+    volumes:
+      - auditor-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auditor -d auditor"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  auditor-postgres-data:

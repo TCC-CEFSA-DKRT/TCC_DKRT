@@ -1,0 +1,79 @@
+<h1 class="page-title">Natural Language</h1>
+<p class="page-subtitle">
+  Descreva a auditoria que deseja rodar — ex.: "audite os sensores de qualidade do ar".
+  A interpretação é sempre mostrada para confirmação antes de qualquer execução.
+</p>
+
+<form class="command-form" (ngSubmit)="onInterpret()">
+  <input
+    class="command-form__input"
+    name="command"
+    placeholder="audite os sensores de qualidade do ar"
+    [(ngModel)]="commandText"
+  />
+  <button type="submit" class="command-form__submit" [disabled]="interpretState() === 'loading'">
+    Interpretar
+  </button>
+</form>
+
+@switch (interpretState()) {
+  @case ('loading') {
+    <p class="status-text">Interpretando comando…</p>
+  }
+  @case ('error') {
+    <app-error-state
+      message="Não foi possível interpretar o comando."
+      (retry)="onInterpret()"
+    />
+  }
+  @case ('interpreted') {
+    @if (!understoodEnough()) {
+      <div class="interpretation-panel interpretation-panel--low-confidence">
+        <p>
+          Não entendi o suficiente para prosseguir. Tente descrever o tipo de sensor ou
+          entidade de forma mais específica (ex.: "postes de iluminação", "sensores de
+          qualidade do ar").
+        </p>
+      </div>
+    } @else {
+      <div class="interpretation-panel">
+        <h2 class="interpretation-panel__title">Interpretação</h2>
+        <p class="interpretation-panel__confidence">
+          Confiança: {{ interpretation()!.confidence | number: '1.0-2' }}
+        </p>
+
+        <label class="interpretation-field">
+          <span>Tipo de entidade</span>
+          <input class="interpretation-field__input" [(ngModel)]="editableEntityType" name="entityType" />
+        </label>
+        <label class="interpretation-field">
+          <span>ID da entidade (opcional)</span>
+          <input class="interpretation-field__input" [(ngModel)]="editableEntityId" name="entityId" />
+        </label>
+
+        <button
+          type="button"
+          class="confirm-button"
+          [disabled]="confirmState() === 'submitting'"
+          (click)="onConfirmClick()"
+        >
+          Confirmar e iniciar auditoria
+        </button>
+
+        @switch (confirmState()) {
+          @case ('submitted') {
+            <p class="status-text status-text--success">
+              Auditoria iniciada — run {{ createdRun()!.run_id }} ({{ createdRun()!.status }}).
+            </p>
+          }
+          @case ('error') {
+            <app-error-state
+              message="Não foi possível iniciar a auditoria."
+              (retry)="onConfirmClick()"
+            />
+          }
+        }
+      </div>
+    }
+  }
+}

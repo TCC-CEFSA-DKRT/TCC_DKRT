@@ -1,0 +1,28 @@
+# Convencoes estaveis entre Smart Data Models — curadoria do time (ver
+# .cursor/specs/fase6.spec.md, secao 2). Cada entrada e' um chunk inteiro
+# (to_chunk_text le apenas o campo `statement`, sem composicao).
+
+- id: convention-unit-code-un-cefact
+  tags: [unitCode, units]
+  statement: >
+    O atributo `unitCode` segue o Common Code da UN/CEFACT Recommendation 20 (ex.: "LUX"
+    para lux, "CEL" para grau Celsius) — nunca um simbolo livre como "lux" ou "°C".
+
+- id: convention-attribute-naming-lower-camel-case
+  tags: [attribute-naming]
+  statement: >
+    Nomes de atributo usam lowerCamelCase (ex.: `illuminanceLevel`, `dateModified`) — nunca
+    snake_case nem kebab-case, mesmo que a fonte de dados original use outra convencao.
+
+- id: convention-datetime-iso8601-with-timezone
+  tags: [datetime, dateCreated, dateModified]
+  statement: >
+    Atributos de data/hora (`dateCreated`, `dateModified`, etc.) sao ISO 8601 completo, com
+    horario e fuso explicito (ex.: "2024-01-01T00:00:00Z") — nunca so' a data, que e'
+    ambigua sobre o instante exato do evento.
+
+- id: convention-geoproperty-is-geojson
+  tags: [location, geoproperty]
+  statement: >
+    Atributos geograficos (`location`, `areaServed`) carregam a estrutura GeoJSON completa
+    (`{"type": "Point", "coordinates": [lon, lat]}`) — nunca um par de numeros soltos.

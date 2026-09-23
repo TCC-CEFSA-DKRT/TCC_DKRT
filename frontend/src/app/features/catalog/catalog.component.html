@@ -1,0 +1,144 @@
+<h1 class="page-title">Catalog</h1>
+
+@switch (state()) {
+  @case ('loading') {
+    <app-loading-skeleton [rows]="3" />
+  }
+  @case ('error') {
+    <app-error-state message="Não foi possível carregar o status do catálogo." (retry)="load()" />
+  }
+  @case ('never_synced') {
+    <app-empty-state
+      message="O catálogo ainda não foi sincronizado nenhuma vez."
+      hint="A sincronização do catálogo de Smart Data Models é administrativa (ver SyncCatalogUseCase) — sem gatilho nesta tela."
+    />
+  }
+  @case ('loaded') {
+    <div class="catalog-status">
+      @if (status()!.last_sync_successful === false) {
+        <div class="catalog-status__warning" role="alert">
+          <p class="catalog-status__warning-title">A última tentativa de sincronização falhou</p>
+          <p class="catalog-status__warning-detail">{{ status()!.last_sync_error }}</p>
+          <p class="catalog-status__warning-note">
+            O catálogo local abaixo é da última sincronização bem-sucedida — pode estar
+            desatualizado.
+          </p>
+        </div>
+      }
+
+      <dl class="catalog-status__facts">
+        <div class="fact">
+          <dt>Última sincronização bem-sucedida</dt>
+          <dd>{{ status()!.last_synced_at | date: 'dd/MM/yyyy HH:mm' }}</dd>
+        </div>
+        <div class="fact">
+          <dt>Modelos indexados</dt>
+          <dd>{{ status()!.models_count }}</dd>
+        </div>
+        <div class="fact">
+          <dt>Status da última tentativa</dt>
+          <dd>{{ status()!.last_sync_successful ? 'Sucesso' : 'Falhou (ver aviso acima)' }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <h2 class="section-title">Modelos</h2>
+
+    <form class="filters" #modelsFiltersForm="ngForm" (ngSubmit)="applyModelFilters()">
+      <input
+        class="filters__input"
+        name="model_q"
+        placeholder="Buscar por nome (ex.: Streetlight)"
+        [(ngModel)]="modelSearchInput"
+      />
+      <input
+        class="filters__input"
+        name="model_subject"
+        placeholder="Subject (ex.: dataModel.Streetlighting)"
+        [(ngModel)]="modelSubjectInput"
+      />
+      <button type="submit" class="filters__submit">Filtrar</button>
+    </form>
+
+    @switch (modelsState()) {
+      @case ('loading') {
+        <app-loading-skeleton [rows]="5" />
+      }
+      @case ('error') {
+        <app-error-state message="Não foi possível carregar a lista de modelos." (retry)="loadModels(modelsPage())" />
+      }
+      @case ('empty') {
+        <app-empty-state
+          message="Nenhum modelo encontrado para os filtros atuais."
+          hint="Ajuste a busca por nome ou subject acima."
+        />
+      }
+      @case ('loaded') {
+        <table class="models-table">
+          <thead>
+            <tr>
+              <th>Subject</th>
+              <th>Modelo</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (model of models(); track model.subject + '::' + model.model_name) {
+              <tr>
+                <td>{{ model.subject }}</td>
+                <td>{{ model.model_name }}</td>
+                <td>
+                  <button type="button" class="models-table__toggle" (click)="toggleSchema(model)">
+                    {{ isExpanded(model) ? 'Ocultar schema' : 'Ver schema' }}
+                  </button>
+                </td>
+              </tr>
+              @if (isExpanded(model)) {
+                <tr class="models-table__schema-row">
+                  <td colspan="3">
+                    @switch (schemaFor(model)?.state) {
+                      @case ('loading') {
+                        <app-loading-skeleton [rows]="2" />
+                      }
+                      @case ('error') {
+                        <p class="models-table__schema-error">{{ schemaFor(model)?.error }}</p>
+                      }
+                      @case ('loaded') {
+                        <p class="models-table__schema-meta">
+                          Origem: {{ schemaFor(model)?.source === 'live' ? 'ao vivo' : 'cache' }} ·
+                          Buscado em {{ schemaFor(model)?.fetchedAt | date: 'dd/MM/yyyy HH:mm' }}
+                        </p>
+                        <pre class="models-table__schema-content"><code>{{ formatSchema(schemaFor(model)?.content) }}</code></pre>
+                      }
+                    }
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+        <div class="models-table__pagination">
+          <button
+            type="button"
+            class="models-table__page-button"
+            [disabled]="modelsPage() <= 1"
+            (click)="previousModelsPage()"
+          >
+            Anterior
+          </button>
+          <span class="models-table__page-info">
+            Página {{ modelsPage() }} · {{ modelsTotal() }} modelo(s) no total
+          </span>
+          <button
+            type="button"
+            class="models-table__page-button"
+            [disabled]="!modelsHasNext()"
+            (click)="nextModelsPage()"
+          >
+            Próxima
+          </button>
+        </div>
+      }
+    }
+  }
+}

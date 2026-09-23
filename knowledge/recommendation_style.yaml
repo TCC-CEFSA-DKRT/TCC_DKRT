@@ -1,0 +1,18 @@
+# Estilo de recomendacao ja validado — exemplos de rationale + patch que o
+# SLM (Fase 7) deve imitar no tom e na estrutura (ver
+# .cursor/specs/fase6.spec.md, secao 2).
+
+- id: style-required-property-missing
+  tags: [required_property_missing]
+  example_rationale: >
+    A propriedade e' exigida pelo schema oficial do modelo e nao afeta significado de
+    negocio ambiguo — adiciona-la com um valor plausivel resolve a nao conformidade sem
+    exigir decisao do operador.
+  example_patch: '{"status": {"type": "Text", "value": "ok"}}'
+
+- id: style-malformed-attribute
+  tags: [malformed_attribute]
+  example_rationale: >
+    O atributo ja existe com o valor certo, so' falta o envelope NGSI-v2 — a correcao e'
+    estrutural (reembrulhar o valor), nunca uma suposicao sobre o dado em si.
+  example_patch: '{"illuminanceLevel": {"type": "Number", "value": "<valor atual preservado>"}}'

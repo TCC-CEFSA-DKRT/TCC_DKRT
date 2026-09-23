@@ -1,0 +1,96 @@
+<h1 class="page-title">Dashboard</h1>
+
+@switch (state()) {
+  @case ('loading') {
+    <app-loading-skeleton [rows]="5" />
+  }
+  @case ('error') {
+    <app-error-state message="Não foi possível carregar os dados do dashboard." (retry)="load()" />
+  }
+  @case ('empty') {
+    <app-empty-state
+      message="Nenhuma auditoria registrada ainda para este tenant."
+      hint="Inicie uma auditoria pela tela Natural Language ou via a API para ver dados aqui."
+    />
+  }
+  @case ('loaded') {
+    <section class="grid">
+      @for (category of categoryAggregates(); track category.entityType) {
+        <div class="card">
+          <h2 class="card__title">{{ category.entityType }}</h2>
+          <p class="card__meta">{{ category.runCount }} run(s)</p>
+          <dl class="card__stats">
+            <div class="stat stat--conformant">
+              <dt>Conformes</dt>
+              <dd>{{ category.summary.conformant_count }}</dd>
+            </div>
+            <div class="stat stat--partial">
+              <dt>Parciais</dt>
+              <dd>{{ category.summary.partial_count }}</dd>
+            </div>
+            <div class="stat stat--non-conformant">
+              <dt>Não conformes</dt>
+              <dd>{{ category.summary.non_conformant_count }}</dd>
+            </div>
+            <div class="stat">
+              <dt>Total de entidades</dt>
+              <dd>{{ category.summary.total_entities }}</dd>
+            </div>
+          </dl>
+        </div>
+      }
+    </section>
+
+    <section class="panel">
+      <h2 class="panel__title">Tipos com mais violações</h2>
+      <ol class="ranking">
+        @for (category of typesRankedByViolations(); track category.entityType) {
+          <li>
+            <span class="ranking__type">{{ category.entityType }}</span>
+            <span class="ranking__count">
+              {{ category.summary.non_conformant_count + category.summary.partial_count }}
+              violações
+            </span>
+          </li>
+        }
+      </ol>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel__title">
+        Evolução no tempo
+        @if (selectedEntityType()) {
+          — {{ selectedEntityType() }}
+        }
+      </h2>
+      <div class="type-switch">
+        @for (category of categoryAggregates(); track category.entityType) {
+          <button
+            type="button"
+            class="type-switch__button"
+            [class.type-switch__button--active]="category.entityType === selectedEntityType()"
+            (click)="selectEntityType(category.entityType)"
+          >
+            {{ category.entityType }}
+          </button>
+        }
+      </div>
+      @if (timeSeries().length === 0) {
+        <p class="panel__empty">Sem histórico suficiente para este tipo ainda.</p>
+      } @else {
+        <ol class="timeline">
+          @for (point of timeSeries(); track point.id) {
+            <li>
+              <span class="timeline__date">{{ point.started_at | date: 'dd/MM/yyyy HH:mm' }}</span>
+              <span class="timeline__stats">
+                {{ point.summary.conformant_count }} conformes ·
+                {{ point.summary.non_conformant_count }} não conformes ·
+                {{ point.summary.partial_count }} parciais
+              </span>
+            </li>
+          }
+        </ol>
+      }
+    </section>
+  }
+}

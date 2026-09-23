@@ -1,0 +1,422 @@
+<title>Arquitetura do Auditor FIWARE</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --surface-2: #eef0ec;
+    --ink: #1c1f1a;
+    --ink-soft: #52584c;
+    --line: #d7d9d1;
+    --accent: #1f5fa8;
+    --accent-soft: #e4edf7;
+    --accent-warm: #b6621c;
+    --accent-warm-soft: #f7e9db;
+    --neutral-box: #ffffff;
+    --shadow: 0 1px 2px rgba(28,31,26,0.06);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14160f;
+      --surface: #1c1f17;
+      --surface-2: #23261b;
+      --ink: #eceae2;
+      --ink-soft: #a7ab9d;
+      --line: #3a3d30;
+      --accent: #6fa8dc;
+      --accent-soft: #223447;
+      --accent-warm: #d99a5b;
+      --accent-warm-soft: #3c2c1c;
+      --neutral-box: #1c1f17;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #14160f;
+    --surface: #1c1f17;
+    --surface-2: #23261b;
+    --ink: #eceae2;
+    --ink-soft: #a7ab9d;
+    --line: #3a3d30;
+    --accent: #6fa8dc;
+    --accent-soft: #223447;
+    --accent-warm: #d99a5b;
+    --accent-warm-soft: #3c2c1c;
+    --neutral-box: #1c1f17;
+    --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+    padding: 40px 24px 72px;
+  }
+
+  main {
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 32px;
+  }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+
+  h1 {
+    font-size: clamp(28px, 4vw, 38px);
+    font-weight: 600;
+    margin: 0 0 12px;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+
+  header p {
+    max-width: 640px;
+    color: var(--ink-soft);
+    font-size: 15px;
+    margin: 0;
+  }
+
+  figure {
+    margin: 0 0 40px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px 20px 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .diagram-scroll {
+    overflow-x: auto;
+  }
+
+  .diagram-scroll svg {
+    display: block;
+    min-width: 900px;
+    width: 100%;
+    height: auto;
+  }
+
+  figcaption {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-top: 12px;
+  }
+
+  .legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .swatch {
+    width: 20px;
+    height: 2px;
+    display: inline-block;
+  }
+
+  .swatch.sync { background: var(--accent); }
+  .swatch.async { background: var(--accent-warm); }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .card h2 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+
+  .card .tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    margin: 0 0 12px;
+    display: block;
+  }
+
+  .card ul {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+  }
+
+  .card li {
+    margin-bottom: 6px;
+  }
+
+  .card li:last-child { margin-bottom: 0; }
+
+  .card code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    background: var(--surface-2);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--ink);
+  }
+
+  @media (max-width: 860px) {
+    .cards { grid-template-columns: 1fr; }
+  }
+
+  /* SVG diagram styling — kept outside the <svg> per inline-SVG convention */
+  .node rect {
+    fill: var(--neutral-box);
+    stroke: var(--ink-soft);
+    stroke-width: 1.3;
+  }
+
+  .node text.label {
+    fill: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+  }
+
+  .node text.sub {
+    fill: var(--ink-soft);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+  }
+
+  .badge rect {
+    fill: var(--accent-warm-soft);
+    stroke: var(--accent-warm);
+    stroke-width: 1;
+  }
+
+  .badge text {
+    fill: var(--accent-warm);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+  }
+
+  .edge.sync { stroke: var(--accent); }
+  .edge.async { stroke: var(--accent-warm); }
+  .edge {
+    fill: none;
+    stroke-width: 1.6;
+  }
+
+  marker#arrow-sync path { fill: var(--accent); }
+  marker#arrow-async path { fill: var(--accent-warm); }
+
+  .edge-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+  }
+
+  .edge-label.sync { fill: var(--accent); }
+  .edge-label.async { fill: var(--accent-warm); }
+
+  .edge-label-bg {
+    fill: var(--surface);
+  }
+</style>
+
+<main>
+  <header>
+    <p class="eyebrow">TCC · Engenharia de Software</p>
+    <h1>Arquitetura do Auditor FIWARE</h1>
+    <p>Como o front-end Angular, a API FastAPI e o SLM local (Ollama/Qwen2.5) se conectam para interpretar comandos em linguagem natural e auditar entidades no FIWARE Orion — cobrindo os dois caminhos em que o SLM é usado: interpretação síncrona de comandos e diagnóstico assíncrono de nível 2.</p>
+  </header>
+
+  <figure>
+    <div class="diagram-scroll">
+      <svg viewBox="0 0 1520 860" role="img" aria-label="Diagrama mostrando o Frontend Angular enviando comandos à API FastAPI, que consulta o SLM Ollama de forma síncrona para interpretar comandos e lê/escreve no Postgres; e mostrando o caminho assíncrono onde a API enfileira um AuditJob consumido pelo Worker, que consulta o Orion via NGSI-v2, aciona o SLM para diagnóstico de nível 2 com contexto RAG do Postgres/pgvector, e persiste o resultado no Postgres.">
+        <defs>
+          <marker id="arrow-sync" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 Z"/>
+          </marker>
+          <marker id="arrow-async" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 Z"/>
+          </marker>
+        </defs>
+
+        <!-- ===== Nodes (drawn first, so edge labels layer on top) ===== -->
+
+        <g class="node">
+          <rect x="40" y="340" width="190" height="110" rx="8"/>
+          <text x="135" y="388" text-anchor="middle" class="label">Frontend</text>
+          <text x="135" y="408" text-anchor="middle" class="sub">Angular</text>
+          <text x="135" y="424" text-anchor="middle" class="sub">AuditRunsComponent</text>
+        </g>
+
+        <g class="node">
+          <rect x="380" y="340" width="190" height="110" rx="8"/>
+          <text x="475" y="388" text-anchor="middle" class="label">API</text>
+          <text x="475" y="408" text-anchor="middle" class="sub">FastAPI</text>
+          <text x="475" y="424" text-anchor="middle" class="sub">routers · use cases</text>
+        </g>
+
+        <g class="node">
+          <rect x="380" y="60" width="190" height="100" rx="8"/>
+          <text x="475" y="105" text-anchor="middle" class="label">SLM</text>
+          <text x="475" y="125" text-anchor="middle" class="sub">Ollama / Qwen2.5</text>
+          <text x="475" y="141" text-anchor="middle" class="sub">local, sem I/O externo</text>
+        </g>
+
+        <g class="node">
+          <rect x="720" y="350" width="150" height="90" rx="8"/>
+          <text x="795" y="393" text-anchor="middle" class="label">Queue</text>
+          <text x="795" y="411" text-anchor="middle" class="sub">Local / SQS</text>
+        </g>
+
+        <g class="node">
+          <rect x="960" y="340" width="190" height="110" rx="8"/>
+          <text x="1055" y="382" text-anchor="middle" class="label">Worker</text>
+          <text x="1055" y="400" text-anchor="middle" class="sub">AuditWorker</text>
+          <g class="badge">
+            <rect x="978" y="408" width="154" height="30" rx="5"/>
+            <text x="1055" y="427" text-anchor="middle">Nível 1 · StructuralValidator</text>
+          </g>
+        </g>
+
+        <g class="node">
+          <rect x="960" y="60" width="190" height="100" rx="8"/>
+          <text x="1055" y="105" text-anchor="middle" class="label">Orion</text>
+          <text x="1055" y="125" text-anchor="middle" class="sub">FIWARE Context Broker</text>
+          <text x="1055" y="141" text-anchor="middle" class="sub">NGSI-v2</text>
+        </g>
+
+        <g class="node">
+          <rect x="600" y="620" width="260" height="100" rx="8"/>
+          <text x="730" y="663" text-anchor="middle" class="label">Postgres</text>
+          <text x="730" y="683" text-anchor="middle" class="sub">audits · catálogo · pgvector</text>
+          <text x="730" y="699" text-anchor="middle" class="sub">mesma instância — sem base separada</text>
+        </g>
+
+        <!-- ===== Edges (drawn on top, so arrows/labels stay legible) ===== -->
+
+        <!-- Frontend <-> API : interpret (sync, blue) -->
+        <line x1="230" y1="368" x2="380" y2="368" class="edge sync" marker-end="url(#arrow-sync)" marker-start="url(#arrow-sync)"/>
+        <rect x="238" y="352" width="164" height="14" class="edge-label-bg"/>
+        <text x="320" y="363" text-anchor="middle" class="edge-label sync">POST /audits/interpret</text>
+
+        <!-- Frontend <-> API : submit audit (async, amber) -->
+        <line x1="230" y1="398" x2="380" y2="398" class="edge async" marker-end="url(#arrow-async)" marker-start="url(#arrow-async)"/>
+        <rect x="248" y="404" width="144" height="14" class="edge-label-bg"/>
+        <text x="320" y="415" text-anchor="middle" class="edge-label async">POST /audits</text>
+
+        <!-- Frontend <-> API : reads + progress (async, amber) -->
+        <line x1="230" y1="428" x2="380" y2="428" class="edge async" marker-end="url(#arrow-async)" marker-start="url(#arrow-async)"/>
+        <rect x="234" y="432" width="172" height="14" class="edge-label-bg"/>
+        <text x="320" y="443" text-anchor="middle" class="edge-label async">poll /progress · SSE</text>
+
+        <!-- API <-> SLM : interpret command (sync, blue), vertical -->
+        <line x1="440" y1="340" x2="440" y2="160" class="edge sync" marker-end="url(#arrow-sync)" marker-start="url(#arrow-sync)"/>
+        <rect x="446" y="228" width="176" height="14" class="edge-label-bg"/>
+        <text x="450" y="239" class="edge-label sync">interpret command (Ollama)</text>
+
+        <!-- API <-> Postgres : CRUD (blue), diagonal -->
+        <path d="M 490 450 L 660 620" class="edge sync" marker-end="url(#arrow-sync)" marker-start="url(#arrow-sync)"/>
+        <rect x="486" y="510" width="200" height="28" class="edge-label-bg"/>
+        <text x="490" y="522" class="edge-label sync">AuditRun · EntityReport</text>
+        <text x="490" y="535" class="edge-label sync">catálogo (cache de schemas)</text>
+
+        <!-- API -> Queue : enqueue (async, amber) -->
+        <line x1="590" y1="390" x2="720" y2="390" class="edge async" marker-end="url(#arrow-async)"/>
+        <rect x="600" y="374" width="120" height="14" class="edge-label-bg"/>
+        <text x="605" y="385" class="edge-label async">enqueue AuditJob</text>
+
+        <!-- Queue -> Worker : consume (async, amber) -->
+        <line x1="870" y1="390" x2="960" y2="390" class="edge async" marker-end="url(#arrow-async)"/>
+        <rect x="866" y="374" width="102" height="14" class="edge-label-bg"/>
+        <text x="871" y="385" class="edge-label async">consume</text>
+
+        <!-- Worker <-> Orion : NGSI-v2 (async, amber), vertical -->
+        <line x1="1055" y1="340" x2="1055" y2="160" class="edge async" marker-end="url(#arrow-async)" marker-start="url(#arrow-async)"/>
+        <rect x="1061" y="228" width="190" height="14" class="edge-label-bg"/>
+        <text x="1065" y="239" class="edge-label async">GET /v2/entities (NGSI-v2)</text>
+
+        <!-- Worker <-> SLM : nivel 2 diagnose (async, amber), diagonal -->
+        <path d="M 960 400 L 570 145" class="edge async" marker-end="url(#arrow-async)" marker-start="url(#arrow-async)"/>
+        <rect x="700" y="300" width="230" height="14" class="edge-label-bg"/>
+        <text x="705" y="311" class="edge-label async">Nível 2 — diagnose (RAG-grounded)</text>
+
+        <!-- Worker <-> Postgres : persist + RAG context (async, amber), diagonal -->
+        <path d="M 1010 450 L 800 620" class="edge async" marker-end="url(#arrow-async)" marker-start="url(#arrow-async)"/>
+        <rect x="835" y="510" width="210" height="28" class="edge-label-bg"/>
+        <text x="840" y="522" class="edge-label async">persist AuditRun/EntityReport</text>
+        <text x="840" y="535" class="edge-label async">contexto RAG (pgvector)</text>
+
+      </svg>
+    </div>
+    <div class="legend">
+      <span><span class="swatch sync"></span>caminho síncrono — resposta imediata ao Frontend</span>
+      <span><span class="swatch async"></span>caminho assíncrono — auditoria via fila e worker</span>
+    </div>
+    <figcaption>O Frontend fala apenas com a API. A API usa o SLM de duas formas: em linha, para interpretar comandos em linguagem natural (síncrono); e indiretamente, quando o Worker aciona o SLM para diagnóstico de Nível 2 apenas se a validação estrutural de Nível 1 não decidir. O pgvector vive dentro do mesmo Postgres — não é um banco vetorial separado.</figcaption>
+  </figure>
+
+  <div class="cards">
+    <div class="card">
+      <h2>Frontend</h2>
+      <span class="tag">Angular · TypeScript</span>
+      <ul>
+        <li>Envia comandos em linguagem natural para <code>/audits/interpret</code> e submete auditorias com <code>POST /audits</code>.</li>
+        <li>Acompanha o progresso por polling (5s) em <code>/audits/{id}/progress</code> ou por <code>SSE</code> em <code>/stream</code>.</li>
+        <li>Tela de Catálogo lista e filtra os Smart Data Models sincronizados, com visualização do schema de cada um.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>API</h2>
+      <span class="tag">FastAPI · Postgres</span>
+      <ul>
+        <li>Camada de interfaces (REST/CLI) sobre casos de uso da aplicação, seguindo arquitetura hexagonal.</li>
+        <li>Enfileira <code>AuditJob</code> e responde <code>202 Accepted</code> imediatamente — a auditoria roda fora do request.</li>
+        <li><code>CatalogSyncScheduler</code> mantém o catálogo de modelos atualizado automaticamente, sem comando manual.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>SLM</h2>
+      <span class="tag">Ollama · Qwen2.5 · local</span>
+      <ul>
+        <li><strong>Uso 1 — síncrono:</strong> interpreta o comando do usuário e devolve uma estrutura de auditoria, no caminho de request da API.</li>
+        <li><strong>Uso 2 — assíncrono:</strong> diagnóstico de Nível 2 dentro do Worker, acionado só quando a validação estrutural não é conclusiva.</li>
+        <li>No Nível 2, é aterrado por RAG — contexto recuperado do próprio Postgres (pgvector).</li>
+      </ul>
+    </div>
+  </div>
+</main>

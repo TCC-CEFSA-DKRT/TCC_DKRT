@@ -1,0 +1,30 @@
+# Casos anotados: entidade incorreta -> explicacao -> correcao (ver
+# .cursor/specs/fase6.spec.md, secao 2). to_chunk_text() renderiza os tres
+# campos, nesta ordem, sempre no mesmo chunk.
+
+- id: case-lum-instead-of-illuminance-level
+  tags: [attribute-naming, illuminanceLevel]
+  incorrect_example: '{"lum": {"type": "Number", "value": 0.7}}'
+  explanation: >
+    "lum" e' uma abreviacao informal; o Smart Data Model Streetlighting define o atributo
+    canonico como `illuminanceLevel`. Abreviacoes quebram interoperabilidade — quem consome
+    a entidade esperando o nome do schema nao encontra o dado.
+  correction: '{"illuminanceLevel": {"type": "Number", "value": 0.7}}'
+
+- id: case-date-only-instead-of-full-iso8601
+  tags: [datetime, dateCreated]
+  incorrect_example: '{"dateCreated": {"type": "DateTime", "value": "2024-01-01"}}'
+  explanation: >
+    Falta o componente de horario e fuso — "2024-01-01" nao distingue o instante exato
+    dentro do dia, e sistemas que comparam timestamps podem interpretar isso de formas
+    diferentes.
+  correction: '{"dateCreated": {"type": "DateTime", "value": "2024-01-01T00:00:00Z"}}'
+
+- id: case-location-as-bare-coordinates
+  tags: [location, geoproperty]
+  incorrect_example: '{"location": {"type": "geo:json", "value": [-46.63, -23.55]}}'
+  explanation: >
+    O `value` de um GeoProperty precisa ser um objeto GeoJSON completo — um array de dois
+    numeros nao diz, por si so', se e' um Point, e a ordem lon/lat e' fonte comum de erro.
+  correction: >
+    {"location": {"type": "geo:json", "value": {"type": "Point", "coordinates": [-46.63, -23.55]}}}

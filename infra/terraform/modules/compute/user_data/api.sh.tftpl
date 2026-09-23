@@ -1,0 +1,50 @@
+#!/bin/bash
+# Fase 9 (.cursor/specs/fase9.spec.md, secao 2.5) -- bootstrap da instância
+# da API. Escopo deliberadamente limitado a infraestrutura (SO + runtime +
+# configuração via env): o deploy do código da aplicação em si (git
+# clone/artefato) é responsabilidade de um passo de CI/CD separado (ex.:
+# AWS CodeDeploy, `scp` a partir do workflow do GitHub Actions, ou SSM
+# Run Command) -- não do `terraform apply`, para não misturar
+# provisionamento de infra com deploy de aplicação (que muda a cada commit,
+# não a cada mudança de infra).
+set -euo pipefail
+
+apt-get update -y
+apt-get install -y python3.11 python3.11-venv git
+
+mkdir -p /opt/auditor
+cat > /opt/auditor/.env <<ENV
+DATABASE_URL=${database_url}
+FIWARE_BROKER_URL=${fiware_broker_url}
+OLLAMA_BASE_URL=${ollama_base_url}
+OLLAMA_MODEL=${ollama_model}
+QUEUE_BACKEND=sqs
+SQS_QUEUE_URL=${queue_url}
+CORS_ALLOWED_ORIGINS=${cors_allowed_origins}
+ENV
+chmod 600 /opt/auditor/.env
+
+cat > /etc/systemd/system/auditor-api.service <<'UNIT'
+[Unit]
+Description=Auditor API (FastAPI/uvicorn)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/auditor
+EnvironmentFile=/opt/auditor/.env
+# Assume que o código já foi entregue em /opt/auditor por um passo de
+# CI/CD separado (ver comentário no topo deste arquivo) e que
+# /opt/auditor/.venv/bin/uvicorn existe.
+ExecStart=/opt/auditor/.venv/bin/uvicorn auditor.interfaces.rest.app:create_app --factory --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable auditor-api.service
+# Não damos `systemctl start` aqui: o binário só existe depois do deploy de
+# código. O passo de CI/CD que copia o código também faz o start.
