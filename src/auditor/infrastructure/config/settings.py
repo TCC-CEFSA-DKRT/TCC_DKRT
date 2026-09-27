@@ -5,6 +5,9 @@ docs/plano_refatoracao_v3.md, Parte III, 2.2
 
 from __future__ import annotations
 
+from typing import Literal
+
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -46,6 +49,31 @@ class Settings(BaseSettings):
     sqs_queue_url: str | None = None
     sqs_dead_letter_queue_url: str | None = None
 
+    broker_api_key_encryption_keys: SecretStr | None = None
+
+    deployment_mode: Literal["saas", "selfhosted"] = "selfhosted"
+    jwt_signing_key: SecretStr | None = None
+    jwt_expiration_minutes: int = Field(default=60, gt=0)
+
+    @model_validator(mode="after")
+    def _require_jwt_signing_key_in_saas(self) -> "Settings":
+        if self.deployment_mode == "saas" and (
+            self.jwt_signing_key is None
+            or len(self.jwt_signing_key.get_secret_value().encode("utf-8")) < 32
+        ):
+            raise ValueError("DEPLOYMENT_MODE=saas exige JWT_SIGNING_KEY com pelo menos 32 bytes")
+        return self
+
     @property
     def cors_allowed_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_allowed_origins.split(",") if origin.strip()]
+
+    @property
+    def broker_api_key_encryption_keys_list(self) -> list[str]:
+        if self.broker_api_key_encryption_keys is None:
+            return []
+        return [
+            key.strip()
+            for key in self.broker_api_key_encryption_keys.get_secret_value().split(",")
+            if key.strip()
+        ]

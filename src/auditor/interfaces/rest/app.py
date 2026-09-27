@@ -9,16 +9,18 @@ import asyncio
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
+from auditor.domain.errors import TenantBrokerNotConfiguredError
 from auditor.infrastructure.config.container import (
     get_job_queue,
     get_run_audit_use_case,
     get_settings,
     get_sync_catalog_use_case,
 )
-from auditor.interfaces.rest.routers import audits, catalog, health
+from auditor.interfaces.rest.routers import audits, auth, catalog, entity_types, health
 from auditor.interfaces.worker.audit_worker import AuditWorker
 from auditor.interfaces.worker.catalog_sync_scheduler import CatalogSyncScheduler
 
@@ -77,6 +79,14 @@ def _make_lifespan(*, start_background_workers: bool):
     return _lifespan
 
 
+async def _tenant_account_gone(request: Request, exc: TenantBrokerNotConfiguredError) -> JSONResponse:
+    return JSONResponse(
+        status_code=401,
+        content={"detail": "Conta nao encontrada; faca login novamente."},
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
 def create_app(*, start_background_workers: bool = True) -> FastAPI:
     app = FastAPI(
         title="FIWARE Conformance Auditor",
@@ -95,9 +105,13 @@ def create_app(*, start_background_workers: bool = True) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_exception_handler(TenantBrokerNotConfiguredError, _tenant_account_gone)
     app.include_router(audits.router)
     app.include_router(catalog.router)
+    app.include_router(entity_types.router)
     app.include_router(health.router)
+    if get_settings().deployment_mode == "saas":
+        app.include_router(auth.router)
     return app
 
 

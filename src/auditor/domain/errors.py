@@ -73,6 +73,15 @@ class ContextBrokerUnavailableError(DomainError):
     decide explicitamente marcar o run como `FAILED` por causa dela."""
 
 
+class TenantBrokerNotConfiguredError(DomainError):
+    def __init__(self, tenant) -> None:
+        self.fiware_service = tenant.fiware_service
+        self.fiware_service_path = tenant.fiware_service_path
+        super().__init__(
+            f"Nenhuma conta cadastrada para {tenant.fiware_service}/{tenant.fiware_service_path}."
+        )
+
+
 class InconsistentSemanticAnalysisResultError(DomainError):
     """Um `SemanticAnalysisResult` foi construido com
     `analysis_unavailable=True` acompanhado de violations/recommendations

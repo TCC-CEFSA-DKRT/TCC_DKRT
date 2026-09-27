@@ -23,6 +23,13 @@ variable "jwt_signing_key" {
   sensitive   = true
 }
 
+variable "broker_api_key_encryption_keys" {
+  description = "Placeholder na criacao -- mesmo raciocinio de orion_credentials_json, acima."
+  type        = string
+  default     = "REPLACE_AFTER_APPLY"
+  sensitive   = true
+}
+
 variable "tags" {
   type    = map(string)
   default = {}

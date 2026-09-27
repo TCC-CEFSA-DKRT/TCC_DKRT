@@ -116,6 +116,25 @@ variable "jwt_signing_key_parameter_arn" {
   type = string
 }
 
+variable "broker_api_key_encryption_keys_parameter_name" {
+  type = string
+}
+
+variable "broker_api_key_encryption_keys_parameter_arn" {
+  type = string
+}
+
+variable "deployment_mode" {
+  description = "ADR-0019: \"saas\" exige JWT_SIGNING_KEY/BROKER_API_KEY_ENCRYPTION_KEYS reais (Settings valida em runtime, ver secrets_bootstrap.py); \"selfhosted\" (default) e' o comportamento de hoje."
+  type        = string
+  default     = "selfhosted"
+
+  validation {
+    condition     = contains(["saas", "selfhosted"], var.deployment_mode)
+    error_message = "deployment_mode deve ser \"saas\" ou \"selfhosted\"."
+  }
+}
+
 variable "tags" {
   type    = map(string)
   default = {}

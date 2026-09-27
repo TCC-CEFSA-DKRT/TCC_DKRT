@@ -28,6 +28,8 @@ RUN pip install --no-cache-dir -r ${LAMBDA_TASK_ROOT}/requirements.txt && \
 # `auditor.interfaces.aws_lambda.api_handler.handler` (o "module.function"
 # que o runtime base do Lambda para Python resolve por padrao).
 COPY src/auditor ${LAMBDA_TASK_ROOT}/auditor
+COPY alembic.ini ${LAMBDA_TASK_ROOT}/alembic.ini
+COPY migrations ${LAMBDA_TASK_ROOT}/migrations
 
 # Default: handler da API (Mangum). O Worker e o Worker-DLQ (mesma imagem)
 # sobrescrevem isto via `image_config.command` no `aws_lambda_function`

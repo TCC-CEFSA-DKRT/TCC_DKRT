@@ -37,6 +37,7 @@ As ADRs 0000 a 0012 documentam a fase multiagente inicial do projeto, substituí
 | [0016](adr-0016.md) | Servidor MCP como adaptador de entrada para expor a auditoria a clientes de IA | Aceito |
 | [0017](adr-0017.md) | API e worker de produção migram de EC2 para Lambda (imagem de contêiner) atrás de um ALB, com CloudFront/S3, Parameter Store e VPC endpoints | Aceito |
 | [0018](adr-0018.md) | AWS Academy Learner Lab descontinuada — `environments/academy` renomeado para `environments/homolog` | Aceito |
+| [0019](adr-0019.md) | Dois modos de implantação (SaaS multi-tenant + self-hosted no ambiente do produtor) | Proposto |
 
 ## Como escrever o próximo
 

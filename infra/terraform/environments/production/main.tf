@@ -149,6 +149,7 @@ module "lambda_compute" {
   private_subnet_ids = module.network.private_subnet_ids
   image_tag          = var.lambda_image_tag
 
+  deployment_mode      = var.deployment_mode
   fiware_broker_url    = var.fiware_broker_url
   ollama_base_url      = "http://${module.compute.ollama_private_ip}:11434"
   ollama_model         = var.ollama_model
@@ -164,10 +165,12 @@ module "lambda_compute" {
   db_name                   = var.database_name
   db_master_user_secret_arn = module.database.master_user_secret_arn
 
-  orion_credentials_parameter_name = module.parameter_store.orion_credentials_parameter_name
-  orion_credentials_parameter_arn  = module.parameter_store.orion_credentials_parameter_arn
-  jwt_signing_key_parameter_name   = module.parameter_store.jwt_signing_key_parameter_name
-  jwt_signing_key_parameter_arn    = module.parameter_store.jwt_signing_key_parameter_arn
+  orion_credentials_parameter_name              = module.parameter_store.orion_credentials_parameter_name
+  orion_credentials_parameter_arn               = module.parameter_store.orion_credentials_parameter_arn
+  jwt_signing_key_parameter_name                = module.parameter_store.jwt_signing_key_parameter_name
+  jwt_signing_key_parameter_arn                 = module.parameter_store.jwt_signing_key_parameter_arn
+  broker_api_key_encryption_keys_parameter_name = module.parameter_store.broker_api_key_encryption_keys_parameter_name
+  broker_api_key_encryption_keys_parameter_arn  = module.parameter_store.broker_api_key_encryption_keys_parameter_arn
 
   tags = var.tags
 }

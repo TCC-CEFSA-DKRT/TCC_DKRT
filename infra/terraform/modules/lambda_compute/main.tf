@@ -96,9 +96,13 @@ resource "aws_iam_role_policy" "lambda_permissions" {
         Resource = [var.queue_arn, var.dead_letter_queue_arn]
       },
       {
-        Effect   = "Allow"
-        Action   = ["ssm:GetParameter"]
-        Resource = [var.orion_credentials_parameter_arn, var.jwt_signing_key_parameter_arn]
+        Effect = "Allow"
+        Action = ["ssm:GetParameter"]
+        Resource = [
+          var.orion_credentials_parameter_arn,
+          var.jwt_signing_key_parameter_arn,
+          var.broker_api_key_encryption_keys_parameter_arn,
+        ]
       },
       {
         # So' o segredo gerenciado pelo RDS (senha do master user) --
@@ -146,19 +150,21 @@ locals {
   # silenciosamente (guard `if "DATABASE_URL" in os.environ: return` em
   # secrets_bootstrap.py).
   common_env = {
-    FIWARE_BROKER_URL              = var.fiware_broker_url
-    OLLAMA_BASE_URL                = var.ollama_base_url
-    OLLAMA_MODEL                   = var.ollama_model
-    CORS_ALLOWED_ORIGINS           = var.cors_allowed_origins
-    QUEUE_BACKEND                  = "sqs"
-    SQS_QUEUE_URL                  = var.queue_url
-    SQS_DEAD_LETTER_QUEUE_URL      = var.dead_letter_queue_url
-    DB_HOST                        = var.db_host
-    DB_PORT                        = tostring(var.db_port)
-    DB_NAME                        = var.db_name
-    DB_MASTER_USER_SECRET_ARN      = var.db_master_user_secret_arn
-    ORION_CREDENTIALS_PARAMETER_NAME  = var.orion_credentials_parameter_name
-    JWT_SIGNING_KEY_PARAMETER_NAME    = var.jwt_signing_key_parameter_name
+    DEPLOYMENT_MODE                                = var.deployment_mode
+    FIWARE_BROKER_URL                              = var.fiware_broker_url
+    OLLAMA_BASE_URL                                = var.ollama_base_url
+    OLLAMA_MODEL                                   = var.ollama_model
+    CORS_ALLOWED_ORIGINS                           = var.cors_allowed_origins
+    QUEUE_BACKEND                                  = "sqs"
+    SQS_QUEUE_URL                                  = var.queue_url
+    SQS_DEAD_LETTER_QUEUE_URL                      = var.dead_letter_queue_url
+    DB_HOST                                        = var.db_host
+    DB_PORT                                        = tostring(var.db_port)
+    DB_NAME                                        = var.db_name
+    DB_MASTER_USER_SECRET_ARN                      = var.db_master_user_secret_arn
+    ORION_CREDENTIALS_PARAMETER_NAME               = var.orion_credentials_parameter_name
+    JWT_SIGNING_KEY_PARAMETER_NAME                 = var.jwt_signing_key_parameter_name
+    BROKER_API_KEY_ENCRYPTION_KEYS_PARAMETER_NAME  = var.broker_api_key_encryption_keys_parameter_name
   }
 
   image_uri = "${aws_ecr_repository.this.repository_url}:${var.image_tag}"
@@ -261,6 +267,56 @@ resource "aws_lambda_event_source_mapping" "worker_dlq" {
   batch_size       = var.worker_batch_size
 
   function_response_types = ["ReportBatchItemFailures"]
+}
+
+resource "aws_cloudwatch_log_group" "admin" {
+  name              = "/aws/lambda/${var.name_prefix}-admin"
+  retention_in_days = var.log_retention_days
+  tags              = var.tags
+}
+
+# A3: comandos administrativos (audit tenant register/rotate-keys, migrations)
+# contra o RDS privado. Sem aws_lambda_permission, function URL, event source
+# mapping ou target group: só um principal IAM com lambda:InvokeFunction
+# nesta ARN (aws_iam_policy.admin_invoke) consegue invocar.
+resource "aws_lambda_function" "admin" {
+  function_name = "${var.name_prefix}-admin"
+  role          = aws_iam_role.lambda_execution.arn
+  package_type  = "Image"
+  image_uri     = local.image_uri
+
+  image_config {
+    command = ["auditor.interfaces.aws_lambda.admin_handler.handler"]
+  }
+
+  timeout     = 900 # máximo do Lambda; invocação manual e rara, sem ALB para respeitar
+  memory_size = var.worker_memory_mb
+
+  vpc_config {
+    subnet_ids         = var.private_subnet_ids
+    security_group_ids = [aws_security_group.lambda.id] # já liberado no RDS por rds_from_lambda
+  }
+
+  environment {
+    variables = local.common_env
+  }
+
+  depends_on = [aws_cloudwatch_log_group.admin, aws_iam_role_policy_attachment.vpc_access]
+  tags       = merge(var.tags, { Name = "${var.name_prefix}-admin" })
+}
+
+resource "aws_iam_policy" "admin_invoke" {
+  name        = "${var.name_prefix}-admin-invoke"
+  description = "Permite invocar SOMENTE o Lambda administrativo (A3). Anexar ao usuário/grupo do operador."
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["lambda:InvokeFunction"]
+      Resource = aws_lambda_function.admin.arn
+    }]
+  })
+  tags = var.tags
 }
 
 # --- Target group do ALB (target_type=lambda -- sem port/protocol/vpc_id,

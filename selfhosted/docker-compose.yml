@@ -1,0 +1,152 @@
+# Bundle self-hosted (ADR-0019) — o produtor roda isto na propria infra
+# (maquina local ou nuvem propria), sem depender de nada nosso: Orion+Mongo,
+# Postgres/pgvector, Ollama (SLM, CPU-only por padrao), a API e o frontend
+# (Angular, servido por nginx), todos no mesmo `docker compose up -d`.
+# Rodar de dentro desta pasta
+# (`cd selfhosted && docker compose up -d --build`) — os servicos `build`
+# usam `context: ..` para pegar `src/`/`requirements.txt`/`pyproject.toml`
+# da raiz do repo.
+#
+# Migration + sincronizacao do RAG + download do modelo do Ollama rodam
+# sozinhos (servicos `migrate`/`ollama-pull`, cada um roda uma vez e
+# termina) — o produtor nao precisa saber que `alembic`/`audit knowledge
+# sync`/`ollama pull` existem, so' espera tudo ficar "healthy".
+#
+# Se o produtor ja' tem um Orion proprio: remova os servicos `mongo`/`orion`
+# abaixo e aponte `FIWARE_BROKER_URL` (nos servicos `migrate` e `app`) pro
+# broker existente dele.
+#
+# Nao verificado com `docker compose up` real nesta sessao (sem Docker
+# disponivel no ambiente usado para editar os arquivos) -- validado so'
+# como YAML/Compose spec sintaticamente corretos. Rodar localmente antes de
+# considerar isto pronto para um produtor de verdade.
+services:
+  mongo:
+    image: mongo:4.4
+    command: --nojournal
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  orion:
+    image: fiware/orion:3.10.1
+    platform: linux/amd64
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "1026:1026"
+    command: -dbhost mongo -logLevel DEBUG
+    environment:
+      - ORION_MULTI_SERVICE=TRUE
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1026/version"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      - POSTGRES_USER=auditor
+      - POSTGRES_PASSWORD=auditor
+      - POSTGRES_DB=auditor
+    volumes:
+      - auditor-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auditor -d auditor"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # CPU-only por padrao (imagem oficial, sem base CUDA) -- se a maquina do
+  # produtor tiver GPU, o Ollama detecta e usa sozinho, sem mudanca nenhuma
+  # aqui; nao e' algo que a nossa stack decide ou precisa saber.
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - auditor-ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Roda uma vez, baixa o modelo, termina — `app` so' sobe depois que isto
+  # conclui (ver depends_on abaixo), assim o Nivel 2 ja' esta' disponivel
+  # desde a primeira requisicao em vez de falhar ate' alguem lembrar de
+  # rodar `ollama pull` manualmente.
+  ollama-pull:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    entrypoint: ["ollama", "pull", "qwen2.5:7b-instruct"]
+    restart: "no"
+
+  # Roda uma vez: aplica migrations e popula knowledge_chunks a partir do
+  # knowledge/*.yaml curado (SyncKnowledgeBaseUseCase) -- sem isto, o
+  # produtor precisaria rodar `alembic upgrade head` e `audit knowledge
+  # sync` na mao antes do primeiro uso (era exatamente o passo que faltava
+  # automatizar, ver ADR-0019).
+  migrate:
+    build:
+      context: ..
+      dockerfile: selfhosted/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://auditor:auditor@postgres:5432/auditor
+    command: ["sh", "-c", "alembic upgrade head && audit knowledge sync"]
+    volumes:
+      - auditor-secrets:/var/lib/auditor-secrets
+    restart: "no"
+
+  app:
+    build:
+      context: ..
+      dockerfile: selfhosted/Dockerfile
+    depends_on:
+      orion:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      ollama-pull:
+        condition: service_completed_successfully
+    environment:
+      FIWARE_BROKER_URL: http://orion:1026
+      FIWARE_SERVICE: openiot
+      FIWARE_SERVICE_PATH: /
+      DATABASE_URL: postgresql+asyncpg://auditor:auditor@postgres:5432/auditor
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: qwen2.5:7b-instruct
+    volumes:
+      - auditor-secrets:/var/lib/auditor-secrets:ro
+    ports:
+      - "8000:8000"
+
+  # UI (Angular, Fase 8) -- build estatico servido por nginx. Sem tela de
+  # login/tenant nenhuma tela do sistema tem isso hoje -- o produtor abre
+  # http://localhost:5173 na mesma maquina/rede onde a API esta' exposta.
+  frontend:
+    build:
+      context: ..
+      dockerfile: selfhosted/frontend.Dockerfile
+    depends_on:
+      - app
+    ports:
+      - "5173:80"
+
+volumes:
+  auditor-postgres-data:
+  auditor-ollama-data:
+  auditor-secrets:

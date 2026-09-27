@@ -13,22 +13,31 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from http.cookiejar import CookieJar, DefaultCookiePolicy
+
 import httpx
+from cryptography.fernet import Fernet, MultiFernet
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from auditor.application.use_cases.interpret_audit_command import InterpretAuditCommandUseCase
 from auditor.application.use_cases.run_audit import RunAuditUseCase
 from auditor.application.use_cases.sync_catalog import SyncCatalogUseCase
+from auditor.application.use_cases.sync_knowledge_base import SyncKnowledgeBaseUseCase
+from auditor.domain.ports.context_broker_port import ContextBrokerPort
 from auditor.domain.services.structural_validator import StructuralValidator
 from auditor.infrastructure.config.settings import Settings
 from auditor.infrastructure.context_broker.ngsi_v2_mapper import NgsiV2Mapper
 from auditor.infrastructure.context_broker.orion_adapter import OrionAdapter
+from auditor.infrastructure.context_broker.tenant_routed_context_broker import (
+    TenantRoutedContextBroker,
+)
 from auditor.infrastructure.persistence.sqlalchemy_unit_of_work import SqlAlchemyUnitOfWork
 from auditor.domain.ports.job_queue_port import JobQueuePort
 from auditor.infrastructure.queue.local_job_queue import LocalJobQueue
 from auditor.infrastructure.queue.sqs_job_queue import SqsJobQueue
 from auditor.infrastructure.llm.ollama_analyzer import OllamaAnalyzer
 from auditor.infrastructure.llm.ollama_command_interpreter import OllamaCommandInterpreter
+from auditor.infrastructure.rag.corpus_loader import CorpusLoader
 from auditor.infrastructure.rag.embedder import Embedder, SentenceTransformersEmbedder
 from auditor.infrastructure.schema_catalog.catalog_sync_status_repository import (
     CatalogSyncStatusRepository,
@@ -41,6 +50,7 @@ from auditor.infrastructure.schema_catalog.postgres_schema_cache_repository impo
     PostgresSchemaCacheRepository,
 )
 from auditor.infrastructure.schema_catalog.smart_data_models_adapter import SmartDataModelsAdapter
+from auditor.infrastructure.persistence.tenant_account_repository import TenantAccountRepository
 
 
 @lru_cache
@@ -50,7 +60,7 @@ def get_settings() -> Settings:
 
 @lru_cache
 def get_engine() -> AsyncEngine:
-    return create_async_engine(get_settings().database_url)
+    return create_async_engine(get_settings().database_url, hide_parameters=True)
 
 
 @lru_cache
@@ -64,6 +74,14 @@ def get_http_client() -> httpx.AsyncClient:
 @lru_cache
 def get_catalog_sync_status_repository() -> CatalogSyncStatusRepository:
     return CatalogSyncStatusRepository(get_engine())
+
+
+@lru_cache
+def get_tenant_account_repository() -> TenantAccountRepository:
+    keys = get_settings().broker_api_key_encryption_keys_list
+    if not keys:
+        raise RuntimeError("BROKER_API_KEY_ENCRYPTION_KEYS nao configurada")
+    return TenantAccountRepository(get_engine(), MultiFernet([Fernet(key) for key in keys]))
 
 
 @lru_cache
@@ -86,8 +104,21 @@ def get_schema_catalog() -> SmartDataModelsAdapter:
     )
 
 
-def get_context_broker() -> OrionAdapter:
-    return OrionAdapter(get_settings().fiware_broker_url, client=get_http_client())
+@lru_cache
+def get_broker_http_client() -> httpx.AsyncClient:
+    return httpx.AsyncClient(
+        cookies=CookieJar(policy=DefaultCookiePolicy(allowed_domains=[])),
+        follow_redirects=False,
+    )
+
+
+def get_context_broker() -> ContextBrokerPort:
+    settings = get_settings()
+    if settings.deployment_mode == "saas":
+        return TenantRoutedContextBroker(
+            get_tenant_account_repository(), client=get_broker_http_client()
+        )
+    return OrionAdapter(settings.fiware_broker_url, client=get_http_client())
 
 
 def get_unit_of_work() -> SqlAlchemyUnitOfWork:
@@ -182,7 +213,6 @@ def get_run_audit_use_case() -> RunAuditUseCase:
         validator=StructuralValidator(),
         mapper=NgsiV2Mapper(),
         uow=get_unit_of_work(),
-        broker_url=get_settings().fiware_broker_url,
         job_queue=get_job_queue(),
         knowledge_retriever=get_knowledge_retriever(),
         semantic_analyzer=get_semantic_analyzer(),
@@ -200,4 +230,25 @@ def get_sync_catalog_use_case() -> SyncCatalogUseCase:
     return SyncCatalogUseCase(
         catalog_index=get_catalog_index(),
         status_repository=get_catalog_sync_status_repository(),
+    )
+
+
+@lru_cache
+def get_corpus_loader() -> CorpusLoader:
+    return CorpusLoader()
+
+
+def get_sync_knowledge_base_use_case() -> SyncKnowledgeBaseUseCase:
+    # Fase 6 (fase6.spec.md, secao 8) nao exigia CLI nesta fase -- mas sem
+    # NENHUM gatilho fora dos testes de integracao (testcontainers),
+    # knowledge_chunks nunca e' populada de verdade e
+    # PgVectorRetriever.retrieve() sempre volta vazio em producao. Mesmo
+    # gap ja corrigido para o catalogo (get_sync_catalog_use_case, acima);
+    # fechado agora que knowledge/*.yaml tem conteudo curado real (nao mais
+    # placeholder) nas quatro categorias -- ver `audit knowledge sync` em
+    # interfaces/cli/main.py.
+    return SyncKnowledgeBaseUseCase(
+        corpus_loader=get_corpus_loader(),
+        embedder=get_embedder(),
+        engine=get_engine(),
     )

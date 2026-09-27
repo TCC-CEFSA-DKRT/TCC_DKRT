@@ -20,6 +20,16 @@ from auditor.domain.ports.command_interpreter_port import AuditCommandInterpreta
 T = TypeVar("T")
 
 
+class LoginRequest(BaseModel):
+    login_email: str
+    password: str
+
+
+class AccessTokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
 class AuditCreateRequest(BaseModel):
     entity_type: str | None = None
     entity_id: str | None = None
@@ -273,6 +283,19 @@ class CatalogStatusResponse(BaseModel):
     last_sync_successful: bool | None
     last_sync_error: str | None
     models_count: int | None
+
+
+class EntityTypesResponse(BaseModel):
+    """`GET /entity-types` — tipos de entidade descobertos no broker do
+    tenant (ContextBrokerPort.list_entity_types), pra tela de configuracao
+    popular um seletor em vez do usuario digitar o tipo as cegas.
+    `broker_reachable=False` (com `types=[]`) sinaliza que o broker nao
+    respondeu — nunca um erro 5xx que bloquearia a tela; quem chama sempre
+    permite entrada manual do tipo, entao descoberta indisponivel nao pode
+    impedir de configurar a auditoria mesmo assim."""
+
+    types: list[str]
+    broker_reachable: bool
 
 
 class CatalogModelResponse(BaseModel):

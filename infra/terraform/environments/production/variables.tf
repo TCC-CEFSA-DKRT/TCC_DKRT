@@ -41,6 +41,12 @@ variable "lambda_image_tag" {
   default     = "latest"
 }
 
+variable "deployment_mode" {
+  description = "ADR-0019: \"saas\" ou \"selfhosted\" -- repassado a modules/lambda_compute, que já valida o valor (sem validation aqui para não duplicar)."
+  type        = string
+  default     = "selfhosted"
+}
+
 # --- ADR-0017: domínio real, necessário para ACM/Route53 (modules/edge_alb,
 # modules/frontend_delivery). Nenhum dos três tem default -- este projeto
 # (AWS Academy Learner Lab) nunca registrou um domínio próprio; fornecer

@@ -41,4 +41,8 @@ def bootstrap_settings_from_aws() -> None:
         parameter_names_by_env_var["JWT_SIGNING_KEY"] = os.environ[
             "JWT_SIGNING_KEY_PARAMETER_NAME"
         ]
+    if "BROKER_API_KEY_ENCRYPTION_KEYS_PARAMETER_NAME" in os.environ:
+        parameter_names_by_env_var["BROKER_API_KEY_ENCRYPTION_KEYS"] = os.environ[
+            "BROKER_API_KEY_ENCRYPTION_KEYS_PARAMETER_NAME"
+        ]
     load_env_vars_from_parameter_store(parameter_names_by_env_var)

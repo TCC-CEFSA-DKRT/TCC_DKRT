@@ -187,6 +187,25 @@ class TestCreateAudit:
         assert call["tenant"].fiware_service == "openiot"
         assert call["entity_type"].value == "Streetlight"
 
+    @pytest.mark.asyncio
+    async def test_start_raising_tenant_broker_not_configured_returns_401(self):
+        from auditor.domain.errors import TenantBrokerNotConfiguredError
+
+        class _FailingUseCase:
+            async def start(self, tenant, entity_type=None, entity_id=None):
+                raise TenantBrokerNotConfiguredError(tenant)
+
+        app = create_app()
+        app.dependency_overrides[get_run_audit_use_case] = lambda: _FailingUseCase()
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as failing_client:
+            response = await failing_client.post(
+                "/audits", json={"entity_type": "Streetlight"}, headers=_TENANT_HEADERS
+            )
+
+        assert response.status_code == 401
+        assert response.headers["www-authenticate"] == "Bearer"
+
 
 class TestGetAudit:
     @pytest.mark.asyncio
