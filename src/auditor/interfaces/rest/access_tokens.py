@@ -39,6 +39,6 @@ def tenant_from_access_token(token: str, settings: Settings) -> Tenant:
         options={"require": _REQUIRED_CLAIMS},
     )
     service, path = claims["fiware_service"], claims["fiware_service_path"]
-    if not isinstance(service, str) or not isinstance(path, str):
+    if not isinstance(service, str) or not isinstance(path, str) or not service:
         raise jwt.InvalidTokenError("claims de tenant com tipo invalido")
     return Tenant(fiware_service=service, fiware_service_path=path)

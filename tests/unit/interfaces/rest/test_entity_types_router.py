@@ -9,7 +9,12 @@ import pytest
 
 from auditor.domain.errors import ContextBrokerUnavailableError
 from auditor.domain.value_objects.tenant import Tenant
-from auditor.infrastructure.config.container import get_context_broker
+from auditor.infrastructure.config.container import (
+    get_context_broker,
+    get_selfhosted_accounts,
+    get_settings,
+)
+from auditor.infrastructure.config.settings import Settings
 from auditor.interfaces.rest.app import create_app
 
 _TENANT_HEADERS = {"Fiware-Service": "openiot", "Fiware-ServicePath": "/"}
@@ -35,6 +40,8 @@ def fake_context_broker() -> _FakeContextBroker:
 def app_and_broker(fake_context_broker):
     app = create_app()
     app.dependency_overrides[get_context_broker] = lambda: fake_context_broker
+    app.dependency_overrides[get_selfhosted_accounts] = lambda: None
+    app.dependency_overrides[get_settings] = lambda: Settings(_env_file=None)
     return app, fake_context_broker
 
 
@@ -71,7 +78,7 @@ class TestListEntityTypes:
         assert response.json() == {"types": [], "broker_reachable": False}
 
     @pytest.mark.asyncio
-    async def test_missing_tenant_header_returns_401(self, client):
+    async def test_missing_tenant_header_returns_200_with_the_settings_tenant(self, client):
         response = await client.get("/entity-types")
 
-        assert response.status_code == 401
+        assert response.status_code == 200

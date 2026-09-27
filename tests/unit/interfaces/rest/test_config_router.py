@@ -124,6 +124,19 @@ class TestGetConfig:
         assert body["broker_url"] == _SELFHOSTED_NO_KEY.fiware_broker_url
         assert body["fiware_service"] == _SELFHOSTED_NO_KEY.fiware_service
 
+    @pytest.mark.asyncio
+    async def test_get_config_returns_empty_service(self, monkeypatch):
+        account = _account(Tenant(fiware_service="", fiware_service_path="/"))
+        async with _client(
+            monkeypatch, _SELFHOSTED_WITH_KEY, accounts=_FakeAccounts(account)
+        ) as client:
+            response = await client.get("/config")
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["configured"] is True
+        assert body["fiware_service"] == ""
+
 
 class TestPutConfig:
     @pytest.mark.asyncio
@@ -225,3 +238,28 @@ class TestPutConfig:
             )
 
         assert response.status_code == 503
+
+    @pytest.mark.asyncio
+    async def test_put_empty_fiware_service_is_accepted(self, monkeypatch):
+        accounts = _FakeAccounts(None)
+        async with _client(monkeypatch, _SELFHOSTED_WITH_KEY, accounts=accounts) as client:
+            response = await client.put(
+                "/config",
+                json={"broker_url": "http://orion:1026", "fiware_service": ""},
+            )
+
+        assert response.status_code == 200
+        tenant, _, _ = accounts.create_calls[0]
+        assert tenant == Tenant(fiware_service="", fiware_service_path="/")
+        assert response.json()["fiware_service"] == ""
+
+    @pytest.mark.asyncio
+    async def test_fiware_service_over_50_chars_is_422(self, monkeypatch):
+        accounts = _FakeAccounts(None)
+        async with _client(monkeypatch, _SELFHOSTED_WITH_KEY, accounts=accounts) as client:
+            response = await client.put(
+                "/config",
+                json={"broker_url": "http://orion:1026", "fiware_service": "a" * 51},
+            )
+
+        assert response.status_code == 422

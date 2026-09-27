@@ -70,6 +70,27 @@ class TestEnqueue:
             }
 
     @pytest.mark.asyncio
+    async def test_round_trips_a_job_with_an_empty_fiware_service(self):
+        with mock_aws():
+            client = boto3.client("sqs", region_name="us-east-1")
+            queue_url = client.create_queue(QueueName="audit-jobs")["QueueUrl"]
+            queue = SqsJobQueue(client, queue_url, wait_time_seconds=0)
+            job = AuditJob(
+                run_id=uuid4(),
+                tenant=Tenant(fiware_service="", fiware_service_path="/"),
+                entity_type=EntityType("Streetlight"),
+                entity_id=None,
+                enqueued_at=_NOW,
+            )
+
+            await queue.enqueue(job)
+            handle = await queue.consume().__anext__()
+
+            assert handle.job == job
+            assert handle.job.tenant.fiware_service == ""
+            await handle.ack()
+
+    @pytest.mark.asyncio
     async def test_enqueue_round_trips_through_the_same_deserialization_used_by_consume(self):
         with mock_aws():
             client = boto3.client("sqs", region_name="us-east-1")

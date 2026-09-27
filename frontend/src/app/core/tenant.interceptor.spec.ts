@@ -49,7 +49,7 @@ describe('tenantInterceptor', () => {
     req.flush({});
   });
 
-  it('attaches Fiware-Service/Fiware-ServicePath from the session in self-hosted mode', () => {
+  it('never attaches tenant headers in self-hosted mode', () => {
     session.session.set({
       deployment_mode: 'selfhosted',
       tenant: { fiware_service: 'openiot', fiware_service_path: '/prod' },
@@ -57,8 +57,8 @@ describe('tenantInterceptor', () => {
 
     http.get(`${BASE_URL}/audits`).subscribe();
     const req = httpMock.expectOne(`${BASE_URL}/audits`);
-    expect(req.request.headers.get('Fiware-Service')).toBe('openiot');
-    expect(req.request.headers.get('Fiware-ServicePath')).toBe('/prod');
+    expect(req.request.headers.has('Fiware-Service')).toBe(false);
+    expect(req.request.headers.has('Fiware-ServicePath')).toBe(false);
     req.flush([]);
   });
 

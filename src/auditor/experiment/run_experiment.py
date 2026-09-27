@@ -191,6 +191,26 @@ async def load_entities_into_orion(
         response.raise_for_status()
 
 
+async def verify_api_tenant(
+    *, api_base_url: str, tenant: Tenant, client: httpx.AsyncClient
+) -> None:
+    response = await client.get(f"{api_base_url.rstrip('/')}/session", timeout=30.0)
+    response.raise_for_status()
+    session_tenant = response.json().get("tenant")
+    if session_tenant != {
+        "fiware_service": tenant.fiware_service,
+        "fiware_service_path": tenant.fiware_service_path,
+    }:
+        raise RuntimeError(
+            f"A API em {api_base_url} nao esta configurada para o tenant do "
+            f"experimento ({tenant.fiware_service!r}/{tenant.fiware_service_path!r}) "
+            f"-- GET /session devolveu tenant={session_tenant!r}. Configure "
+            "FIWARE_SERVICE/FIWARE_SERVICE_PATH da API (ou /config, no "
+            "self-hosted) antes de rodar o experimento, para nao misturar "
+            "dados de teste com um tenant real."
+        )
+
+
 async def trigger_audit(
     *, api_base_url: str, tenant: Tenant, entity_type: str, client: httpx.AsyncClient
 ) -> UUID:
@@ -525,6 +545,7 @@ async def run_experiment(
     cases = load_dataset(dataset_dir)
 
     async with httpx.AsyncClient() as client:
+        await verify_api_tenant(api_base_url=api_base_url, tenant=tenant, client=client)
         await load_entities_into_orion(cases, broker_url=broker_url, tenant=tenant, client=client)
         results = await collect_results(
             cases,

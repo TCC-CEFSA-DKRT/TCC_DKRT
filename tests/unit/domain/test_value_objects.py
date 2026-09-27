@@ -5,7 +5,6 @@ import pytest
 from auditor.domain.errors import (
     InvalidDataModelRefError,
     InvalidEntityTypeError,
-    InvalidTenantError,
 )
 from auditor.domain.value_objects.data_model_ref import DataModelRef
 from auditor.domain.value_objects.entity_type import EntityType
@@ -13,9 +12,10 @@ from auditor.domain.value_objects.tenant import Tenant
 
 
 class TestTenant:
-    def test_empty_fiware_service_raises(self):
-        with pytest.raises(InvalidTenantError):
-            Tenant(fiware_service="")
+    def test_empty_fiware_service_is_the_orion_default_service(self):
+        tenant = Tenant(fiware_service="")
+        assert tenant.fiware_service == ""
+        assert tenant.fiware_service_path == "/"
 
     def test_default_service_path_is_root(self):
         tenant = Tenant(fiware_service="openiot")

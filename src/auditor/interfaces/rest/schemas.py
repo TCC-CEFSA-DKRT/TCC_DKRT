@@ -42,7 +42,7 @@ class SessionResponse(BaseModel):
 
 class BrokerConfigRequest(BaseModel):
     broker_url: str = Field(pattern=r"^https?://\S+$")
-    fiware_service: str = Field(pattern=r"^[A-Za-z0-9_]{1,50}$")
+    fiware_service: str = Field(pattern=r"^[A-Za-z0-9_]{0,50}$")
     fiware_service_path: str = Field(default="/", pattern=r"^/([A-Za-z0-9_]+(/[A-Za-z0-9_]+)*)?$")
 
 

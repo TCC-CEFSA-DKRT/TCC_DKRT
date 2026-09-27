@@ -152,6 +152,32 @@ describe('ConfigComponent', () => {
     httpMock.expectOne(`${BASE_URL}/entity-types`).flush({ types: [], broker_reachable: true });
   });
 
+  it('sends an empty fiware_service when the field is left blank', () => {
+    const { component } = createAndPrefill();
+    component.brokerUrl = 'http://orion:1026';
+    component.fiwareService = '';
+    component.fiwareServicePath = '/';
+    component.onSave();
+
+    const putReq = httpMock.expectOne(`${BASE_URL}/config`);
+    expect(putReq.request.body).toEqual({
+      broker_url: 'http://orion:1026',
+      fiware_service: '',
+      fiware_service_path: '/',
+    });
+    putReq.flush({
+      configured: true,
+      broker_url: 'http://orion:1026',
+      fiware_service: '',
+      fiware_service_path: '/',
+    });
+
+    const session = TestBed.inject(SessionService);
+    expect(session.session()?.tenant?.fiware_service).toBe('');
+
+    httpMock.expectOne(`${BASE_URL}/entity-types`).flush({ types: [], broker_reachable: true });
+  });
+
   it('onContinue() navigates to /dashboard', () => {
     const { component } = createAndPrefill();
     component.onContinue();

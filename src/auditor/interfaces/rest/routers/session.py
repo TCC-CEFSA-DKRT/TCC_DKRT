@@ -3,7 +3,6 @@ from __future__ import annotations
 import jwt
 from fastapi import APIRouter, Depends
 
-from auditor.domain.errors import InvalidTenantError
 from auditor.domain.value_objects.tenant import Tenant
 from auditor.infrastructure.config.container import get_selfhosted_accounts, get_settings
 from auditor.infrastructure.config.settings import Settings
@@ -32,7 +31,7 @@ async def get_session(
         if token is not None:
             try:
                 tenant = tenant_from_access_token(token, settings)
-            except (jwt.InvalidTokenError, InvalidTenantError):
+            except jwt.InvalidTokenError:
                 tenant = None
         return SessionResponse(
             deployment_mode="saas",

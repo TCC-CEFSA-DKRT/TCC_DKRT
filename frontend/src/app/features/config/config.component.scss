@@ -27,6 +27,12 @@
   font-weight: 400;
 }
 
+.config-field__hint {
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+}
+
 .config-error {
   color: var(--color-non-conformant);
   font-size: 0.8125rem;

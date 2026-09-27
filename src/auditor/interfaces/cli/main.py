@@ -48,7 +48,7 @@ app = typer.Typer(help="CLI do FIWARE Conformance Auditor.")
 def _resolve_tenant(tenant: str | None, service_path: str | None) -> Tenant:
     settings = get_settings()
     return Tenant(
-        fiware_service=tenant or settings.fiware_service,
+        fiware_service=tenant if tenant is not None else settings.fiware_service,
         fiware_service_path=service_path or settings.fiware_service_path,
     )
 
@@ -231,6 +231,9 @@ def tenant_register(
     """Cadastra uma conta em tenant_accounts (ADR-0019)."""
     if password is not None and (email is None or not password):
         typer.echo("--password exige --email e nao pode ser vazia.", err=True)
+        raise typer.Exit(code=1)
+    if email is not None and not tenant:
+        typer.echo("--email (conta SaaS) exige --tenant nao vazio.", err=True)
         raise typer.Exit(code=1)
     generated_password = secrets.token_urlsafe(16) if email is not None and password is None else None
 

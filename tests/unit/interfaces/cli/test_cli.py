@@ -74,6 +74,26 @@ class TestRunCommand:
         assert str(run.id) in result.stdout
         assert "completed" in result.stdout
 
+    def test_run_with_explicit_empty_tenant_overrides_settings(self, monkeypatch):
+        run = _completed_run()
+        received: dict = {}
+
+        class _RecordingUseCase:
+            async def execute(self, tenant, entity_type=None, entity_id=None):
+                received["tenant"] = tenant
+                return run.id
+
+        monkeypatch.setattr(
+            cli_main, "get_settings", lambda: Settings(_env_file=None, fiware_service="openiot")
+        )
+        monkeypatch.setattr(cli_main, "get_run_audit_use_case", lambda: _RecordingUseCase())
+        monkeypatch.setattr(cli_main, "get_unit_of_work", lambda: _FakeUnitOfWork(run))
+
+        result = runner.invoke(cli_main.app, ["run", "--tenant", ""])
+
+        assert result.exit_code == 0
+        assert received["tenant"] == Tenant(fiware_service="", fiware_service_path="/")
+
 
 class TestStatusCommand:
     def test_unknown_run_id_returns_nonzero_exit_and_clear_message(self, monkeypatch):
@@ -318,6 +338,46 @@ class TestTenantRegisterCommand:
         assert fake.create_calls[0]["login_email"] is None
         assert fake.create_calls[0]["password"] is None
         assert "Senha inicial" not in invocation.output
+
+    def test_c8_empty_tenant_without_email_creates_self_hosted_row(self, monkeypatch):
+        fake = _FakeTenantAccountRepository()
+        monkeypatch.setattr(cli_main, "get_tenant_account_repository", lambda: fake)
+
+        invocation = runner.invoke(
+            cli_main.app,
+            [
+                "tenant",
+                "register",
+                "--tenant",
+                "",
+                "--broker-url",
+                "https://orion.example.com",
+            ],
+        )
+
+        assert invocation.exit_code == 0
+        assert fake.create_calls[0]["tenant"] == Tenant(fiware_service="", fiware_service_path="/")
+
+    def test_c9_empty_tenant_with_email_is_rejected_without_calling_create(self, monkeypatch):
+        fake = _FakeTenantAccountRepository()
+        monkeypatch.setattr(cli_main, "get_tenant_account_repository", lambda: fake)
+
+        invocation = runner.invoke(
+            cli_main.app,
+            [
+                "tenant",
+                "register",
+                "--tenant",
+                "",
+                "--broker-url",
+                "https://orion.example.com",
+                "--email",
+                "user@example.com",
+            ],
+        )
+
+        assert invocation.exit_code != 0
+        assert fake.create_calls == []
 
     def test_c4_password_without_email_is_rejected_without_calling_create(self, monkeypatch):
         fake = _FakeTenantAccountRepository()

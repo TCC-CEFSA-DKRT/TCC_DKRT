@@ -26,8 +26,11 @@ from auditor.domain.value_objects.tenant import Tenant
 from auditor.infrastructure.config.container import (
     get_interpret_audit_command_use_case,
     get_run_audit_use_case,
+    get_selfhosted_accounts,
+    get_settings,
     get_unit_of_work,
 )
+from auditor.infrastructure.config.settings import Settings
 from auditor.interfaces.rest.app import create_app
 
 _TENANT_HEADERS = {"Fiware-Service": "openiot", "Fiware-ServicePath": "/"}
@@ -130,6 +133,8 @@ def app_and_repo(fake_use_case, fake_interpret_use_case):
     app.dependency_overrides[get_run_audit_use_case] = lambda: fake_use_case
     app.dependency_overrides[get_unit_of_work] = lambda: _FakeUnitOfWork(repo)
     app.dependency_overrides[get_interpret_audit_command_use_case] = lambda: fake_interpret_use_case
+    app.dependency_overrides[get_selfhosted_accounts] = lambda: None
+    app.dependency_overrides[get_settings] = lambda: Settings(_env_file=None)
     return app, repo
 
 
@@ -162,12 +167,18 @@ class TestCreateAudit:
         assert response.status_code == 202
 
     @pytest.mark.asyncio
-    async def test_missing_tenant_header_returns_401(self, client):
+    async def test_missing_tenant_header_returns_202_with_the_settings_tenant(
+        self, client, fake_use_case
+    ):
         response = await client.post(
             "/audits", json={"entity_type": "Streetlight"}
         )
 
-        assert response.status_code == 401
+        assert response.status_code == 202
+        assert fake_use_case.started[0]["tenant"] == Tenant(
+            fiware_service=Settings(_env_file=None).fiware_service,
+            fiware_service_path=Settings(_env_file=None).fiware_service_path,
+        )
 
     @pytest.mark.asyncio
     async def test_creation_only_starts_the_run_never_processes_it_inline(self, client, fake_use_case):

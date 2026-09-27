@@ -124,7 +124,7 @@ services:
         condition: service_completed_successfully
     environment:
       FIWARE_BROKER_URL: http://orion:1026
-      FIWARE_SERVICE: openiot
+      FIWARE_SERVICE: ""
       FIWARE_SERVICE_PATH: /
       DATABASE_URL: postgresql+asyncpg://auditor:auditor@postgres:5432/auditor
       OLLAMA_BASE_URL: http://ollama:11434

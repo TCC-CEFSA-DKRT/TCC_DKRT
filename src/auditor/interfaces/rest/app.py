@@ -103,9 +103,11 @@ def create_app(*, start_background_workers: bool = True) -> FastAPI:
     # Fase 8 (.cursor/specs/fase8.spec.md, secao 9): o frontend Angular
     # (ng serve, localhost:4200 por padrao) chama esta API a partir de uma
     # origem diferente -- sem CORS liberado, o navegador bloqueia a
-    # resposta antes mesmo dela chegar ao codigo do frontend. Headers
-    # Fiware-Service/Fiware-ServicePath (dependencies.get_tenant) precisam
-    # estar em allow_headers, senao o preflight OPTIONS os rejeita.
+    # resposta antes mesmo dela chegar ao codigo do frontend.
+    # dependencies.get_tenant nao le mais headers Fiware-Service/
+    # Fiware-ServicePath (tenant vem da conta salva ou de Settings), mas
+    # allow_headers=["*"] continua o mais simples para os demais headers
+    # que o frontend manda (Authorization, Content-Type).
     app.add_middleware(
         CORSMiddleware,
         allow_origins=get_settings().cors_allowed_origins_list,

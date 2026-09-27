@@ -15,6 +15,7 @@ import pytest
 from auditor.domain.value_objects.tenant import Tenant
 from auditor.infrastructure.config.container import (
     get_context_broker,
+    get_selfhosted_accounts,
     get_settings,
     get_tenant_account_repository,
 )
@@ -56,6 +57,14 @@ class _FakeTenantAccountRepository:
         return self._accounts.get(login_email.strip().lower())
 
 
+class _FakeSelfHostedAccounts:
+    def __init__(self, account: TenantAccount | None):
+        self._account = account
+
+    async def get_single(self) -> TenantAccount | None:
+        return self._account
+
+
 def _account(tenant: Tenant, password: str) -> TenantAccount:
     return TenantAccount(
         tenant=tenant,
@@ -77,7 +86,9 @@ def _token(settings: Settings = _SAAS, tenant: Tenant = _TENANT_A) -> str:
     return jwt.encode(claims, settings.jwt_signing_key.get_secret_value(), algorithm=JWT_ALGORITHM)
 
 
-def _client(monkeypatch, settings: Settings, broker=None, repository=None) -> httpx.AsyncClient:
+def _client(
+    monkeypatch, settings: Settings, broker=None, repository=None, accounts=None
+) -> httpx.AsyncClient:
     monkeypatch.setattr(app_module, "get_settings", lambda: settings)
     app = app_module.create_app()
     app.dependency_overrides[get_settings] = lambda: settings
@@ -85,6 +96,7 @@ def _client(monkeypatch, settings: Settings, broker=None, repository=None) -> ht
         app.dependency_overrides[get_context_broker] = lambda: broker
     if repository is not None:
         app.dependency_overrides[get_tenant_account_repository] = lambda: repository
+    app.dependency_overrides[get_selfhosted_accounts] = lambda: accounts
     transport = httpx.ASGITransport(app=app)
     return httpx.AsyncClient(transport=transport, base_url="http://test")
 
@@ -328,16 +340,45 @@ class TestGetTenantSaasBorderCases:
 
 class TestGetTenantSelfHostedRegression:
     @pytest.mark.asyncio
-    async def test_b12_bearer_header_is_ignored_tenant_comes_from_headers(self, monkeypatch):
+    async def test_b12_saved_account_wins_over_any_tenant_header(self, monkeypatch):
         broker = _RecordingBroker()
-        async with _client(monkeypatch, _SELFHOSTED, broker=broker) as client:
+        account = _account(Tenant(fiware_service="", fiware_service_path="/"), "senha")
+        accounts = _FakeSelfHostedAccounts(account)
+        async with _client(monkeypatch, _SELFHOSTED, broker=broker, accounts=accounts) as client:
             response = await client.get(
                 "/entity-types",
                 headers={"Authorization": "Bearer lixo-nao-jwt", **_TENANT_HEADERS_B},
             )
 
         assert response.status_code == 200
-        assert broker.received_tenants == [_TENANT_B]
+        assert broker.received_tenants == [Tenant(fiware_service="", fiware_service_path="/")]
+
+    @pytest.mark.asyncio
+    async def test_no_saved_account_falls_back_to_the_settings_tenant(self, monkeypatch):
+        broker = _RecordingBroker()
+        accounts = _FakeSelfHostedAccounts(None)
+        async with _client(monkeypatch, _SELFHOSTED, broker=broker, accounts=accounts) as client:
+            response = await client.get("/entity-types", headers=_TENANT_HEADERS_B)
+
+        assert response.status_code == 200
+        assert broker.received_tenants == [
+            Tenant(
+                fiware_service=_SELFHOSTED.fiware_service,
+                fiware_service_path=_SELFHOSTED.fiware_service_path,
+            )
+        ]
+
+    @pytest.mark.asyncio
+    async def test_no_fernet_key_and_empty_settings_service_yields_the_empty_tenant(
+        self, monkeypatch
+    ):
+        settings = Settings(_env_file=None, fiware_service="")
+        broker = _RecordingBroker()
+        async with _client(monkeypatch, settings, broker=broker) as client:
+            response = await client.get("/entity-types")
+
+        assert response.status_code == 200
+        assert broker.received_tenants == [Tenant(fiware_service="", fiware_service_path="/")]
 
     @pytest.mark.asyncio
     async def test_b13_login_route_does_not_exist_in_selfhosted(self, monkeypatch):
@@ -349,11 +390,11 @@ class TestGetTenantSelfHostedRegression:
         assert response.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_missing_tenant_header_still_returns_401(self, monkeypatch):
+    async def test_missing_tenant_header_still_returns_200_not_401(self, monkeypatch):
         async with _client(monkeypatch, _SELFHOSTED, broker=_RecordingBroker()) as client:
             response = await client.get("/entity-types")
 
-        assert response.status_code == 401
+        assert response.status_code == 200
 
 
 class TestGetEntityTypesRoutesToEachTenantsBroker:

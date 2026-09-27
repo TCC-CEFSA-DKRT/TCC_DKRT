@@ -41,6 +41,7 @@ from auditor.experiment.run_experiment import (
     report_to_json,
     report_to_markdown,
     trigger_audit,
+    verify_api_tenant,
     wait_for_completion,
 )
 
@@ -506,6 +507,46 @@ class TestWaitForCompletion:
                 poll_interval_seconds=1.0, timeout_seconds=3.0,
                 sleep=fake_sleep, clock=fake_clock,
             )
+
+
+class TestVerifyApiTenant:
+    @pytest.mark.asyncio
+    async def test_matching_tenant_does_not_raise(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200,
+                json={
+                    "deployment_mode": "selfhosted",
+                    "tenant": {"fiware_service": "experiment", "fiware_service_path": "/"},
+                },
+            )
+
+        client = _client_with_handler(handler)
+        await verify_api_tenant(api_base_url="http://api:8000", tenant=_TENANT, client=client)
+
+    @pytest.mark.asyncio
+    async def test_mismatched_tenant_raises(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200,
+                json={
+                    "deployment_mode": "selfhosted",
+                    "tenant": {"fiware_service": "producao", "fiware_service_path": "/"},
+                },
+            )
+
+        client = _client_with_handler(handler)
+        with pytest.raises(RuntimeError):
+            await verify_api_tenant(api_base_url="http://api:8000", tenant=_TENANT, client=client)
+
+    @pytest.mark.asyncio
+    async def test_null_tenant_raises(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json={"deployment_mode": "saas", "tenant": None})
+
+        client = _client_with_handler(handler)
+        with pytest.raises(RuntimeError):
+            await verify_api_tenant(api_base_url="http://api:8000", tenant=_TENANT, client=client)
 
 
 class TestFetchAuditRun:

@@ -30,8 +30,8 @@
             class="config-field__input"
             name="fiwareService"
             [(ngModel)]="fiwareService"
-            required
           />
+          <small class="config-field__hint">Deixe em branco se o broker não usa isolamento por serviço (Fiware-Service) do Orion.</small>
         </label>
         <label class="config-field" for="config-fiware-service-path">
           <span>Fiware-ServicePath</span>

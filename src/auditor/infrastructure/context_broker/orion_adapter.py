@@ -32,10 +32,9 @@ class OrionAdapter(ContextBrokerPort):
         self._api_key = api_key
 
     def _headers(self, tenant: Tenant) -> dict[str, str]:
-        headers = {
-            "Fiware-Service": tenant.fiware_service,
-            "Fiware-ServicePath": tenant.fiware_service_path,
-        }
+        headers = {"Fiware-ServicePath": tenant.fiware_service_path}
+        if tenant.fiware_service:
+            headers["Fiware-Service"] = tenant.fiware_service
         if self._api_key is not None:
             headers["Authorization"] = f"Bearer {self._api_key}"
         return headers

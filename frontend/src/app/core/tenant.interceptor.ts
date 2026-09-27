@@ -16,15 +16,7 @@ export const tenantInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   const current = session.session();
 
-  let cloned = req.clone({ withCredentials: true });
-  if (current?.deployment_mode === 'selfhosted' && current.tenant) {
-    cloned = cloned.clone({
-      setHeaders: {
-        'Fiware-Service': current.tenant.fiware_service,
-        'Fiware-ServicePath': current.tenant.fiware_service_path,
-      },
-    });
-  }
+  const cloned = req.clone({ withCredentials: true });
 
   return next(cloned).pipe(
     catchError((error: unknown) => {

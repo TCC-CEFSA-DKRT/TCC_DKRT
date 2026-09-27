@@ -137,3 +137,14 @@ class TestSessionSelfHostedWithKey:
             "fiware_service": "tenant_a",
             "fiware_service_path": "/",
         }
+
+    @pytest.mark.asyncio
+    async def test_saved_row_with_empty_service_returns_it_as_is(self, monkeypatch):
+        account = _account(Tenant(fiware_service="", fiware_service_path="/"))
+        async with _client(
+            monkeypatch, _SELFHOSTED_WITH_KEY, accounts=_FakeAccounts(account)
+        ) as client:
+            response = await client.get("/session")
+
+        assert response.status_code == 200
+        assert response.json()["tenant"]["fiware_service"] == ""

@@ -100,6 +100,36 @@ class TestFetchEntities:
         assert captured["headers"]["fiware-servicepath"] == "/zone/north"
 
     @pytest.mark.asyncio
+    async def test_empty_service_omits_fiware_service_header(self):
+        captured = {}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            captured["headers"] = request.headers
+            return httpx.Response(200, json=[])
+
+        adapter = OrionAdapter("http://orion:1026", client=_client_with_handler(handler))
+        tenant = Tenant(fiware_service="", fiware_service_path="/")
+
+        await adapter.fetch_entities(tenant, None)
+
+        assert "fiware-service" not in captured["headers"]
+        assert captured["headers"]["fiware-servicepath"] == "/"
+
+    @pytest.mark.asyncio
+    async def test_non_empty_service_sends_header(self):
+        captured = {}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            captured["headers"] = request.headers
+            return httpx.Response(200, json=[])
+
+        adapter = OrionAdapter("http://orion:1026", client=_client_with_handler(handler))
+
+        await adapter.fetch_entities(_TENANT, None)
+
+        assert captured["headers"]["fiware-service"] == "openiot"
+
+    @pytest.mark.asyncio
     async def test_http_error_status_raises_context_broker_unavailable(self):
         adapter = OrionAdapter(
             "http://orion:1026",
@@ -295,6 +325,22 @@ class TestListEntityTypes:
         assert result == ["Streetlight", "AirQualityObserved"]
         assert captured["url"].path == "/v2/types"
         assert captured["headers"]["fiware-service"] == "openiot"
+
+    @pytest.mark.asyncio
+    async def test_empty_service_omits_fiware_service_header(self):
+        captured = {}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            captured["headers"] = request.headers
+            return httpx.Response(200, json=[])
+
+        adapter = OrionAdapter("http://orion:1026", client=_client_with_handler(handler))
+        tenant = Tenant(fiware_service="", fiware_service_path="/")
+
+        await adapter.list_entity_types(tenant)
+
+        assert "fiware-service" not in captured["headers"]
+        assert captured["headers"]["fiware-servicepath"] == "/"
 
     @pytest.mark.asyncio
     async def test_no_types_returns_empty_list_not_error(self):

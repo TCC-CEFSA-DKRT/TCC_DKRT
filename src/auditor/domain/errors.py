@@ -9,10 +9,6 @@ class DomainError(Exception):
     """Classe base para toda violação de invariante de domínio."""
 
 
-class InvalidTenantError(DomainError):
-    """Um `Tenant` foi construído com dados inválidos."""
-
-
 class InvalidEntityTypeError(DomainError):
     """Um `EntityType` foi construído com dados inválidos."""
 
