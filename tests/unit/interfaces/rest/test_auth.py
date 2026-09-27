@@ -24,7 +24,7 @@ from auditor.infrastructure.persistence.tenant_account_repository import (
     hash_password,
 )
 from auditor.interfaces.rest import app as app_module
-from auditor.interfaces.rest.access_tokens import JWT_ALGORITHM
+from auditor.interfaces.rest.access_tokens import JWT_ALGORITHM, SESSION_COOKIE_NAME
 from auditor.interfaces.rest.routers import auth as auth_module
 
 _SAAS = Settings(_env_file=None, deployment_mode="saas", jwt_signing_key="k" * 32)
@@ -544,3 +544,122 @@ class TestLogin:
             )
 
         assert response.status_code == 422
+
+
+class TestLoginSetsSessionCookie:
+    @pytest.mark.asyncio
+    async def test_l7_login_sets_a_session_cookie_with_the_expected_attributes(
+        self, monkeypatch
+    ):
+        repository = _FakeTenantAccountRepository(
+            {"user@example.com": _account(_TENANT_A, "senha-correta")}
+        )
+        async with _client(monkeypatch, _SAAS, repository=repository) as client:
+            response = await client.post(
+                "/auth/login",
+                json={"login_email": "user@example.com", "password": "senha-correta"},
+            )
+
+        assert response.status_code == 200
+        set_cookie = response.headers["set-cookie"]
+        assert set_cookie.startswith(f"{SESSION_COOKIE_NAME}=")
+        assert "HttpOnly" in set_cookie
+        assert "Secure" in set_cookie
+        assert "SameSite=strict" in set_cookie
+        assert "Path=/" in set_cookie
+        assert "Max-Age=3600" in set_cookie
+        assert "Domain=" not in set_cookie
+        assert "access_token" in response.json()
+
+    @pytest.mark.asyncio
+    async def test_l8_wrong_credentials_do_not_set_a_session_cookie(self, monkeypatch):
+        repository = _FakeTenantAccountRepository(
+            {"user@example.com": _account(_TENANT_A, "senha-correta")}
+        )
+        async with _client(monkeypatch, _SAAS, repository=repository) as client:
+            response = await client.post(
+                "/auth/login",
+                json={"login_email": "user@example.com", "password": "senha-errada"},
+            )
+
+        assert response.status_code == 401
+        assert "set-cookie" not in response.headers
+
+
+class TestSessionCookieAuthenticatesGetTenant:
+    @pytest.mark.asyncio
+    async def test_c1_valid_cookie_authenticates_the_request(self, monkeypatch):
+        broker = _RecordingBroker()
+        token = _token(tenant=_TENANT_A)
+        async with _client(monkeypatch, _SAAS, broker=broker) as client:
+            response = await client.get(
+                "/entity-types", headers={"Cookie": f"{SESSION_COOKIE_NAME}={token}"}
+            )
+
+        assert response.status_code == 200
+        assert broker.received_tenants == [_TENANT_A]
+
+    @pytest.mark.asyncio
+    async def test_c2_invalid_cookie_is_401(self, monkeypatch):
+        broker = _RecordingBroker()
+        async with _client(monkeypatch, _SAAS, broker=broker) as client:
+            response = await client.get(
+                "/entity-types", headers={"Cookie": f"{SESSION_COOKIE_NAME}=lixo-nao-jwt"}
+            )
+
+        assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_c3_no_cookie_and_no_bearer_is_401(self, monkeypatch):
+        broker = _RecordingBroker()
+        async with _client(monkeypatch, _SAAS, broker=broker) as client:
+            response = await client.get("/entity-types")
+
+        assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_c4_bearer_takes_precedence_over_cookie(self, monkeypatch):
+        broker = _RecordingBroker()
+        bearer_token = _token(tenant=_TENANT_A)
+        cookie_token = _token(tenant=_TENANT_B)
+        async with _client(monkeypatch, _SAAS, broker=broker) as client:
+            response = await client.get(
+                "/entity-types",
+                headers={
+                    "Authorization": f"Bearer {bearer_token}",
+                    "Cookie": f"{SESSION_COOKIE_NAME}={cookie_token}",
+                },
+            )
+
+        assert response.status_code == 200
+        assert broker.received_tenants == [_TENANT_A]
+
+
+class TestLogout:
+    @pytest.mark.asyncio
+    async def test_o1_logout_is_204_and_expires_the_cookie(self, monkeypatch):
+        async with _client(monkeypatch, _SAAS) as client:
+            response = await client.post("/auth/logout")
+
+        assert response.status_code == 204
+        set_cookie = response.headers["set-cookie"]
+        assert set_cookie.startswith(f"{SESSION_COOKIE_NAME}=")
+        assert "HttpOnly" in set_cookie
+        assert "Secure" in set_cookie
+        assert "SameSite=strict" in set_cookie
+        assert "Path=/" in set_cookie
+        assert 'Max-Age=0' in set_cookie or "expires" in set_cookie.lower()
+
+    @pytest.mark.asyncio
+    async def test_o2_logout_requires_no_authentication(self, monkeypatch):
+        async with _client(monkeypatch, _SAAS) as client:
+            response = await client.post("/auth/logout")
+
+        assert response.status_code == 204
+
+    @pytest.mark.asyncio
+    async def test_o3_logout_does_not_exist_in_selfhosted(self, monkeypatch):
+        async with _client(monkeypatch, _SELFHOSTED) as client:
+            response = await client.post("/auth/logout")
+
+        assert response.status_code == 404

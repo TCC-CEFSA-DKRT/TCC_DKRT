@@ -20,7 +20,15 @@ from auditor.infrastructure.config.container import (
     get_settings,
     get_sync_catalog_use_case,
 )
-from auditor.interfaces.rest.routers import audits, auth, catalog, entity_types, health
+from auditor.interfaces.rest.routers import (
+    audits,
+    auth,
+    catalog,
+    config,
+    entity_types,
+    health,
+    session,
+)
 from auditor.interfaces.worker.audit_worker import AuditWorker
 from auditor.interfaces.worker.catalog_sync_scheduler import CatalogSyncScheduler
 
@@ -110,8 +118,11 @@ def create_app(*, start_background_workers: bool = True) -> FastAPI:
     app.include_router(catalog.router)
     app.include_router(entity_types.router)
     app.include_router(health.router)
+    app.include_router(session.router)
     if get_settings().deployment_mode == "saas":
         app.include_router(auth.router)
+    else:
+        app.include_router(config.router)
     return app
 
 

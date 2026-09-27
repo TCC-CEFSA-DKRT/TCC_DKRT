@@ -96,6 +96,19 @@ class TenantAccountRepository:
             ).mappings().first()
         return self._to_account(row) if row is not None else None
 
+    async def get_single(self) -> TenantAccount | None:
+        async with self._engine.connect() as conn:
+            rows = (
+                await conn.execute(
+                    select(tenant_accounts_table)
+                    .where(tenant_accounts_table.c.login_email.is_(None))
+                    .limit(2)
+                )
+            ).mappings().all()
+        if len(rows) > 1:
+            raise LookupError("mais de uma conta self-hosted em tenant_accounts")
+        return self._to_account(rows[0]) if rows else None
+
     async def get_by_login_email(self, login_email: str) -> TenantAccount | None:
         async with self._engine.connect() as conn:
             row = (

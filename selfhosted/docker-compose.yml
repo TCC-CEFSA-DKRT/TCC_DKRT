@@ -129,6 +129,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://auditor:auditor@postgres:5432/auditor
       OLLAMA_BASE_URL: http://ollama:11434
       OLLAMA_MODEL: qwen2.5:7b-instruct
+      CORS_ALLOWED_ORIGINS: http://localhost:5173
     volumes:
       - auditor-secrets:/var/lib/auditor-secrets:ro
     ports:

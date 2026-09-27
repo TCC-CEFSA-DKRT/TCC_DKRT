@@ -6,6 +6,9 @@ from cryptography.fernet import Fernet
 
 from auditor.infrastructure.config import container as container_module
 from auditor.infrastructure.context_broker.orion_adapter import OrionAdapter
+from auditor.infrastructure.context_broker.self_hosted_context_broker import (
+    SelfHostedContextBroker,
+)
 from auditor.infrastructure.context_broker.tenant_routed_context_broker import (
     TenantRoutedContextBroker,
 )
@@ -58,6 +61,28 @@ class TestGetContextBrokerSelfHosted:
         broker = container_module.get_context_broker()
 
         assert await broker.broker_url(Tenant(fiware_service="openiot")) == "http://orion:1026/"
+
+
+class TestGetContextBrokerSelfHostedWithEncryptionKey:
+    def test_returns_a_self_hosted_context_broker_when_a_fernet_key_is_configured(
+        self, monkeypatch
+    ):
+        monkeypatch.delenv("DEPLOYMENT_MODE", raising=False)
+        monkeypatch.setenv("BROKER_API_KEY_ENCRYPTION_KEYS", Fernet.generate_key().decode())
+
+        broker = container_module.get_context_broker()
+
+        assert isinstance(broker, SelfHostedContextBroker)
+        assert broker._client is container_module.get_http_client()
+
+    def test_uses_fiware_broker_url_as_the_default_broker_url(self, monkeypatch):
+        monkeypatch.delenv("DEPLOYMENT_MODE", raising=False)
+        monkeypatch.setenv("BROKER_API_KEY_ENCRYPTION_KEYS", Fernet.generate_key().decode())
+        monkeypatch.setenv("FIWARE_BROKER_URL", "http://orion-default:1026")
+
+        broker = container_module.get_context_broker()
+
+        assert broker._default_broker_url == "http://orion-default:1026"
 
 
 class TestGetContextBrokerSaas:

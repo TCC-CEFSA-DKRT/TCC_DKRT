@@ -7,7 +7,35 @@ tests/unit/interfaces/rest/test_cors.py).
 
 from __future__ import annotations
 
+import pytest
+from pydantic import ValidationError
+
 from auditor.infrastructure.config.settings import Settings
+
+
+class TestCorsWildcardGuardInSaas:
+    def test_wildcard_in_saas_raises(self):
+        with pytest.raises(ValidationError):
+            Settings(
+                _env_file=None,
+                deployment_mode="saas",
+                jwt_signing_key="k" * 32,
+                cors_allowed_origins="*",
+            )
+
+    def test_wildcard_among_other_origins_in_saas_raises(self):
+        with pytest.raises(ValidationError):
+            Settings(
+                _env_file=None,
+                deployment_mode="saas",
+                jwt_signing_key="k" * 32,
+                cors_allowed_origins="https://app.example.com,*",
+            )
+
+    def test_wildcard_in_selfhosted_is_allowed(self):
+        settings = Settings(_env_file=None, deployment_mode="selfhosted", cors_allowed_origins="*")
+
+        assert settings.cors_allowed_origins_list == ["*"]
 
 
 class TestCorsAllowedOriginsList:

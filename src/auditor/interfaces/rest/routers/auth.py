@@ -4,7 +4,7 @@ import asyncio
 import secrets
 from functools import cache
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from auditor.infrastructure.config.container import get_settings, get_tenant_account_repository
 from auditor.infrastructure.config.settings import Settings
@@ -13,10 +13,22 @@ from auditor.infrastructure.persistence.tenant_account_repository import (
     hash_password,
     verify_password,
 )
-from auditor.interfaces.rest.access_tokens import issue_access_token
+from auditor.interfaces.rest.access_tokens import SESSION_COOKIE_NAME, issue_access_token
 from auditor.interfaces.rest.schemas import AccessTokenResponse, LoginRequest
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _set_session_cookie(response: Response, token: str, settings: Settings) -> None:
+    response.set_cookie(
+        SESSION_COOKIE_NAME,
+        token,
+        max_age=settings.jwt_expiration_minutes * 60,
+        path="/",
+        secure=True,
+        httponly=True,
+        samesite="strict",
+    )
 
 
 @cache
@@ -31,6 +43,7 @@ def _password_matches(password: str, password_hash: str | None) -> bool:
 @router.post("/login", response_model=AccessTokenResponse)
 async def login(
     body: LoginRequest,
+    response: Response,
     settings: Settings = Depends(get_settings),
     repository: TenantAccountRepository = Depends(get_tenant_account_repository),
 ) -> AccessTokenResponse:
@@ -44,4 +57,17 @@ async def login(
             detail="Email ou senha invalidos.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return AccessTokenResponse(access_token=issue_access_token(account.tenant, settings))
+    token = issue_access_token(account.tenant, settings)
+    _set_session_cookie(response, token, settings)
+    return AccessTokenResponse(access_token=token)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(response: Response) -> None:
+    response.delete_cookie(
+        SESSION_COOKIE_NAME,
+        path="/",
+        secure=True,
+        httponly=True,
+        samesite="strict",
+    )

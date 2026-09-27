@@ -5,10 +5,10 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, Literal, TypeVar
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from auditor.domain.entities.audit_run import AuditRun
 from auditor.domain.entities.entity_report import EntityReport, SemanticAnalysisUsage
@@ -28,6 +28,29 @@ class LoginRequest(BaseModel):
 class AccessTokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class TenantResponse(BaseModel):
+    fiware_service: str
+    fiware_service_path: str
+
+
+class SessionResponse(BaseModel):
+    deployment_mode: Literal["saas", "selfhosted"]
+    tenant: TenantResponse | None
+
+
+class BrokerConfigRequest(BaseModel):
+    broker_url: str = Field(pattern=r"^https?://\S+$")
+    fiware_service: str = Field(pattern=r"^[A-Za-z0-9_]{1,50}$")
+    fiware_service_path: str = Field(default="/", pattern=r"^/([A-Za-z0-9_]+(/[A-Za-z0-9_]+)*)?$")
+
+
+class BrokerConfigResponse(BaseModel):
+    configured: bool
+    broker_url: str
+    fiware_service: str
+    fiware_service_path: str
 
 
 class AuditCreateRequest(BaseModel):

@@ -8,6 +8,7 @@ from auditor.domain.value_objects.tenant import Tenant
 from auditor.infrastructure.config.settings import Settings
 
 JWT_ALGORITHM = "HS256"
+SESSION_COOKIE_NAME = "auditor_session"
 _REQUIRED_CLAIMS = ["exp", "fiware_service", "fiware_service_path"]
 
 

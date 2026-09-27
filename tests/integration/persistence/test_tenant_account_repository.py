@@ -272,6 +272,66 @@ class TestCreate:
         assert account_b.broker_api_key == "chave-b"
 
 
+class TestGetSingle:
+    @pytest.mark.asyncio
+    async def test_returns_none_when_there_is_no_row(self, repository):
+        account = await repository.get_single()
+
+        assert account is None
+
+    @pytest.mark.asyncio
+    async def test_returns_the_only_self_hosted_row(self, repository):
+        await repository.create(
+            TENANT_A, broker_url="https://orion.example.com", broker_api_key="chave-a"
+        )
+
+        account = await repository.get_single()
+
+        assert account is not None
+        assert account.tenant == TENANT_A
+        assert account.broker_api_key == "chave-a"
+
+    @pytest.mark.asyncio
+    async def test_ignores_rows_with_login_and_returns_none_when_only_saas_rows_exist(
+        self, repository
+    ):
+        await repository.create(
+            TENANT_A,
+            broker_url="https://orion.example.com",
+            login_email="a@example.com",
+            password="senha-a",
+        )
+
+        account = await repository.get_single()
+
+        assert account is None
+
+    @pytest.mark.asyncio
+    async def test_two_self_hosted_rows_raise_lookup_error(self, repository):
+        await repository.create(TENANT_A, broker_url="https://orion-a.example.com")
+        await repository.create(TENANT_B, broker_url="https://orion-b.example.com")
+
+        with pytest.raises(LookupError):
+            await repository.get_single()
+
+    @pytest.mark.asyncio
+    async def test_a_saas_row_alongside_a_self_hosted_row_does_not_count_as_two(
+        self, repository
+    ):
+        await repository.create(
+            TENANT_A,
+            broker_url="https://orion.example.com",
+            login_email="a@example.com",
+            password="senha-a",
+        )
+        await repository.create(TENANT_B, broker_url="https://orion-b.example.com")
+
+        account = await repository.get_single()
+
+        assert account is not None
+        assert account.tenant == TENANT_B
+
+
 class TestUpdateBroker:
     @pytest.mark.asyncio
     async def test_update_broker_changes_url_and_key_and_bumps_updated_at(self, repository):

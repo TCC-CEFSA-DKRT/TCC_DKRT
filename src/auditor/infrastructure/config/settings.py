@@ -64,6 +64,16 @@ class Settings(BaseSettings):
             raise ValueError("DEPLOYMENT_MODE=saas exige JWT_SIGNING_KEY com pelo menos 32 bytes")
         return self
 
+    @model_validator(mode="after")
+    def _reject_wildcard_cors_in_saas(self) -> "Settings":
+        if self.deployment_mode == "saas" and "*" in self.cors_allowed_origins_list:
+            raise ValueError(
+                "DEPLOYMENT_MODE=saas nao pode ter '*' em CORS_ALLOWED_ORIGINS: com "
+                "allow_credentials=True o Starlette reflete qualquer Origin, "
+                "equivalente a desligar CORS com cookie de sessao habilitado"
+            )
+        return self
+
     @property
     def cors_allowed_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_allowed_origins.split(",") if origin.strip()]

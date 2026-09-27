@@ -28,6 +28,9 @@ from auditor.domain.services.structural_validator import StructuralValidator
 from auditor.infrastructure.config.settings import Settings
 from auditor.infrastructure.context_broker.ngsi_v2_mapper import NgsiV2Mapper
 from auditor.infrastructure.context_broker.orion_adapter import OrionAdapter
+from auditor.infrastructure.context_broker.self_hosted_context_broker import (
+    SelfHostedContextBroker,
+)
 from auditor.infrastructure.context_broker.tenant_routed_context_broker import (
     TenantRoutedContextBroker,
 )
@@ -122,7 +125,17 @@ def get_context_broker() -> ContextBrokerPort:
         return TenantRoutedContextBroker(
             get_tenant_account_repository(), client=get_broker_http_client()
         )
-    return OrionAdapter(settings.fiware_broker_url, client=get_http_client())
+    if not settings.broker_api_key_encryption_keys_list:
+        return OrionAdapter(settings.fiware_broker_url, client=get_http_client())
+    return SelfHostedContextBroker(
+        get_tenant_account_repository(),
+        client=get_http_client(),
+        default_broker_url=settings.fiware_broker_url,
+    )
+
+
+def get_selfhosted_accounts() -> TenantAccountRepository | None:
+    return get_tenant_account_repository() if get_settings().broker_api_key_encryption_keys_list else None
 
 
 def get_unit_of_work() -> SqlAlchemyUnitOfWork:
