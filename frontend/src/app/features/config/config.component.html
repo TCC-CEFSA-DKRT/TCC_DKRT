@@ -1,0 +1,78 @@
+<app-split-panel>
+  @switch (loadState()) {
+    @case ('loading') {
+      <app-loading-skeleton [rows]="3" />
+    }
+    @case ('error') {
+      <app-error-state
+        message="Não foi possível carregar a configuração do broker."
+        (retry)="fetchConfig()"
+      />
+    }
+    @case ('ready') {
+      <h2 class="config-title">Configuração do broker</h2>
+      <form class="config-form" (ngSubmit)="onSave()">
+        <label class="config-field" for="config-broker-url">
+          <span>URL do broker</span>
+          <input
+            id="config-broker-url"
+            class="config-field__input"
+            name="brokerUrl"
+            placeholder="http://orion:1026"
+            [(ngModel)]="brokerUrl"
+            required
+          />
+        </label>
+        <label class="config-field" for="config-fiware-service">
+          <span>Fiware-Service</span>
+          <input
+            id="config-fiware-service"
+            class="config-field__input"
+            name="fiwareService"
+            [(ngModel)]="fiwareService"
+            required
+          />
+        </label>
+        <label class="config-field" for="config-fiware-service-path">
+          <span>Fiware-ServicePath</span>
+          <input
+            id="config-fiware-service-path"
+            class="config-field__input"
+            name="fiwareServicePath"
+            [(ngModel)]="fiwareServicePath"
+            required
+          />
+        </label>
+
+        @if (saveState() === 'error') {
+          <p class="config-error">Não foi possível salvar a configuração. Tente novamente.</p>
+        }
+
+        <button type="submit" class="config-submit" [disabled]="saveState() === 'saving'">
+          Salvar
+        </button>
+      </form>
+
+      @if (saved()) {
+        @if (connectionTest(); as test) {
+          @switch (test.status) {
+            @case ('ok') {
+              <p class="connection-test connection-test--ok">
+                Configuração salva — broker alcançável, {{ test.count }} tipo(s) de entidade
+                encontrado(s).
+              </p>
+            }
+            @case ('warn') {
+              <p class="connection-test connection-test--warn">
+                Configuração salva, mas o broker não respondeu. Verifique a URL antes de continuar.
+              </p>
+            }
+          }
+        } @else {
+          <p class="connection-test">Configuração salva — testando a conexão com o broker…</p>
+        }
+        <button type="button" class="config-continue" (click)="onContinue()">Continuar</button>
+      }
+    }
+  }
+</app-split-panel>
