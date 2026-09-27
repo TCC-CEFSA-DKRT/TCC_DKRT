@@ -81,7 +81,11 @@ def get_tenant_account_repository() -> TenantAccountRepository:
     keys = get_settings().broker_api_key_encryption_keys_list
     if not keys:
         raise RuntimeError("BROKER_API_KEY_ENCRYPTION_KEYS nao configurada")
-    return TenantAccountRepository(get_engine(), MultiFernet([Fernet(key) for key in keys]))
+    return TenantAccountRepository(
+        get_engine(),
+        MultiFernet([Fernet(key) for key in keys]),
+        require_https=get_settings().deployment_mode == "saas",
+    )
 
 
 @lru_cache

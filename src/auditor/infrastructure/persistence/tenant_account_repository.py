@@ -42,9 +42,18 @@ class TenantAccount:
 
 
 class TenantAccountRepository:
-    def __init__(self, engine: AsyncEngine, fernet: MultiFernet) -> None:
+    def __init__(
+        self, engine: AsyncEngine, fernet: MultiFernet, require_https: bool = False
+    ) -> None:
         self._engine = engine
         self._fernet = fernet
+        self._require_https = require_https
+
+    def _check_broker_url(self, broker_url: str) -> None:
+        if self._require_https and not broker_url.startswith("https://"):
+            raise ValueError(
+                "DEPLOYMENT_MODE=saas exige broker_url com https:// (ex.: https://orion.exemplo.com)"
+            )
 
     def _encrypt(self, value: str | None) -> str | None:
         return self._fernet.encrypt(value.encode("utf-8")).decode("ascii") if value is not None else None
@@ -57,6 +66,7 @@ class TenantAccountRepository:
         login_email: str | None = None,
         password: str | None = None,
     ) -> None:
+        self._check_broker_url(broker_url)
         encrypted_api_key = self._encrypt(broker_api_key)
         stored_password_hash = hash_password(password) if password is not None else None
         normalized_email = _normalize_email(login_email) if login_email is not None else None
@@ -119,6 +129,7 @@ class TenantAccountRepository:
     async def update_broker(
         self, tenant: Tenant, broker_url: str, broker_api_key: str | None
     ) -> None:
+        self._check_broker_url(broker_url)
         encrypted_api_key = self._encrypt(broker_api_key)
 
         async with self._engine.begin() as conn:
@@ -149,6 +160,7 @@ class TenantAccountRepository:
         broker_url: str,
         broker_api_key: str | None,
     ) -> None:
+        self._check_broker_url(broker_url)
         encrypted_api_key = self._encrypt(broker_api_key)
         async with self._engine.begin() as conn:
             deleted = (

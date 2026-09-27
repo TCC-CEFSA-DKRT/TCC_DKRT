@@ -59,6 +59,23 @@ class TestGetTenantAccountRepository:
         with pytest.raises(InvalidToken):
             Fernet(k1).decrypt(token)
 
+    def test_factory_requires_https_when_deployment_mode_is_saas(self, monkeypatch):
+        monkeypatch.setenv("BROKER_API_KEY_ENCRYPTION_KEYS", Fernet.generate_key().decode())
+        monkeypatch.setenv("DEPLOYMENT_MODE", "saas")
+        monkeypatch.setenv("JWT_SIGNING_KEY", "x" * 32)
+
+        repository = container_module.get_tenant_account_repository()
+
+        assert repository._require_https is True
+
+    def test_factory_does_not_require_https_when_deployment_mode_is_selfhosted(self, monkeypatch):
+        monkeypatch.setenv("BROKER_API_KEY_ENCRYPTION_KEYS", Fernet.generate_key().decode())
+        monkeypatch.delenv("DEPLOYMENT_MODE", raising=False)
+
+        repository = container_module.get_tenant_account_repository()
+
+        assert repository._require_https is False
+
 
 class TestGetEngine:
     def test_engine_hides_parameters_from_errors_and_logs(self):
