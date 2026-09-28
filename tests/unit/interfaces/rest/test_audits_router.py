@@ -511,3 +511,73 @@ class TestInterpretAuditCommand:
 
         assert response.status_code == 200
         assert fake_use_case.started == []
+
+    @pytest.mark.asyncio
+    async def test_discovery_result_serializes_intent_and_discovered_types(
+        self, client, fake_interpret_use_case
+    ):
+        fake_interpret_use_case._interpretation = AuditCommandInterpretation(
+            entity_type=None,
+            entity_id=None,
+            confidence=0.9,
+            raw_command="quais entidades existem?",
+            intent="discovery",
+            discovered_types=("Streetlight", "AirQualityObserved"),
+            broker_reachable=True,
+        )
+
+        response = await client.post(
+            "/audits/interpret",
+            json={"command_text": "quais entidades existem?"},
+            headers=_TENANT_HEADERS,
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["intent"] == "discovery"
+        assert body["discovered_types"] == ["Streetlight", "AirQualityObserved"]
+        assert body["broker_reachable"] is True
+        assert fake_interpret_use_case.received_commands == ["quais entidades existem?"]
+
+    @pytest.mark.asyncio
+    async def test_discovery_with_unreachable_broker_serializes_empty_list_and_flag(
+        self, client, fake_interpret_use_case
+    ):
+        fake_interpret_use_case._interpretation = AuditCommandInterpretation(
+            entity_type=None,
+            entity_id=None,
+            confidence=0.9,
+            raw_command="quais entidades existem?",
+            intent="discovery",
+            discovered_types=(),
+            broker_reachable=False,
+        )
+
+        response = await client.post(
+            "/audits/interpret",
+            json={"command_text": "quais entidades existem?"},
+            headers=_TENANT_HEADERS,
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["discovered_types"] == []
+        assert body["broker_reachable"] is False
+
+    @pytest.mark.asyncio
+    async def test_audit_result_serializes_audit_intent_and_null_discovery_fields(
+        self, client, fake_interpret_use_case
+    ):
+        fake_interpret_use_case._interpretation = AuditCommandInterpretation(
+            entity_type="Streetlight", entity_id=None, confidence=0.95, raw_command="x"
+        )
+
+        response = await client.post(
+            "/audits/interpret", json={"command_text": "audite os postes"}, headers=_TENANT_HEADERS
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["intent"] == "audit"
+        assert body["discovered_types"] is None
+        assert body["broker_reachable"] is None

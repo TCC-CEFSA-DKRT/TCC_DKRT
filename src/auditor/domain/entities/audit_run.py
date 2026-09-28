@@ -20,6 +20,7 @@ class RunStatus(str, Enum):
     COMPLETED = "completed"
     FAILED = "failed"
     PARTIAL = "partial"
+    NO_ENTITIES_FOUND = "no_entities_found"
 
 
 @dataclass
@@ -99,9 +100,9 @@ class AuditRun:
     failure_reason: str | None = None
 
     def __post_init__(self) -> None:
-        if self.status == RunStatus.COMPLETED and self.finished_at is None:
+        if self.status in (RunStatus.COMPLETED, RunStatus.NO_ENTITIES_FOUND) and self.finished_at is None:
             raise InvariantViolationError(
-                "AuditRun.finished_at nao pode ser None quando status e COMPLETED."
+                "AuditRun.finished_at nao pode ser None quando status e COMPLETED ou NO_ENTITIES_FOUND."
             )
 
     @classmethod

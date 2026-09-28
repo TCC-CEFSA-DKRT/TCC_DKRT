@@ -9,7 +9,7 @@ aqui a entrada e' texto livre do usuario, nao uma entidade NGSI.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Literal, Protocol
 
 
 @dataclass(frozen=True)
@@ -18,6 +18,9 @@ class AuditCommandInterpretation:
     entity_id: str | None
     confidence: float
     raw_command: str
+    intent: Literal["audit", "discovery"] = "audit"
+    discovered_types: tuple[str, ...] | None = None
+    broker_reachable: bool | None = None
 
 
 class CommandInterpreterPort(Protocol):

@@ -333,6 +333,17 @@ class TestHappyPath:
         assert run.summary.conformant_count == 1
         assert run.summary.non_conformant_count == 1
 
+    @pytest.mark.asyncio
+    async def test_execute_with_zero_entities_is_marked_no_entities_found(self):
+        use_case, repo = _make_use_case(_FakeContextBroker([]), _FakeSchemaCatalog())
+
+        run_id = await use_case.execute(_TENANT, EntityType("Streetlight"))
+        run = await repo.get_by_id(run_id, _TENANT)
+
+        assert run.status == RunStatus.NO_ENTITIES_FOUND
+        assert run.summary.total_entities == 0
+        assert run.finished_at is not None
+
 
 class TestResilience:
     @pytest.mark.asyncio
@@ -483,6 +494,18 @@ class TestProcess:
         assert persisted.total_entities_discovered == 2
         assert persisted.summary.total_entities == 2
         assert persisted.finished_at is not None
+
+    @pytest.mark.asyncio
+    async def test_process_with_zero_entities_is_marked_no_entities_found(self):
+        use_case, repo = _make_use_case(_FakeContextBroker([]), _FakeSchemaCatalog())
+        run = await use_case.create_run(_TENANT, EntityType("Streetlight"))
+
+        await use_case.process(run.id, _TENANT, EntityType("Streetlight"))
+
+        persisted = await repo.get_by_id(run.id, _TENANT)
+        assert persisted.status == RunStatus.NO_ENTITIES_FOUND
+        assert persisted.total_entities_discovered == 0
+        assert persisted.summary.total_entities == 0
 
     @pytest.mark.asyncio
     async def test_process_propagates_context_broker_failure_instead_of_swallowing_it(self):

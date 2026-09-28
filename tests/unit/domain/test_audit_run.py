@@ -90,6 +90,20 @@ class TestAuditRun:
                 broker_url="http://localhost:1026",
             )
 
+    def test_no_entities_found_run_requires_finished_at(self):
+        with pytest.raises(InvariantViolationError):
+            AuditRun(
+                id=uuid4(),
+                tenant=_TENANT,
+                entity_type=EntityType("Streetlight"),
+                status=RunStatus.NO_ENTITIES_FOUND,
+                reports=[],
+                summary=RunSummary.empty(),
+                started_at=datetime.now(timezone.utc),
+                finished_at=None,
+                broker_url="http://localhost:1026",
+            )
+
     def test_freshly_created_run_is_queued_and_empty(self):
         run = AuditRun.create(
             tenant=_TENANT,

@@ -148,3 +148,141 @@ class TestMalformedOutput:
         result = await interpreter.interpret("audite os postes")
 
         assert result.confidence == 1.0
+
+
+class TestIntentClassification:
+    @pytest.mark.asyncio
+    async def test_missing_intent_defaults_to_audit_and_keeps_extracted_type(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200,
+                json={
+                    "response": json.dumps(
+                        {"entity_type": "Streetlight", "entity_id": None, "confidence": 0.9}
+                    )
+                },
+            )
+
+        interpreter = OllamaCommandInterpreter(
+            client=_client_with_handler(handler), base_url="http://ollama:11434"
+        )
+
+        result = await interpreter.interpret("audite os postes")
+
+        assert result.intent == "audit"
+        assert result.entity_type == "Streetlight"
+        assert result.confidence == 0.9
+
+    @pytest.mark.asyncio
+    async def test_discovery_intent_is_propagated_without_broker_data(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200,
+                json={
+                    "response": json.dumps(
+                        {
+                            "intent": "discovery",
+                            "entity_type": None,
+                            "entity_id": None,
+                            "confidence": 0.9,
+                        }
+                    )
+                },
+            )
+
+        interpreter = OllamaCommandInterpreter(
+            client=_client_with_handler(handler), base_url="http://ollama:11434"
+        )
+
+        result = await interpreter.interpret("quais entidades existem?")
+
+        assert result.intent == "discovery"
+        assert result.confidence == 0.9
+        assert result.discovered_types is None
+        assert result.broker_reachable is None
+
+    @pytest.mark.asyncio
+    async def test_discovery_intent_discards_any_entity_type_or_id_the_model_returned(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200,
+                json={
+                    "response": json.dumps(
+                        {
+                            "intent": "discovery",
+                            "entity_type": "Streetlight",
+                            "entity_id": "urn:x",
+                            "confidence": 0.8,
+                        }
+                    )
+                },
+            )
+
+        interpreter = OllamaCommandInterpreter(
+            client=_client_with_handler(handler), base_url="http://ollama:11434"
+        )
+
+        result = await interpreter.interpret("quais entidades existem?")
+
+        assert result.entity_type is None
+        assert result.entity_id is None
+        assert result.intent == "discovery"
+
+    @pytest.mark.asyncio
+    async def test_unknown_intent_value_falls_back_to_no_interpretation(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200,
+                json={
+                    "response": json.dumps(
+                        {
+                            "intent": "list_everything",
+                            "entity_type": "Streetlight",
+                            "confidence": 0.9,
+                        }
+                    )
+                },
+            )
+
+        interpreter = OllamaCommandInterpreter(
+            client=_client_with_handler(handler), base_url="http://ollama:11434"
+        )
+
+        result = await interpreter.interpret("audite os postes")
+
+        assert result.intent == "audit"
+        assert result.entity_type is None
+        assert result.confidence == 0.0
+        assert result.raw_command == "audite os postes"
+
+    @pytest.mark.asyncio
+    async def test_connection_error_fallback_is_audit_intent(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            raise httpx.ConnectError("connection refused", request=request)
+
+        interpreter = OllamaCommandInterpreter(
+            client=_client_with_handler(handler), base_url="http://ollama:11434"
+        )
+
+        result = await interpreter.interpret("audite os postes")
+
+        assert result.intent == "audit"
+
+    @pytest.mark.asyncio
+    async def test_prompt_teaches_the_discovery_intent(self):
+        captured = {}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            captured["body"] = json.loads(request.content)
+            return httpx.Response(
+                200, json={"response": json.dumps({"entity_type": None, "confidence": 0.0})}
+            )
+
+        interpreter = OllamaCommandInterpreter(
+            client=_client_with_handler(handler), base_url="http://ollama:11434"
+        )
+
+        await interpreter.interpret("audite os postes de luz")
+
+        assert '"intent"' in captured["body"]["prompt"]
+        assert "discovery" in captured["body"]["prompt"]

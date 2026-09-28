@@ -220,7 +220,10 @@ def get_command_interpreter() -> OllamaCommandInterpreter:
 
 
 def get_interpret_audit_command_use_case() -> InterpretAuditCommandUseCase:
-    return InterpretAuditCommandUseCase(interpreter=get_command_interpreter())
+    return InterpretAuditCommandUseCase(
+        interpreter=get_command_interpreter(),
+        context_broker=get_context_broker(),
+    )
 
 
 def get_run_audit_use_case() -> RunAuditUseCase:

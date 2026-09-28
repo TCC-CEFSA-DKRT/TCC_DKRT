@@ -105,3 +105,20 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.discovery-panel__types {
+  margin: 0 0 var(--space-3);
+  padding-left: var(--space-4);
+}
+
+.discovery-panel__type {
+  font-family: monospace;
+}
+
+.discovery-panel__warning {
+  color: var(--color-warning);
+}
+
+.discovery-panel__empty {
+  color: var(--color-text-secondary);
+}

@@ -27,7 +27,25 @@
     />
   }
   @case ('interpreted') {
-    @if (!understoodEnough()) {
+    @if (isDiscovery()) {
+      <div class="interpretation-panel discovery-panel">
+        <h2 class="interpretation-panel__title">Tipos de entidade no broker</h2>
+        @if (!interpretation()!.broker_reachable) {
+          <p class="discovery-panel__warning">
+            Não foi possível consultar o broker agora. Verifique a conexão na tela de Configuração e tente novamente.
+          </p>
+        } @else if ((interpretation()!.discovered_types ?? []).length === 0) {
+          <p class="discovery-panel__empty">Nenhum tipo de entidade cadastrado neste broker.</p>
+        } @else {
+          <ul class="discovery-panel__types">
+            @for (type of interpretation()!.discovered_types ?? []; track type) {
+              <li class="discovery-panel__type">{{ type }}</li>
+            }
+          </ul>
+          <p class="status-text">Para auditar um deles, peça por exemplo: "audite as entidades {{ interpretation()!.discovered_types![0] }}".</p>
+        }
+      </div>
+    } @else if (!understoodEnough()) {
       <div class="interpretation-panel interpretation-panel--low-confidence">
         <p>
           Não entendi o suficiente para prosseguir. Tente descrever o tipo de sensor ou
@@ -64,6 +82,7 @@
           @case ('submitted') {
             <p class="status-text status-text--success">
               Auditoria iniciada — run {{ createdRun()!.run_id }} ({{ createdRun()!.status }}).
+              <a [routerLink]="['/audit-runs', createdRun()!.run_id]">Ver relatório</a>
             </p>
           }
           @case ('error') {

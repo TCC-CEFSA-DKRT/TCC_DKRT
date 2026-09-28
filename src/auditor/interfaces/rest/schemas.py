@@ -279,18 +279,28 @@ class InterpretAuditRequest(BaseModel):
 
 
 class InterpretAuditResponse(BaseModel):
+    intent: Literal["audit", "discovery"]
     entity_type: str | None
     entity_id: str | None
     confidence: float
     raw_command: str
+    discovered_types: list[str] | None
+    broker_reachable: bool | None
 
     @classmethod
     def from_domain(cls, interpretation: AuditCommandInterpretation) -> "InterpretAuditResponse":
         return cls(
+            intent=interpretation.intent,
             entity_type=interpretation.entity_type,
             entity_id=interpretation.entity_id,
             confidence=interpretation.confidence,
             raw_command=interpretation.raw_command,
+            discovered_types=(
+                list(interpretation.discovered_types)
+                if interpretation.discovered_types is not None
+                else None
+            ),
+            broker_reachable=interpretation.broker_reachable,
         )
 
 

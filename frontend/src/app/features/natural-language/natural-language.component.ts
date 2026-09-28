@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
 import { AuditCreateResponse } from '../../shared/models/audit.models';
@@ -24,7 +25,7 @@ const MIN_CONFIDENCE_TO_CONFIRM = 0.5;
 @Component({
   selector: 'app-natural-language',
   standalone: true,
-  imports: [DecimalPipe, FormsModule, ErrorStateComponent],
+  imports: [DecimalPipe, FormsModule, RouterLink, ErrorStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './natural-language.component.html',
   styleUrl: './natural-language.component.scss',
@@ -46,12 +47,19 @@ export class NaturalLanguageComponent {
   protected readonly confirmState = signal<ConfirmState>('idle');
   protected readonly createdRun = signal<AuditCreateResponse | null>(null);
 
+  protected readonly isDiscovery = computed(() => this.interpretation()?.intent === 'discovery');
+
   /** Confirmação só é oferecida quando a interpretação de fato identificou
    * um tipo com confiança razoável — nunca para uma interpretação vazia
    * (fase8.spec.md, seção 6, segundo caso de teste). */
   protected readonly understoodEnough = computed(() => {
     const result = this.interpretation();
-    return result !== null && result.entity_type !== null && result.confidence >= MIN_CONFIDENCE_TO_CONFIRM;
+    return (
+      result !== null &&
+      !this.isDiscovery() &&
+      result.entity_type !== null &&
+      result.confidence >= MIN_CONFIDENCE_TO_CONFIRM
+    );
   });
 
   protected onInterpret(): void {

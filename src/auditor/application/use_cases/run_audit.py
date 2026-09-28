@@ -232,7 +232,12 @@ class RunAuditUseCase:
                 partial = True
                 break
 
-        final_status = RunStatus.PARTIAL if partial else RunStatus.COMPLETED
+        if partial:
+            final_status = RunStatus.PARTIAL
+        elif not raw_entities:
+            final_status = RunStatus.NO_ENTITIES_FOUND
+        else:
+            final_status = RunStatus.COMPLETED
         async with self._uow as uow:
             await uow.audits.update_run_status(
                 run_id, tenant, final_status, finished_at=self._clock()
@@ -314,9 +319,10 @@ class RunAuditUseCase:
             async with self._uow as uow:
                 await uow.audits.append_report(run_id, tenant, report)
 
+        final_status = RunStatus.NO_ENTITIES_FOUND if not raw_entities else RunStatus.COMPLETED
         async with self._uow as uow:
             await uow.audits.update_run_status(
-                run_id, tenant, RunStatus.COMPLETED, finished_at=self._clock()
+                run_id, tenant, final_status, finished_at=self._clock()
             )
 
     async def mark_failed(self, run_id: UUID, tenant: Tenant, reason: str) -> None:

@@ -115,7 +115,8 @@ def seed_dkrt(scenario: int, model: str = "weather", authorization: Optional[str
         entity = {
             "id": f"urn:ngsi-ld:WeatherObserved:dkrt-test-00{scenario}",
             "type": "WeatherObserved",
-            "domain": {"value": "Clima Urbano", "type": "Text"}
+            "domain": {"value": "Clima Urbano", "type": "Text"},
+            "location": {"value": {"type": "Point", "coordinates": [-46.6333, -23.5505]}, "type": "geo:json"},
         }
         
         if scenario == 1:
@@ -150,7 +151,9 @@ def seed_dkrt(scenario: int, model: str = "weather", authorization: Optional[str
         entity = {
             "id": f"urn:ngsi-ld:Streetlight:dkrt-test-00{scenario}",
             "type": "Streetlight",
-            "domain": {"value": "Iluminacao Publica", "type": "Text"}
+            "domain": {"value": "Iluminacao Publica", "type": "Text"},
+            "location": {"value": {"type": "Point", "coordinates": [-46.6333, -23.5505]}, "type": "geo:json"},
+            "status": {"value": "ok", "type": "Text"},
         }
         
         if scenario == 1:
