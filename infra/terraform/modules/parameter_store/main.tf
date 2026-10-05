@@ -1,5 +1,6 @@
 # ADR-0017 -- Parameter Store (SSM, SecureString) para os segredos que o
-# PROJETO cria (credenciais do Orion do cliente, chave de assinatura JWT),
+# PROJETO cria (credenciais do Orion do cliente, chave de assinatura JWT,
+# chaves Fernet de cifra do broker_api_key -- ADR-0019, mesmo padrao),
 # no lugar do Secrets Manager comum (modules/secrets, usado por
 # environments/academy) -- decisao explicita do diagrama
 # (docs/design/implantacao-aws.html, card "Dados & Filas": "Parameter
@@ -41,6 +42,18 @@ resource "aws_ssm_parameter" "jwt_signing_key" {
   description = "Chave de assinatura JWT da API (autenticacao, se/quando implementada)."
   type        = "SecureString"
   value       = var.jwt_signing_key
+  tags        = var.tags
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
+
+resource "aws_ssm_parameter" "broker_api_key_encryption_keys" {
+  name        = "/${var.name_prefix}/broker-api-key-encryption-keys"
+  description = "Chaves Fernet (lista por virgula; a primeira cifra) de tenant_accounts.broker_api_key_encrypted -- ADR-0019."
+  type        = "SecureString"
+  value       = var.broker_api_key_encryption_keys
   tags        = var.tags
 
   lifecycle {

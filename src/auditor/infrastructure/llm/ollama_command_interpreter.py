@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Literal
 
 import httpx
 from pydantic import BaseModel, ValidationError
@@ -31,6 +32,7 @@ class _InterpretationOutputSchema(BaseModel):
     entity_type: str | None = None
     entity_id: str | None = None
     confidence: float = _LOW_CONFIDENCE_FALLBACK
+    intent: Literal["audit", "discovery"] = "audit"
 
 
 def _build_prompt(command_text: str) -> str:
@@ -87,9 +89,11 @@ class OllamaCommandInterpreter(CommandInterpreterPort):
             return _fallback(command_text)
 
         confidence = max(0.0, min(1.0, parsed.confidence))
+        is_discovery = parsed.intent == "discovery"
         return AuditCommandInterpretation(
-            entity_type=parsed.entity_type,
-            entity_id=parsed.entity_id,
+            entity_type=None if is_discovery else parsed.entity_type,
+            entity_id=None if is_discovery else parsed.entity_id,
             confidence=confidence,
             raw_command=command_text,
+            intent=parsed.intent,
         )

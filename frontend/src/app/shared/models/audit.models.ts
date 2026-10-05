@@ -17,7 +17,7 @@ export type ConformanceStatus =
   | 'no_model_found'
   | 'schema_unavailable';
 
-export type RunStatus = 'queued' | 'running' | 'completed' | 'failed' | 'partial';
+export type RunStatus = 'queued' | 'running' | 'completed' | 'failed' | 'partial' | 'no_entities_found';
 
 export type RecommendationAction =
   | 'rename_attribute'

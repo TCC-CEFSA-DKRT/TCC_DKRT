@@ -57,6 +57,7 @@ async def wired_app(postgres_container, monkeypatch):
     async_url = sync_url.replace("postgresql+psycopg2://", "postgresql+asyncpg://")
     monkeypatch.setenv("DATABASE_URL", async_url)
     monkeypatch.setenv("FIWARE_BROKER_URL", _ORION_URL)
+    monkeypatch.setenv("FIWARE_SERVICE", "auditor_fase4_e2e")
 
     await create_all(container_module.get_engine())
 

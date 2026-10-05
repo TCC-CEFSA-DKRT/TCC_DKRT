@@ -2,22 +2,17 @@
 
 from dataclasses import dataclass
 
-from auditor.domain.errors import InvalidTenantError
-
 
 @dataclass(frozen=True)
 class Tenant:
     """Identidade multi-tenant do FIWARE: `Fiware-Service` + `Fiware-ServicePath`.
 
-    Toda auditoria e escopada a exatamente um tenant. Isolamento nao e opcional
-    (ver docs/plano_refatoracao_v3.md, Parte III, 3.8 - Seguranca).
+    `fiware_service == ""` e' valido: e' o servico default do Orion (sem
+    isolamento multi-tenant), a mesma semantica do proprio NGSI-v2 -- um
+    Orion self-hosted sem multi-tenancy nao usa `Fiware-Service`. A exigencia
+    de tenant nao-vazio e' regra de aplicacao (fronteiras SaaS), nao do
+    dominio; ver `interfaces/rest/access_tokens.py`.
     """
 
     fiware_service: str
     fiware_service_path: str = "/"
-
-    def __post_init__(self) -> None:
-        if not self.fiware_service:
-            raise InvalidTenantError(
-                "Tenant.fiware_service e obrigatorio e nao pode ser vazio."
-            )

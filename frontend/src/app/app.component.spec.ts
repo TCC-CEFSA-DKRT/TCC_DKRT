@@ -11,8 +11,10 @@ describe('AppComponent', () => {
     }).compileComponents();
   });
 
-  it('creates the app shell', () => {
+  it('renders only a router outlet — the shell is a routed component, not always-on', () => {
     const fixture = TestBed.createComponent(AppComponent);
-    expect(fixture.componentInstance).toBeTruthy();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('router-outlet')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('app-shell')).toBeNull();
   });
 });

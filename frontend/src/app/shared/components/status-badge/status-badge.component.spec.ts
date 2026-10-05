@@ -10,4 +10,13 @@ describe('StatusBadgeComponent', () => {
 
     expect((fixture.nativeElement as HTMLElement).textContent?.trim()).toBe('Não conforme');
   });
+
+  it('renders a distinct label for a run with zero entities found', () => {
+    TestBed.configureTestingModule({ imports: [StatusBadgeComponent] });
+    const fixture = TestBed.createComponent(StatusBadgeComponent);
+    fixture.componentRef.setInput('status', 'no_entities_found');
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).textContent?.trim()).toBe('Nenhuma entidade encontrada');
+  });
 });

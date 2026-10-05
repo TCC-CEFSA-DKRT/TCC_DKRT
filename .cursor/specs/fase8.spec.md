@@ -75,6 +75,19 @@ class AuditCommandInterpretation:
   quem decide confirmar e disparar a auditoria de verdade é a interação do usuário na tela
   (seção 6), nunca o backend sozinho.
 
+**Adendo — intenção de descoberta:** `AuditCommandInterpretation` ganhou três campos,
+todos com default para não quebrar quem já construía o dataclass: `intent: Literal["audit",
+"discovery"] = "audit"`, `discovered_types: tuple[str, ...] | None = None` e
+`broker_reachable: bool | None = None`. Quando o SLM classifica o comando como `"discovery"`
+(uma pergunta sobre o que existe no broker, não um pedido de auditoria), o use case consulta
+`ContextBrokerPort.list_entity_types(tenant)` e devolve os tipos encontrados em
+`discovered_types`, com `broker_reachable=True`; se o broker estiver inacessível
+(`ContextBrokerUnavailableError`), devolve `discovered_types=()` e `broker_reachable=False`
+sem propagar a exceção. Descoberta é sempre leitura — nunca cria, altera nem audita nada.
+Com `intent == "audit"` (o caso padrão, inclusive quando o campo vem ausente de uma saída
+antiga do SLM), o `context_broker` nunca é tocado, e o use case continua sem chamar
+`RunAuditUseCase.start()`.
+
 ---
 
 ## 1. Arquitetura do frontend (plano geral, seção 3.10)

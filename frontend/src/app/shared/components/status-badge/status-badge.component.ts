@@ -14,6 +14,7 @@ export type BadgeKind =
   | 'running'
   | 'completed'
   | 'failed'
+  | 'no_entities_found'
   | 'error'
   | 'warning'
   | 'info';
@@ -33,6 +34,7 @@ const BADGE_STYLES: Record<BadgeKind, BadgeStyle> = {
   running: { label: 'Em execução', colorVar: '--color-accent' },
   completed: { label: 'Concluído', colorVar: '--color-conformant' },
   failed: { label: 'Falhou', colorVar: '--color-non-conformant' },
+  no_entities_found: { label: 'Nenhuma entidade encontrada', colorVar: '--color-warning' },
   error: { label: 'Erro', colorVar: '--color-non-conformant' },
   warning: { label: 'Aviso', colorVar: '--color-warning' },
   info: { label: 'Info', colorVar: '--color-info' },

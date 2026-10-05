@@ -20,6 +20,8 @@ RawEntity = dict[str, Any]
 
 
 class ContextBrokerPort(Protocol):
+    async def broker_url(self, tenant: Tenant) -> str: ...
+
     async def fetch_entities(
         self,
         tenant: Tenant,
@@ -34,5 +36,19 @@ class ContextBrokerPort(Protocol):
         erro. Levanta `ContextBrokerUnavailableError` (ver domain/errors.py)
         quando o broker esta inacessivel — nunca deixa uma excecao de
         transporte (httpx, socket) vazar sem contexto para quem chama.
+        """
+        ...
+
+    async def list_entity_types(self, tenant: Tenant) -> list[str]:
+        """Tipos de entidade que ja existem no broker daquele tenant (NGSI-v2
+        `GET /v2/types`) — usado para a tela de configuracao mostrar uma
+        lista real em vez do usuario digitar o tipo as cegas (self-hosted:
+        produtor as vezes tem varios Smart Data Models no mesmo broker).
+        Descoberta e' melhor-esforco: a lista pode nao cobrir 100% dos tipos
+        (ex.: um tipo provisionado sem nenhuma instancia ainda nao aparece
+        em GET /v2/types) — quem chama sempre precisa continuar permitindo
+        entrada manual, nunca tratar isto como a lista definitiva. Levanta
+        `ContextBrokerUnavailableError` nas mesmas condicoes de
+        `fetch_entities`.
         """
         ...

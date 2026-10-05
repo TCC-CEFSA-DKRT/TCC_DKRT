@@ -41,6 +41,7 @@ EXPECTED_TABLES = {
     "recommendations",
     "knowledge_chunks",  # Fase 6
     "catalog_sync_status",  # Fase 8
+    "tenant_accounts",
 }
 
 
@@ -61,6 +62,17 @@ async def _table_names(async_url: str) -> set[str]:
     try:
         async with engine.connect() as conn:
             return await conn.run_sync(lambda sync_conn: set(inspect(sync_conn).get_table_names()))
+    finally:
+        await engine.dispose()
+
+
+async def _column_names(async_url: str, table_name: str) -> set[str]:
+    engine = create_async_engine(async_url)
+    try:
+        async with engine.connect() as conn:
+            return await conn.run_sync(
+                lambda sync_conn: {col["name"] for col in inspect(sync_conn).get_columns(table_name)}
+            )
     finally:
         await engine.dispose()
 
@@ -195,5 +207,84 @@ class TestKnowledgeChunksSchema:
                 await engine.dispose()
 
         asyncio.run(_insert_twice())
+
+        command.downgrade(cfg, "base")
+
+
+class TestTenantAccountsSchema:
+    def test_duplicate_login_email_is_rejected_by_unique_constraint(
+        self, postgres_container
+    ):
+        async_url = postgres_container.get_connection_url().replace(
+            "postgresql+psycopg2://", "postgresql+asyncpg://"
+        )
+        cfg = _alembic_config(async_url)
+        command.upgrade(cfg, "head")
+
+        async def _insert_twice():
+            engine = create_async_engine(async_url)
+            insert_stmt = text(
+                "INSERT INTO tenant_accounts "
+                "(fiware_service, fiware_service_path, broker_url, login_email, "
+                "password_hash) "
+                "VALUES (:fiware_service, '/', 'https://orion.example.com', "
+                "'dup@example.com', 'hash')"
+            )
+            try:
+                async with engine.begin() as conn:
+                    await conn.execute(insert_stmt, {"fiware_service": "tenant_a"})
+                with pytest.raises(IntegrityError):
+                    async with engine.begin() as conn:
+                        await conn.execute(insert_stmt, {"fiware_service": "tenant_b"})
+            finally:
+                await engine.dispose()
+
+        asyncio.run(_insert_twice())
+
+        command.downgrade(cfg, "base")
+
+    def test_login_email_without_password_hash_is_rejected(self, postgres_container):
+        async_url = postgres_container.get_connection_url().replace(
+            "postgresql+psycopg2://", "postgresql+asyncpg://"
+        )
+        cfg = _alembic_config(async_url)
+        command.upgrade(cfg, "head")
+
+        async def _insert_incomplete_login():
+            engine = create_async_engine(async_url)
+            try:
+                with pytest.raises(IntegrityError):
+                    async with engine.begin() as conn:
+                        await conn.execute(
+                            text(
+                                "INSERT INTO tenant_accounts "
+                                "(fiware_service, fiware_service_path, broker_url, "
+                                "login_email, password_hash) "
+                                "VALUES ('tenant_c', '/', 'https://orion.example.com', "
+                                "'sem-senha@example.com', NULL)"
+                            )
+                        )
+            finally:
+                await engine.dispose()
+
+        asyncio.run(_insert_incomplete_login())
+
+        command.downgrade(cfg, "base")
+
+    def test_broker_api_key_column_is_renamed_to_encrypted(self, postgres_container):
+        async_url = postgres_container.get_connection_url().replace(
+            "postgresql+psycopg2://", "postgresql+asyncpg://"
+        )
+        cfg = _alembic_config(async_url)
+        command.upgrade(cfg, "head")
+
+        columns = asyncio.run(_column_names(async_url, "tenant_accounts"))
+        assert "broker_api_key_encrypted" in columns
+        assert "broker_api_key" not in columns
+
+        command.downgrade(cfg, "edfd0898f739")
+        columns = asyncio.run(_column_names(async_url, "tenant_accounts"))
+        assert "broker_api_key" in columns
+        assert "broker_api_key_encrypted" not in columns
 
         command.downgrade(cfg, "base")

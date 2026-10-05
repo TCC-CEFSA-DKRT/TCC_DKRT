@@ -98,3 +98,21 @@ class TestFetchEntities:
         result = await adapter.fetch_entities(empty_tenant, EntityType("Streetlight"))
 
         assert result == []
+
+    @pytest.mark.asyncio
+    async def test_empty_fiware_service_finds_an_entity_created_without_the_header(self):
+        entity_id = "urn:ngsi-ld:Streetlight:no-tenant-1"
+        entity = _entity(entity_id, "Streetlight")
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(f"{_ORION_URL}/v2/entities", json=entity)
+            assert resp.status_code in (201, 422), resp.text  # 422 = ja existe de um run anterior
+            try:
+                adapter = OrionAdapter(_ORION_URL)
+
+                result = await adapter.fetch_entities(
+                    Tenant(fiware_service="", fiware_service_path="/"), EntityType("Streetlight")
+                )
+
+                assert entity_id in {e["id"] for e in result}
+            finally:
+                await client.delete(f"{_ORION_URL}/v2/entities/{entity_id}")

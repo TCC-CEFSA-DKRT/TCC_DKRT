@@ -21,3 +21,11 @@ output "worker_dlq_function_name" {
 output "api_target_group_arn" {
   value = aws_lb_target_group.api.arn
 }
+
+output "admin_function_name" {
+  value = aws_lambda_function.admin.function_name
+}
+
+output "admin_invoke_policy_arn" {
+  value = aws_iam_policy.admin_invoke.arn
+}

@@ -9,10 +9,6 @@ class DomainError(Exception):
     """Classe base para toda violação de invariante de domínio."""
 
 
-class InvalidTenantError(DomainError):
-    """Um `Tenant` foi construído com dados inválidos."""
-
-
 class InvalidEntityTypeError(DomainError):
     """Um `EntityType` foi construído com dados inválidos."""
 
@@ -71,6 +67,15 @@ class ContextBrokerUnavailableError(DomainError):
     resultado valido de auditoria (`NO_MODEL_FOUND`/`SCHEMA_UNAVAILABLE`):
     isso e' falha de infraestrutura, e quem orquestra (`RunAuditUseCase`)
     decide explicitamente marcar o run como `FAILED` por causa dela."""
+
+
+class TenantBrokerNotConfiguredError(DomainError):
+    def __init__(self, tenant) -> None:
+        self.fiware_service = tenant.fiware_service
+        self.fiware_service_path = tenant.fiware_service_path
+        super().__init__(
+            f"Nenhuma conta cadastrada para {tenant.fiware_service}/{tenant.fiware_service_path}."
+        )
 
 
 class InconsistentSemanticAnalysisResultError(DomainError):

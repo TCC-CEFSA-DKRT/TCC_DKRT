@@ -13,3 +13,11 @@ output "jwt_signing_key_parameter_name" {
 output "jwt_signing_key_parameter_arn" {
   value = aws_ssm_parameter.jwt_signing_key.arn
 }
+
+output "broker_api_key_encryption_keys_parameter_name" {
+  value = aws_ssm_parameter.broker_api_key_encryption_keys.name
+}
+
+output "broker_api_key_encryption_keys_parameter_arn" {
+  value = aws_ssm_parameter.broker_api_key_encryption_keys.arn
+}

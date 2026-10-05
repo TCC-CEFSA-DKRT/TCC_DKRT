@@ -70,14 +70,14 @@ def load_env_vars_from_parameter_store(
     `WithDecryption=True` — obrigatorio para `SecureString`) e grava em
     `os.environ[ENV_VAR]`. Nunca sobrescreve uma variavel ja' presente.
 
-    Usado hoje para deixar `ORION_CREDENTIALS_JSON`/`JWT_SIGNING_KEY`
+    Usado hoje para deixar `JWT_SIGNING_KEY`/`BROKER_API_KEY_ENCRYPTION_KEYS`
     disponiveis no ambiente do Lambda (a infraestrutura do
-    `modules/parameter_store` já os provisiona, ADR-0017) — `Settings`
-    ainda NAO le nenhum dos dois (autenticacao/credenciais por cliente do
-    Orion sao gap conhecido, fora do escopo das Fases 1-9, mesmo raciocinio
-    ja' registrado em `.cursor/specs/fase9.spec.md`, secao 2.5). Chamar esta
-    funcao hoje so' garante que o valor decifrado chega ao processo; nao ha'
-    nenhum consumidor downstream ainda."""
+    `modules/parameter_store` já os provisiona, ADR-0017/ADR-0019) — ambos
+    sao lidos por `Settings` (`jwt_signing_key`/
+    `broker_api_key_encryption_keys`). `ORION_CREDENTIALS_JSON` continua
+    sendo carregado por este mesmo mecanismo, mas sem consumidor
+    downstream: `Settings` nao tem esse campo (`extra="ignore"`) — gap
+    conhecido, fora do escopo deste ADR."""
     if not parameter_names_by_env_var:
         return
 

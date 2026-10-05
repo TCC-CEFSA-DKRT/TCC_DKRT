@@ -23,3 +23,11 @@ output "ecr_repository_url" {
   description = "Repositório ECR onde a imagem de contêiner (Dockerfile na raiz do repo) deve ser publicada antes do primeiro apply real -- ver modules/lambda_compute."
   value       = module.lambda_compute.ecr_repository_url
 }
+
+output "admin_function_name" {
+  value = module.lambda_compute.admin_function_name
+}
+
+output "admin_invoke_policy_arn" {
+  value = module.lambda_compute.admin_invoke_policy_arn
+}

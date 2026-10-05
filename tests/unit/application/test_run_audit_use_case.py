@@ -33,6 +33,7 @@ from auditor.domain.errors import (
     ContextBrokerUnavailableError,
     RunNotFoundError,
     SchemaUnavailableError,
+    TenantBrokerNotConfiguredError,
 )
 from auditor.domain.ports.schema_catalog_port import ResolvedSchema
 from auditor.domain.ports.semantic_analyzer_port import SemanticAnalysisResult
@@ -75,14 +76,27 @@ def _raw_entity(entity_id: str, entity_type: str = "Streetlight", **attrs) -> di
 
 
 class _FakeContextBroker:
-    def __init__(self, entities=None, error: Exception | None = None):
+    def __init__(
+        self,
+        entities=None,
+        error: Exception | None = None,
+        broker_urls: dict | None = None,
+        broker_url_error: Exception | None = None,
+    ):
         self._entities = entities or []
         self._error = error
+        self._broker_urls = broker_urls or {}
+        self._broker_url_error = broker_url_error
 
     async def fetch_entities(self, tenant, entity_type, entity_id=None):
         if self._error is not None:
             raise self._error
         return self._entities
+
+    async def broker_url(self, tenant):
+        if self._broker_url_error is not None:
+            raise self._broker_url_error
+        return self._broker_urls.get(tenant, "http://orion:1026")
 
 
 class _FakeSchemaCatalog:
@@ -274,7 +288,6 @@ def _make_use_case(
         validator=StructuralValidator(),
         mapper=NgsiV2Mapper(),
         uow=uow,
-        broker_url="http://orion:1026",
         clock=clock or (lambda: _NOW),
         job_queue=job_queue,
         knowledge_retriever=knowledge_retriever,
@@ -319,6 +332,17 @@ class TestHappyPath:
         assert run.summary.total_entities == 2
         assert run.summary.conformant_count == 1
         assert run.summary.non_conformant_count == 1
+
+    @pytest.mark.asyncio
+    async def test_execute_with_zero_entities_is_marked_no_entities_found(self):
+        use_case, repo = _make_use_case(_FakeContextBroker([]), _FakeSchemaCatalog())
+
+        run_id = await use_case.execute(_TENANT, EntityType("Streetlight"))
+        run = await repo.get_by_id(run_id, _TENANT)
+
+        assert run.status == RunStatus.NO_ENTITIES_FOUND
+        assert run.summary.total_entities == 0
+        assert run.finished_at is not None
 
 
 class TestResilience:
@@ -472,6 +496,18 @@ class TestProcess:
         assert persisted.finished_at is not None
 
     @pytest.mark.asyncio
+    async def test_process_with_zero_entities_is_marked_no_entities_found(self):
+        use_case, repo = _make_use_case(_FakeContextBroker([]), _FakeSchemaCatalog())
+        run = await use_case.create_run(_TENANT, EntityType("Streetlight"))
+
+        await use_case.process(run.id, _TENANT, EntityType("Streetlight"))
+
+        persisted = await repo.get_by_id(run.id, _TENANT)
+        assert persisted.status == RunStatus.NO_ENTITIES_FOUND
+        assert persisted.total_entities_discovered == 0
+        assert persisted.summary.total_entities == 0
+
+    @pytest.mark.asyncio
     async def test_process_propagates_context_broker_failure_instead_of_swallowing_it(self):
         use_case, repo = _make_use_case(
             _FakeContextBroker(error=ContextBrokerUnavailableError("orion fora do ar")),
@@ -528,6 +564,70 @@ class TestProcess:
         assert persisted.summary.total_entities == 10
         assert len(persisted.reports) == 10
         assert {r.entity_id for r in persisted.reports} == {f"urn:{i}" for i in range(10)}
+
+
+class TestBrokerUrlPerTenant:
+    @pytest.mark.asyncio
+    async def test_create_run_records_the_broker_url_the_port_gives_for_that_tenant(self):
+        tenant_a = Tenant(fiware_service="tenant_a", fiware_service_path="/")
+        tenant_b = Tenant(fiware_service="tenant_b", fiware_service_path="/")
+        broker = _FakeContextBroker(
+            broker_urls={
+                tenant_a: "https://orion-a.example.com",
+                tenant_b: "https://orion-b.example.com",
+            }
+        )
+        use_case, repo = _make_use_case(broker, _FakeSchemaCatalog())
+
+        run_a = await use_case.create_run(tenant_a, EntityType("Streetlight"))
+        run_b = await use_case.create_run(tenant_b, EntityType("Streetlight"))
+
+        assert repo.runs[run_a.id].broker_url == "https://orion-a.example.com"
+        assert repo.runs[run_b.id].broker_url == "https://orion-b.example.com"
+
+    @pytest.mark.asyncio
+    async def test_start_propagates_tenant_broker_not_configured_before_any_side_effect(self):
+        queue = _FakeJobQueue()
+        broker = _FakeContextBroker(broker_url_error=TenantBrokerNotConfiguredError(_TENANT))
+        use_case, repo = _make_use_case(broker, _FakeSchemaCatalog(), job_queue=queue)
+
+        with pytest.raises(TenantBrokerNotConfiguredError):
+            await use_case.start(_TENANT, EntityType("Streetlight"))
+
+        assert repo.runs == {}
+        assert queue.enqueued == []
+
+    @pytest.mark.asyncio
+    async def test_process_marks_run_failed_when_the_tenant_broker_is_not_configured(self):
+        broker = _FakeContextBroker(
+            error=TenantBrokerNotConfiguredError(_TENANT),
+            broker_urls={_TENANT: "http://orion:1026"},
+        )
+        use_case, repo = _make_use_case(broker, _FakeSchemaCatalog())
+        run = await use_case.create_run(_TENANT, EntityType("Streetlight"))
+
+        await use_case.process(run.id, _TENANT, EntityType("Streetlight"))
+
+        persisted = await repo.get_by_id(run.id, _TENANT)
+        assert persisted.status == RunStatus.FAILED
+        assert persisted.failure_reason == "tenant_broker_not_configured"
+        assert persisted.finished_at is not None
+
+    @pytest.mark.asyncio
+    async def test_process_run_marks_run_failed_when_the_tenant_broker_is_not_configured(self):
+        broker = _FakeContextBroker(
+            error=TenantBrokerNotConfiguredError(_TENANT),
+            broker_urls={_TENANT: "http://orion:1026"},
+        )
+        use_case, repo = _make_use_case(broker, _FakeSchemaCatalog())
+        run = await use_case.create_run(_TENANT, EntityType("Streetlight"))
+
+        await use_case.process_run(run.id, _TENANT, EntityType("Streetlight"))
+
+        persisted = await repo.get_by_id(run.id, _TENANT)
+        assert persisted.status == RunStatus.FAILED
+        assert persisted.failure_reason == "tenant_broker_not_configured"
+        assert persisted.finished_at is not None
 
 
 class TestMarkFailed:

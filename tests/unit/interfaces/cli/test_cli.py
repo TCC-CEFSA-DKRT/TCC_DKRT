@@ -10,8 +10,11 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
+from cryptography.fernet import InvalidToken
+from sqlalchemy.exc import IntegrityError
 from typer.testing import CliRunner
 
+from auditor.application.use_cases.sync_knowledge_base import KnowledgeSyncResult
 from auditor.domain.entities.audit_run import AuditRun, RunStatus
 from auditor.domain.value_objects.tenant import Tenant
 from auditor.infrastructure.config.settings import Settings
@@ -70,6 +73,26 @@ class TestRunCommand:
         assert result.exit_code == 0
         assert str(run.id) in result.stdout
         assert "completed" in result.stdout
+
+    def test_run_with_explicit_empty_tenant_overrides_settings(self, monkeypatch):
+        run = _completed_run()
+        received: dict = {}
+
+        class _RecordingUseCase:
+            async def execute(self, tenant, entity_type=None, entity_id=None):
+                received["tenant"] = tenant
+                return run.id
+
+        monkeypatch.setattr(
+            cli_main, "get_settings", lambda: Settings(_env_file=None, fiware_service="openiot")
+        )
+        monkeypatch.setattr(cli_main, "get_run_audit_use_case", lambda: _RecordingUseCase())
+        monkeypatch.setattr(cli_main, "get_unit_of_work", lambda: _FakeUnitOfWork(run))
+
+        result = runner.invoke(cli_main.app, ["run", "--tenant", ""])
+
+        assert result.exit_code == 0
+        assert received["tenant"] == Tenant(fiware_service="", fiware_service_path="/")
 
 
 class TestStatusCommand:
@@ -138,3 +161,342 @@ class TestCatalogSyncCommand:
         assert invocation.exit_code != 0
         assert "Traceback" not in invocation.output
         assert "catalogo indisponivel" in invocation.output
+
+
+class _FakeSyncKnowledgeBaseUseCase:
+    def __init__(self, result: KnowledgeSyncResult):
+        self._result = result
+
+    async def execute(self) -> KnowledgeSyncResult:
+        return self._result
+
+
+class TestKnowledgeSyncCommand:
+    """`audit knowledge sync` -- unico gatilho de SyncKnowledgeBaseUseCase fora
+    dos testes de integracao do proprio use case (mesmo gap ja corrigido para
+    o catalogo, ver TestCatalogSyncCommand e container.get_sync_knowledge_base_use_case)."""
+
+    def test_successful_sync_prints_counts(self, monkeypatch):
+        result = KnowledgeSyncResult(created=4, updated=0, deleted=0, total=4)
+        monkeypatch.setattr(
+            cli_main, "get_sync_knowledge_base_use_case", lambda: _FakeSyncKnowledgeBaseUseCase(result)
+        )
+
+        invocation = runner.invoke(cli_main.app, ["knowledge", "sync"])
+
+        assert invocation.exit_code == 0
+        assert "4 chunks" in invocation.stdout
+        assert "4 novos" in invocation.stdout
+
+    def test_unexpected_exception_returns_nonzero_exit_without_raw_traceback(self, monkeypatch):
+        class _RaisingUseCase:
+            async def execute(self):
+                raise RuntimeError("base de dados indisponivel")
+
+        monkeypatch.setattr(cli_main, "get_sync_knowledge_base_use_case", lambda: _RaisingUseCase())
+
+        invocation = runner.invoke(cli_main.app, ["knowledge", "sync"])
+
+        assert invocation.exit_code != 0
+        assert "Traceback" not in invocation.output
+        assert "base de dados indisponivel" in invocation.output
+
+
+class _FakeTenantAccountRepository:
+    def __init__(self, count: int = 0, error: Exception | None = None, register_error: Exception | None = None):
+        self._count = count
+        self._error = error
+        self._register_error = register_error
+        self.create_calls: list[dict] = []
+
+    async def rotate_encryption(self) -> int:
+        if self._error is not None:
+            raise self._error
+        return self._count
+
+    async def create(self, tenant, broker_url, broker_api_key=None, login_email=None, password=None):
+        if self._register_error is not None:
+            raise self._register_error
+        self.create_calls.append(
+            {
+                "tenant": tenant,
+                "broker_url": broker_url,
+                "broker_api_key": broker_api_key,
+                "login_email": login_email,
+                "password": password,
+            }
+        )
+
+
+class TestTenantRotateKeysCommand:
+    def test_successful_rotation_prints_count(self, monkeypatch):
+        monkeypatch.setattr(
+            cli_main, "get_tenant_account_repository", lambda: _FakeTenantAccountRepository(3)
+        )
+
+        invocation = runner.invoke(cli_main.app, ["tenant", "rotate-keys"])
+
+        assert invocation.exit_code == 0
+        assert "3 linhas" in invocation.stdout
+
+    def test_undecryptable_row_returns_nonzero_exit_with_clear_message(self, monkeypatch):
+        monkeypatch.setattr(
+            cli_main,
+            "get_tenant_account_repository",
+            lambda: _FakeTenantAccountRepository(error=InvalidToken()),
+        )
+
+        invocation = runner.invoke(cli_main.app, ["tenant", "rotate-keys"])
+
+        assert invocation.exit_code != 0
+        assert "Traceback" not in invocation.output
+        assert "nada foi alterado" in invocation.output
+
+    def test_unexpected_exception_returns_nonzero_exit_without_raw_traceback(self, monkeypatch):
+        monkeypatch.setattr(
+            cli_main,
+            "get_tenant_account_repository",
+            lambda: _FakeTenantAccountRepository(
+                error=RuntimeError("BROKER_API_KEY_ENCRYPTION_KEYS nao configurada")
+            ),
+        )
+
+        invocation = runner.invoke(cli_main.app, ["tenant", "rotate-keys"])
+
+        assert invocation.exit_code != 0
+        assert "Traceback" not in invocation.output
+        assert "BROKER_API_KEY_ENCRYPTION_KEYS nao configurada" in invocation.output
+
+
+class TestTenantRegisterCommand:
+    def test_c1_saas_account_with_email_and_password_never_echoes_the_password(self, monkeypatch):
+        fake = _FakeTenantAccountRepository()
+        monkeypatch.setattr(cli_main, "get_tenant_account_repository", lambda: fake)
+
+        invocation = runner.invoke(
+            cli_main.app,
+            [
+                "tenant",
+                "register",
+                "--tenant",
+                "openiot",
+                "--broker-url",
+                "https://orion.example.com",
+                "--email",
+                "user@example.com",
+                "--password",
+                "senha-super-secreta",
+            ],
+        )
+
+        assert invocation.exit_code == 0
+        assert len(fake.create_calls) == 1
+        assert fake.create_calls[0]["login_email"] == "user@example.com"
+        assert fake.create_calls[0]["password"] == "senha-super-secreta"
+        assert "senha-super-secreta" not in invocation.output
+
+    def test_c2_email_without_password_generates_and_prints_it_once(self, monkeypatch):
+        fake = _FakeTenantAccountRepository()
+        monkeypatch.setattr(cli_main, "get_tenant_account_repository", lambda: fake)
+
+        invocation = runner.invoke(
+            cli_main.app,
+            [
+                "tenant",
+                "register",
+                "--tenant",
+                "openiot",
+                "--broker-url",
+                "https://orion.example.com",
+                "--email",
+                "user@example.com",
+            ],
+        )
+
+        assert invocation.exit_code == 0
+        generated_password = fake.create_calls[0]["password"]
+        assert generated_password is not None
+        assert invocation.output.count(generated_password) == 1
+
+    def test_c3_without_email_creates_a_self_hosted_row_and_prints_no_password(self, monkeypatch):
+        fake = _FakeTenantAccountRepository()
+        monkeypatch.setattr(cli_main, "get_tenant_account_repository", lambda: fake)
+
+        invocation = runner.invoke(
+            cli_main.app,
+            [
+                "tenant",
+                "register",
+                "--tenant",
+                "openiot",
+                "--broker-url",
+                "https://orion.example.com",
+            ],
+        )
+
+        assert invocation.exit_code == 0
+        assert fake.create_calls[0]["login_email"] is None
+        assert fake.create_calls[0]["password"] is None
+        assert "Senha inicial" not in invocation.output
+
+    def test_c8_empty_tenant_without_email_creates_self_hosted_row(self, monkeypatch):
+        fake = _FakeTenantAccountRepository()
+        monkeypatch.setattr(cli_main, "get_tenant_account_repository", lambda: fake)
+
+        invocation = runner.invoke(
+            cli_main.app,
+            [
+                "tenant",
+                "register",
+                "--tenant",
+                "",
+                "--broker-url",
+                "https://orion.example.com",
+            ],
+        )
+
+        assert invocation.exit_code == 0
+        assert fake.create_calls[0]["tenant"] == Tenant(fiware_service="", fiware_service_path="/")
+
+    def test_c9_empty_tenant_with_email_is_rejected_without_calling_create(self, monkeypatch):
+        fake = _FakeTenantAccountRepository()
+        monkeypatch.setattr(cli_main, "get_tenant_account_repository", lambda: fake)
+
+        invocation = runner.invoke(
+            cli_main.app,
+            [
+                "tenant",
+                "register",
+                "--tenant",
+                "",
+                "--broker-url",
+                "https://orion.example.com",
+                "--email",
+                "user@example.com",
+            ],
+        )
+
+        assert invocation.exit_code != 0
+        assert fake.create_calls == []
+
+    def test_c4_password_without_email_is_rejected_without_calling_create(self, monkeypatch):
+        fake = _FakeTenantAccountRepository()
+        monkeypatch.setattr(cli_main, "get_tenant_account_repository", lambda: fake)
+
+        invocation = runner.invoke(
+            cli_main.app,
+            [
+                "tenant",
+                "register",
+                "--tenant",
+                "openiot",
+                "--broker-url",
+                "https://orion.example.com",
+                "--password",
+                "senha-super-secreta",
+            ],
+        )
+
+        assert invocation.exit_code != 0
+        assert fake.create_calls == []
+
+    def test_c4_empty_password_is_rejected_without_calling_create(self, monkeypatch):
+        fake = _FakeTenantAccountRepository()
+        monkeypatch.setattr(cli_main, "get_tenant_account_repository", lambda: fake)
+
+        invocation = runner.invoke(
+            cli_main.app,
+            [
+                "tenant",
+                "register",
+                "--tenant",
+                "openiot",
+                "--broker-url",
+                "https://orion.example.com",
+                "--email",
+                "user@example.com",
+                "--password",
+                "",
+            ],
+        )
+
+        assert invocation.exit_code != 0
+        assert fake.create_calls == []
+
+    def test_c5_duplicate_tenant_maps_constraint_name_and_hides_raw_error(self, monkeypatch):
+        register_error = IntegrityError(
+            "INSERT",
+            {"password_hash": "SEGREDO"},
+            Exception('duplicate key value violates unique constraint "pk_tenant_accounts"'),
+        )
+        fake = _FakeTenantAccountRepository(register_error=register_error)
+        monkeypatch.setattr(cli_main, "get_tenant_account_repository", lambda: fake)
+
+        invocation = runner.invoke(
+            cli_main.app,
+            [
+                "tenant",
+                "register",
+                "--tenant",
+                "openiot",
+                "--broker-url",
+                "https://orion.example.com",
+            ],
+        )
+
+        assert invocation.exit_code != 0
+        assert "ja existe conta" in invocation.output
+        assert "SEGREDO" not in invocation.output
+        assert "Traceback" not in invocation.output
+
+    def test_c6_duplicate_email_maps_constraint_name(self, monkeypatch):
+        register_error = IntegrityError(
+            "INSERT",
+            {"password_hash": "SEGREDO"},
+            Exception(
+                'duplicate key value violates unique constraint "uq_tenant_accounts_login_email"'
+            ),
+        )
+        fake = _FakeTenantAccountRepository(register_error=register_error)
+        monkeypatch.setattr(cli_main, "get_tenant_account_repository", lambda: fake)
+
+        invocation = runner.invoke(
+            cli_main.app,
+            [
+                "tenant",
+                "register",
+                "--tenant",
+                "openiot",
+                "--broker-url",
+                "https://orion.example.com",
+                "--email",
+                "user@example.com",
+                "--password",
+                "senha-super-secreta",
+            ],
+        )
+
+        assert invocation.exit_code != 0
+        assert "email ja esta em uso" in invocation.output
+        assert "SEGREDO" not in invocation.output
+        assert "Traceback" not in invocation.output
+
+    def test_c7_generic_exception_returns_nonzero_exit_without_traceback(self, monkeypatch):
+        fake = _FakeTenantAccountRepository(register_error=RuntimeError("banco indisponivel"))
+        monkeypatch.setattr(cli_main, "get_tenant_account_repository", lambda: fake)
+
+        invocation = runner.invoke(
+            cli_main.app,
+            [
+                "tenant",
+                "register",
+                "--tenant",
+                "openiot",
+                "--broker-url",
+                "https://orion.example.com",
+            ],
+        )
+
+        assert invocation.exit_code != 0
+        assert "Traceback" not in invocation.output
+        assert "banco indisponivel" in invocation.output

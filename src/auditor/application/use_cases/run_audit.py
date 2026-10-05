@@ -82,6 +82,7 @@ from auditor.domain.errors import (
     ContextBrokerUnavailableError,
     MalformedAttributeError,
     SchemaUnavailableError,
+    TenantBrokerNotConfiguredError,
 )
 from auditor.domain.ports.context_broker_port import ContextBrokerPort, RawEntity
 from auditor.domain.ports.job_queue_port import JobQueuePort
@@ -124,7 +125,6 @@ class RunAuditUseCase:
         mapper: NgsiV2Mapper,
         uow: UnitOfWork,
         *,
-        broker_url: str,
         clock: Callable[[], datetime] | None = None,
         job_queue: JobQueuePort | None = None,
         knowledge_retriever: KnowledgeRetrieverPort | None = None,
@@ -135,7 +135,6 @@ class RunAuditUseCase:
         self._validator = validator
         self._mapper = mapper
         self._uow = uow
-        self._broker_url = broker_url
         self._clock = clock or (lambda: datetime.now(timezone.utc))
         # Opcional de proposito (Fase 4 nao tinha fila nenhuma): so'
         # `start()` (Fase 5) precisa dele — `execute()`/`create_run()`/
@@ -177,7 +176,9 @@ class RunAuditUseCase:
         nenhuma entidade — uso tipico: API REST, que precisa do run_id para
         responder 202 antes do processamento acabar."""
         run = AuditRun.create(
-            tenant=tenant, entity_type=entity_type, broker_url=self._broker_url
+            tenant=tenant,
+            entity_type=entity_type,
+            broker_url=await self._context_broker.broker_url(tenant),
         )
         async with self._uow as uow:
             await uow.audits.create_run(run)
@@ -206,6 +207,16 @@ class RunAuditUseCase:
                     run_id, tenant, RunStatus.FAILED, finished_at=self._clock()
                 )
             return
+        except TenantBrokerNotConfiguredError:
+            async with self._uow as uow:
+                await uow.audits.update_run_status(
+                    run_id,
+                    tenant,
+                    RunStatus.FAILED,
+                    finished_at=self._clock(),
+                    failure_reason="tenant_broker_not_configured",
+                )
+            return
 
         partial = False
         for raw_entity in raw_entities:
@@ -221,7 +232,12 @@ class RunAuditUseCase:
                 partial = True
                 break
 
-        final_status = RunStatus.PARTIAL if partial else RunStatus.COMPLETED
+        if partial:
+            final_status = RunStatus.PARTIAL
+        elif not raw_entities:
+            final_status = RunStatus.NO_ENTITIES_FOUND
+        else:
+            final_status = RunStatus.COMPLETED
         async with self._uow as uow:
             await uow.audits.update_run_status(
                 run_id, tenant, final_status, finished_at=self._clock()
@@ -280,7 +296,20 @@ class RunAuditUseCase:
         async with self._uow as uow:
             await uow.audits.update_run_status(run_id, tenant, RunStatus.RUNNING)
 
-        raw_entities = await self._context_broker.fetch_entities(tenant, entity_type, entity_id)
+        try:
+            raw_entities = await self._context_broker.fetch_entities(
+                tenant, entity_type, entity_id
+            )
+        except TenantBrokerNotConfiguredError:
+            async with self._uow as uow:
+                await uow.audits.update_run_status(
+                    run_id,
+                    tenant,
+                    RunStatus.FAILED,
+                    finished_at=self._clock(),
+                    failure_reason="tenant_broker_not_configured",
+                )
+            return
 
         async with self._uow as uow:
             await uow.audits.set_total_entities(run_id, tenant, len(raw_entities))
@@ -290,9 +319,10 @@ class RunAuditUseCase:
             async with self._uow as uow:
                 await uow.audits.append_report(run_id, tenant, report)
 
+        final_status = RunStatus.NO_ENTITIES_FOUND if not raw_entities else RunStatus.COMPLETED
         async with self._uow as uow:
             await uow.audits.update_run_status(
-                run_id, tenant, RunStatus.COMPLETED, finished_at=self._clock()
+                run_id, tenant, final_status, finished_at=self._clock()
             )
 
     async def mark_failed(self, run_id: UUID, tenant: Tenant, reason: str) -> None:

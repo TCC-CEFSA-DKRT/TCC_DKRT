@@ -1,0 +1,37 @@
+<app-split-panel>
+  <h2 class="login-title">Entrar</h2>
+  <form class="login-form" (ngSubmit)="onSubmit()">
+    <label class="login-field" for="login-email">
+      <span>Email</span>
+      <input
+        id="login-email"
+        class="login-field__input"
+        type="email"
+        name="email"
+        autocomplete="username"
+        [(ngModel)]="email"
+        required
+      />
+    </label>
+    <label class="login-field" for="login-password">
+      <span>Senha</span>
+      <input
+        id="login-password"
+        class="login-field__input"
+        type="password"
+        name="password"
+        autocomplete="current-password"
+        [(ngModel)]="password"
+        required
+      />
+    </label>
+
+    @if (state() === 'error') {
+      <p class="login-error">{{ errorMessage() }}</p>
+    }
+
+    <button type="submit" class="login-submit" [disabled]="state() === 'submitting'">
+      Entrar
+    </button>
+  </form>
+</app-split-panel>

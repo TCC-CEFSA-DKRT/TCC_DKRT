@@ -18,6 +18,7 @@ from __future__ import annotations
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Column,
     DateTime,
     Float,
@@ -25,6 +26,7 @@ from sqlalchemy import (
     Index,
     Integer,
     MetaData,
+    PrimaryKeyConstraint,
     String,
     Table,
     UniqueConstraint,
@@ -147,6 +149,27 @@ Index(
     knowledge_chunks_table.c.embedding,
     postgresql_using="hnsw",
     postgresql_ops={"embedding": "vector_cosine_ops"},
+)
+
+
+tenant_accounts_table = Table(
+    "tenant_accounts",
+    metadata,
+    Column("fiware_service", String, nullable=False),
+    Column("fiware_service_path", String, nullable=False),
+    Column("broker_url", String, nullable=False),
+    Column("broker_api_key_encrypted", String, nullable=True),
+    Column("login_email", String, nullable=True),
+    Column("password_hash", String, nullable=True),
+    Column("created_at", DateTime(timezone=True), nullable=False, server_default=text("now()")),
+    Column("updated_at", DateTime(timezone=True), nullable=False, server_default=text("now()")),
+    PrimaryKeyConstraint("fiware_service", "fiware_service_path", name="pk_tenant_accounts"),
+    UniqueConstraint("login_email", name="uq_tenant_accounts_login_email"),
+    CheckConstraint(
+        "(login_email IS NULL) = (password_hash IS NULL)",
+        name="ck_tenant_accounts_login_pair",
+    ),
+    CheckConstraint("broker_url <> ''", name="ck_tenant_accounts_broker_url_not_empty"),
 )
 
 

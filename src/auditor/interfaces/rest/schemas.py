@@ -5,10 +5,10 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, Literal, TypeVar
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from auditor.domain.entities.audit_run import AuditRun
 from auditor.domain.entities.entity_report import EntityReport, SemanticAnalysisUsage
@@ -18,6 +18,39 @@ from auditor.domain.ports.audit_repository_port import AuditRunSummaryView, Page
 from auditor.domain.ports.command_interpreter_port import AuditCommandInterpretation
 
 T = TypeVar("T")
+
+
+class LoginRequest(BaseModel):
+    login_email: str
+    password: str
+
+
+class AccessTokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class TenantResponse(BaseModel):
+    fiware_service: str
+    fiware_service_path: str
+
+
+class SessionResponse(BaseModel):
+    deployment_mode: Literal["saas", "selfhosted"]
+    tenant: TenantResponse | None
+
+
+class BrokerConfigRequest(BaseModel):
+    broker_url: str = Field(pattern=r"^https?://\S+$")
+    fiware_service: str = Field(pattern=r"^[A-Za-z0-9_]{0,50}$")
+    fiware_service_path: str = Field(default="/", pattern=r"^/([A-Za-z0-9_]+(/[A-Za-z0-9_]+)*)?$")
+
+
+class BrokerConfigResponse(BaseModel):
+    configured: bool
+    broker_url: str
+    fiware_service: str
+    fiware_service_path: str
 
 
 class AuditCreateRequest(BaseModel):
@@ -246,18 +279,28 @@ class InterpretAuditRequest(BaseModel):
 
 
 class InterpretAuditResponse(BaseModel):
+    intent: Literal["audit", "discovery"]
     entity_type: str | None
     entity_id: str | None
     confidence: float
     raw_command: str
+    discovered_types: list[str] | None
+    broker_reachable: bool | None
 
     @classmethod
     def from_domain(cls, interpretation: AuditCommandInterpretation) -> "InterpretAuditResponse":
         return cls(
+            intent=interpretation.intent,
             entity_type=interpretation.entity_type,
             entity_id=interpretation.entity_id,
             confidence=interpretation.confidence,
             raw_command=interpretation.raw_command,
+            discovered_types=(
+                list(interpretation.discovered_types)
+                if interpretation.discovered_types is not None
+                else None
+            ),
+            broker_reachable=interpretation.broker_reachable,
         )
 
 
@@ -273,6 +316,19 @@ class CatalogStatusResponse(BaseModel):
     last_sync_successful: bool | None
     last_sync_error: str | None
     models_count: int | None
+
+
+class EntityTypesResponse(BaseModel):
+    """`GET /entity-types` — tipos de entidade descobertos no broker do
+    tenant (ContextBrokerPort.list_entity_types), pra tela de configuracao
+    popular um seletor em vez do usuario digitar o tipo as cegas.
+    `broker_reachable=False` (com `types=[]`) sinaliza que o broker nao
+    respondeu — nunca um erro 5xx que bloquearia a tela; quem chama sempre
+    permite entrada manual do tipo, entao descoberta indisponivel nao pode
+    impedir de configurar a auditoria mesmo assim."""
+
+    types: list[str]
+    broker_reachable: bool
 
 
 class CatalogModelResponse(BaseModel):

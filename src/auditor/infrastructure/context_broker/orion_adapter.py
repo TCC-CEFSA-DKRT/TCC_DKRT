@@ -19,9 +19,28 @@ _PAGE_SIZE = 1000
 
 
 class OrionAdapter(ContextBrokerPort):
-    def __init__(self, base_url: str, client: httpx.AsyncClient | None = None) -> None:
+    def __init__(
+        self,
+        base_url: str,
+        client: httpx.AsyncClient | None = None,
+        *,
+        api_key: str | None = None,
+    ) -> None:
+        self._base_url_raw = base_url
         self._base_url = base_url.rstrip("/")
         self._client = client or httpx.AsyncClient()
+        self._api_key = api_key
+
+    def _headers(self, tenant: Tenant) -> dict[str, str]:
+        headers = {"Fiware-ServicePath": tenant.fiware_service_path}
+        if tenant.fiware_service:
+            headers["Fiware-Service"] = tenant.fiware_service
+        if self._api_key is not None:
+            headers["Authorization"] = f"Bearer {self._api_key}"
+        return headers
+
+    async def broker_url(self, tenant: Tenant) -> str:
+        return self._base_url_raw
 
     async def fetch_entities(
         self,
@@ -29,12 +48,7 @@ class OrionAdapter(ContextBrokerPort):
         entity_type: EntityType | None,
         entity_id: str | None = None,
     ) -> list[RawEntity]:
-        # Headers do Tenant sao sempre enviados exatamente como especificado
-        # — nunca um default silencioso que vazaria dado de outro tenant.
-        headers = {
-            "Fiware-Service": tenant.fiware_service,
-            "Fiware-ServicePath": tenant.fiware_service_path,
-        }
+        headers = self._headers(tenant)
         base_params: dict[str, str] = {}
         if entity_type is not None:
             base_params["type"] = entity_type.value
@@ -65,3 +79,25 @@ class OrionAdapter(ContextBrokerPort):
             raise ContextBrokerUnavailableError(f"Orion inacessivel: {exc}") from exc
 
         return entities
+
+    async def list_entity_types(self, tenant: Tenant) -> list[str]:
+        # GET /v2/types devolve [{"type": "...", "attrs": {...}, "count": N}, ...]
+        # -- so' o nome do tipo interessa aqui, o resto e' metadado que quem
+        # chama nao usa (descoberta pra popular um seletor, nao pra analise).
+        headers = self._headers(tenant)
+        try:
+            response = await self._client.get(
+                f"{self._base_url}/v2/types",
+                headers=headers,
+                timeout=30.0,
+            )
+            response.raise_for_status()
+            payload = response.json()
+        except httpx.HTTPStatusError as exc:
+            raise ContextBrokerUnavailableError(
+                f"Orion respondeu {exc.response.status_code} para {exc.request.url}."
+            ) from exc
+        except httpx.HTTPError as exc:
+            raise ContextBrokerUnavailableError(f"Orion inacessivel: {exc}") from exc
+
+        return [entry["type"] for entry in payload]

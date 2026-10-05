@@ -26,8 +26,11 @@ from auditor.domain.value_objects.tenant import Tenant
 from auditor.infrastructure.config.container import (
     get_interpret_audit_command_use_case,
     get_run_audit_use_case,
+    get_selfhosted_accounts,
+    get_settings,
     get_unit_of_work,
 )
+from auditor.infrastructure.config.settings import Settings
 from auditor.interfaces.rest.app import create_app
 
 _TENANT_HEADERS = {"Fiware-Service": "openiot", "Fiware-ServicePath": "/"}
@@ -130,6 +133,8 @@ def app_and_repo(fake_use_case, fake_interpret_use_case):
     app.dependency_overrides[get_run_audit_use_case] = lambda: fake_use_case
     app.dependency_overrides[get_unit_of_work] = lambda: _FakeUnitOfWork(repo)
     app.dependency_overrides[get_interpret_audit_command_use_case] = lambda: fake_interpret_use_case
+    app.dependency_overrides[get_selfhosted_accounts] = lambda: None
+    app.dependency_overrides[get_settings] = lambda: Settings(_env_file=None)
     return app, repo
 
 
@@ -162,12 +167,18 @@ class TestCreateAudit:
         assert response.status_code == 202
 
     @pytest.mark.asyncio
-    async def test_missing_tenant_header_returns_401(self, client):
+    async def test_missing_tenant_header_returns_202_with_the_settings_tenant(
+        self, client, fake_use_case
+    ):
         response = await client.post(
             "/audits", json={"entity_type": "Streetlight"}
         )
 
-        assert response.status_code == 401
+        assert response.status_code == 202
+        assert fake_use_case.started[0]["tenant"] == Tenant(
+            fiware_service=Settings(_env_file=None).fiware_service,
+            fiware_service_path=Settings(_env_file=None).fiware_service_path,
+        )
 
     @pytest.mark.asyncio
     async def test_creation_only_starts_the_run_never_processes_it_inline(self, client, fake_use_case):
@@ -186,6 +197,25 @@ class TestCreateAudit:
         call = fake_use_case.started[0]
         assert call["tenant"].fiware_service == "openiot"
         assert call["entity_type"].value == "Streetlight"
+
+    @pytest.mark.asyncio
+    async def test_start_raising_tenant_broker_not_configured_returns_401(self):
+        from auditor.domain.errors import TenantBrokerNotConfiguredError
+
+        class _FailingUseCase:
+            async def start(self, tenant, entity_type=None, entity_id=None):
+                raise TenantBrokerNotConfiguredError(tenant)
+
+        app = create_app()
+        app.dependency_overrides[get_run_audit_use_case] = lambda: _FailingUseCase()
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as failing_client:
+            response = await failing_client.post(
+                "/audits", json={"entity_type": "Streetlight"}, headers=_TENANT_HEADERS
+            )
+
+        assert response.status_code == 401
+        assert response.headers["www-authenticate"] == "Bearer"
 
 
 class TestGetAudit:
@@ -481,3 +511,73 @@ class TestInterpretAuditCommand:
 
         assert response.status_code == 200
         assert fake_use_case.started == []
+
+    @pytest.mark.asyncio
+    async def test_discovery_result_serializes_intent_and_discovered_types(
+        self, client, fake_interpret_use_case
+    ):
+        fake_interpret_use_case._interpretation = AuditCommandInterpretation(
+            entity_type=None,
+            entity_id=None,
+            confidence=0.9,
+            raw_command="quais entidades existem?",
+            intent="discovery",
+            discovered_types=("Streetlight", "AirQualityObserved"),
+            broker_reachable=True,
+        )
+
+        response = await client.post(
+            "/audits/interpret",
+            json={"command_text": "quais entidades existem?"},
+            headers=_TENANT_HEADERS,
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["intent"] == "discovery"
+        assert body["discovered_types"] == ["Streetlight", "AirQualityObserved"]
+        assert body["broker_reachable"] is True
+        assert fake_interpret_use_case.received_commands == ["quais entidades existem?"]
+
+    @pytest.mark.asyncio
+    async def test_discovery_with_unreachable_broker_serializes_empty_list_and_flag(
+        self, client, fake_interpret_use_case
+    ):
+        fake_interpret_use_case._interpretation = AuditCommandInterpretation(
+            entity_type=None,
+            entity_id=None,
+            confidence=0.9,
+            raw_command="quais entidades existem?",
+            intent="discovery",
+            discovered_types=(),
+            broker_reachable=False,
+        )
+
+        response = await client.post(
+            "/audits/interpret",
+            json={"command_text": "quais entidades existem?"},
+            headers=_TENANT_HEADERS,
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["discovered_types"] == []
+        assert body["broker_reachable"] is False
+
+    @pytest.mark.asyncio
+    async def test_audit_result_serializes_audit_intent_and_null_discovery_fields(
+        self, client, fake_interpret_use_case
+    ):
+        fake_interpret_use_case._interpretation = AuditCommandInterpretation(
+            entity_type="Streetlight", entity_id=None, confidence=0.95, raw_command="x"
+        )
+
+        response = await client.post(
+            "/audits/interpret", json={"command_text": "audite os postes"}, headers=_TENANT_HEADERS
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["intent"] == "audit"
+        assert body["discovered_types"] is None
+        assert body["broker_reachable"] is None

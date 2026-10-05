@@ -75,15 +75,57 @@ precisa de um segundo terminal para o worker em desenvolvimento. Health check:
 
 ### SLM (Nível 2) — Ollama local
 
+Ollama **não sobe com `docker compose up -d`** — o compose acima só gerencia infraestrutura de
+dados (Orion, Mongo, Postgres/pgvector), nunca o SLM. Ollama roda nativo na máquina, uma única
+vez, ficando de pé em background enquanto você usa o projeto (não é um passo a repetir a cada
+`uvicorn` que você reinicia):
+
 ```bash
-ollama serve
-ollama pull qwen2.5:7b-instruct
+ollama serve                       # deixe rodando num terminal/background
+ollama pull qwen2.5:7b-instruct    # só na primeira vez
 ```
 
 `.env` já aponta para `http://localhost:11434` / `qwen2.5:7b-instruct` por padrão
 (`OLLAMA_BASE_URL`, `OLLAMA_MODEL`). Sem Ollama rodando, o Nível 2 não derruba a auditoria —
 `SemanticAnalyzerPort` captura a falha de conexão e marca a análise como indisponível
 (`analysis_unavailable`), sem alucinar um resultado.
+
+## Instalação self-hosted (ambiente do produtor)
+
+Ver ADR-0019 (`docs/adr/adr-0019.md`) para o raciocínio completo. Os arquivos ficam em
+`selfhosted/` (separados do `Dockerfile`/`docker-compose.yml` da raiz, que são do modo
+SaaS/dev — ver "O que é cada arquivo Docker" abaixo). Para o produtor instalar a ferramenta na
+própria infraestrutura (SLM incluso, sem depender de nada externo):
+
+```bash
+cd selfhosted
+docker compose up -d --build
+```
+
+Sobe Orion+Mongo, Postgres/pgvector, Ollama (CPU-only por padrão — usa GPU sozinho se a
+máquina tiver uma) e a aplicação — migrations, sincronização do RAG e download do modelo do
+Ollama rodam automaticamente antes da API aceitar tráfego, sem nenhum comando manual. Se o
+produtor já tem um Orion próprio, remova os serviços `mongo`/`orion` de
+`selfhosted/docker-compose.yml` e aponte `FIWARE_BROKER_URL` (nos serviços `migrate` e `app`)
+para o broker existente.
+
+> Ainda não testado com `docker compose up` real — validado só como Compose/YAML
+> sintaticamente corretos. Rode localmente e reporte o que falhar antes de considerar pronto
+> para instalação em produção de um cliente.
+
+A chave de cifragem (`BROKER_API_KEY_ENCRYPTION_KEYS`) é gerada sozinha, na primeira subida, no
+volume nomeado `auditor-secrets` — nenhum passo manual. Esse volume precisa entrar no backup
+junto com `auditor-postgres-data`: perder só o primeiro torna ilegíveis as `broker_api_key`
+cifradas gravadas no segundo. `docker compose down -v` apaga os dois.
+
+### O que é cada arquivo Docker
+
+| Arquivo | Modo | O que sobe |
+|---|---|---|
+| `docker-compose.yml` (raiz) | Dev local | Só infraestrutura (Orion, Mongo, Postgres) — a aplicação roda como processo Python direto (`uvicorn`, passo 3 acima) |
+| `Dockerfile` (raiz) | SaaS/produção | Handler Lambda (ADR-0017) — nunca roda com `docker run`/`docker compose`, só via Terraform + ECR |
+| `selfhosted/docker-compose.yml` | Self-hosted | Stack completa (infra + app + SLM) para o produtor instalar na própria infraestrutura |
+| `selfhosted/Dockerfile` | Self-hosted | Mesmo código do `Dockerfile` da raiz, mas roda `uvicorn` normal em vez de handler Lambda |
 
 ## CLI
 
