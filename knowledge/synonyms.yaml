@@ -19,3 +19,119 @@
 - id: synonym-address
   canonical: address
   seen_as: [addr, endereco]
+
+- id: synonym-total-spot-number
+  canonical: totalSpotNumber
+  seen_as: [totalSpots, capacity, vagasTotais]
+
+- id: synonym-available-spot-number
+  canonical: availableSpotNumber
+  seen_as: [availableSpots, freeSpots, vagasDisponiveis]
+
+- id: synonym-relative-humidity
+  canonical: relativeHumidity
+  seen_as: [humidity, hum, umidadeRelativa]
+
+- id: synonym-wind-speed
+  canonical: windSpeed
+  seen_as: [wind, windspeed, velocidadeVento]
+
+- id: synonym-atmospheric-pressure
+  canonical: atmosphericPressure
+  seen_as: [pressure, pressao, atmPressure]
+
+- id: synonym-precipitation
+  canonical: precipitation
+  seen_as: [rain, rainfall, precipitacao]
+
+- id: synonym-filling-level
+  canonical: fillingLevel
+  seen_as: [fillLevel, fill_level, nivelPreenchimento]
+
+- id: synonym-stored-waste-kind
+  canonical: storedWasteKind
+  seen_as: [wasteType, wasteKind, tipoResiduo]
+
+- id: synonym-average-vehicle-speed
+  canonical: averageVehicleSpeed
+  seen_as: [avgSpeed, speed, velocidadeMedia]
+
+- id: synonym-intensity
+  canonical: intensity
+  seen_as: [trafficIntensity, vehicleCount, intensidade]
+
+- id: synonym-occupancy
+  canonical: occupancy
+  seen_as: [occupancyRate, occRate, ocupacao]
+
+- id: synonym-floors-above-ground
+  canonical: floorsAboveGround
+  seen_as: [floorsAbove, numFloors, andaresAcima]
+
+- id: synonym-floors-below-ground
+  canonical: floorsBelowGround
+  seen_as: [basementFloors, floorsBelow, andaresAbaixo]
+
+- id: synonym-num-bikes-available
+  canonical: num_bikes_available
+  seen_as: [bikesAvailable, availableBikes, bicicletasDisponiveis]
+
+- id: synonym-num-docks-available
+  canonical: num_docks_available
+  seen_as: [docksAvailable, availableDocks, vagasDisponiveisEstacao]
+
+- id: synonym-date-last-watering
+  canonical: dateLastWatering
+  seen_as: [lastWatering, ultimaRega, lastIrrigation]
+
+- id: synonym-next-watering-deadline
+  canonical: nextWateringDeadline
+  seen_as: [nextWatering, proximaRega, wateringDeadline]
+
+- id: synonym-clients-connected
+  canonical: clientsConnected
+  seen_as: [connectedUsers, connectedClients, usuariosConectados]
+
+- id: synonym-machine-battery-level
+  canonical: batteryLevel
+  seen_as: [battery, nivelBateria, batteryPercentage]
+
+- id: synonym-rotational-speed
+  canonical: rotationalSpeed
+  seen_as: [rpm, speed, velocidadeRotacao]
+
+- id: synonym-operation-status
+  canonical: status
+  seen_as: [operationStatus, machineStatus, estadoOperacao]
+
+- id: synonym-operation-type
+  canonical: operationType
+  seen_as: [opType, tipoOperacao, operation_type]
+
+- id: synonym-planned-start-at
+  canonical: plannedStartAt
+  seen_as: [startTime, scheduledStart, inicioPlanejado]
+
+- id: synonym-process-name
+  canonical: processName
+  seen_as: [process, nomeProcesso, processId]
+
+- id: synonym-heat-number
+  canonical: heatNumber
+  seen_as: [heatId, numeroCorrida, batchNumber]
+
+- id: synonym-running-time
+  canonical: runningTime
+  seen_as: [operatingTime, tempoOperacao, uptime]
+
+- id: synonym-weeks-for-intervention
+  canonical: weeksForIntervention
+  seen_as: [interventionWeeks, semanasParaIntervencao, timeToIntervention]
+
+- id: synonym-intervention-duration
+  canonical: interventionDuration
+  seen_as: [duration, duracaoIntervencao, serviceDuration]
+
+- id: synonym-id-short
+  canonical: idShort
+  seen_as: [shortId, shortName, nomeCurto]
