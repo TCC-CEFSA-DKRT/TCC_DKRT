@@ -1,98 +1,210 @@
 <h1 class="page-title">Natural Language</h1>
 <p class="page-subtitle">
   Descreva a auditoria que deseja rodar — ex.: "audite os sensores de qualidade do ar".
-  A interpretação é sempre mostrada para confirmação antes de qualquer execução.
+  O sistema mostra como entendeu o pedido e <strong>nada é executado sem a sua confirmação</strong>.
 </p>
 
 <form class="command-form" (ngSubmit)="onInterpret()">
+  <label class="visually-hidden" for="nl-command">Comando em linguagem natural</label>
   <input
+    id="nl-command"
     class="command-form__input"
     name="command"
+    autocomplete="off"
     placeholder="audite os sensores de qualidade do ar"
-    [(ngModel)]="commandText"
+    [maxlength]="maxLength"
+    [readonly]="isLoading()"
+    [ngModel]="commandText()"
+    (ngModelChange)="commandText.set($event)"
   />
-  <button type="submit" class="command-form__submit" [disabled]="interpretState() === 'loading'">
-    Interpretar
+  <button
+    type="submit"
+    class="command-form__submit"
+    [disabled]="isLoading() || !commandText().trim()"
+  >
+    {{ isLoading() ? 'Interpretando…' : 'Interpretar' }}
   </button>
 </form>
 
 @switch (interpretState()) {
   @case ('loading') {
-    <p class="status-text">Interpretando comando…</p>
+    <p class="status-text status-text--loading" role="status" aria-live="polite">
+      <span class="spinner" aria-hidden="true"></span>
+      Interpretando o comando… o modelo de linguagem pode levar alguns segundos.
+      Nada será executado sem a sua confirmação.
+    </p>
   }
   @case ('error') {
-    <app-error-state
-      message="Não foi possível interpretar o comando."
-      (retry)="onInterpret()"
-    />
+    <app-error-state [message]="interpretErrorMessage()" (retry)="onInterpret()" />
   }
   @case ('interpreted') {
-    @if (isDiscovery()) {
-      <div class="interpretation-panel discovery-panel">
-        <h2 class="interpretation-panel__title">Tipos de entidade no broker</h2>
-        @if (!interpretation()!.broker_reachable) {
-          <p class="discovery-panel__warning">
-            Não foi possível consultar o broker agora. Verifique a conexão na tela de Configuração e tente novamente.
-          </p>
-        } @else if ((interpretation()!.discovered_types ?? []).length === 0) {
-          <p class="discovery-panel__empty">Nenhum tipo de entidade cadastrado neste broker.</p>
-        } @else {
-          <ul class="discovery-panel__types">
-            @for (type of interpretation()!.discovered_types ?? []; track type) {
-              <li class="discovery-panel__type">{{ type }}</li>
-            }
-          </ul>
-          <p class="status-text">Para auditar um deles, peça por exemplo: "audite as entidades {{ interpretation()!.discovered_types![0] }}".</p>
-        }
-      </div>
-    } @else if (!understoodEnough()) {
-      <div class="interpretation-panel interpretation-panel--low-confidence">
-        <p>
-          Não entendi o suficiente para prosseguir. Tente descrever o tipo de sensor ou
-          entidade de forma mais específica (ex.: "postes de iluminação", "sensores de
-          qualidade do ar").
-        </p>
-      </div>
+    @if (view() === 'unavailable') {
+      <app-error-state
+        class="unavailable-state"
+        message="O modelo de linguagem não respondeu agora. Verifique se o serviço de IA (Ollama) está em execução e tente novamente. Nenhuma ação foi executada."
+        (retry)="onInterpret()"
+      />
     } @else {
-      <div class="interpretation-panel">
-        <h2 class="interpretation-panel__title">Interpretação</h2>
-        <p class="interpretation-panel__confidence">
-          Confiança: {{ interpretation()!.confidence | number: '1.0-2' }}
-        </p>
+      <section class="understanding-panel" aria-label="Como o sistema entendeu o seu pedido">
+        <h2 class="interpretation-panel__title">Como o sistema entendeu</h2>
+        <dl class="understanding-list">
+          <dt>Pedido</dt>
+          <dd class="understanding-list__command">"{{ interpretation()!.raw_command }}"</dd>
 
-        <label class="interpretation-field">
-          <span>Tipo de entidade</span>
-          <input class="interpretation-field__input" [(ngModel)]="editableEntityType" name="entityType" />
-        </label>
-        <label class="interpretation-field">
-          <span>ID da entidade (opcional)</span>
-          <input class="interpretation-field__input" [(ngModel)]="editableEntityId" name="entityId" />
-        </label>
+          <dt>Intenção</dt>
+          <dd class="understanding-list__intent" [attr.data-intent]="intent()"><strong>{{ intentLabel() }}</strong></dd>
 
-        <button
-          type="button"
-          class="confirm-button"
-          [disabled]="confirmState() === 'submitting'"
-          (click)="onConfirmClick()"
-        >
-          Confirmar e iniciar auditoria
-        </button>
+          <dt>Tipo de entidade</dt>
+          <dd class="understanding-list__param">{{ interpretation()!.entity_type ?? '—' }}</dd>
 
-        @switch (confirmState()) {
-          @case ('submitted') {
-            <p class="status-text status-text--success">
-              Auditoria iniciada — run {{ createdRun()!.run_id }} ({{ createdRun()!.status }}).
-              <a [routerLink]="['/audit-runs', createdRun()!.run_id]">Ver relatório</a>
-            </p>
-          }
-          @case ('error') {
-            <app-error-state
-              message="Não foi possível iniciar a auditoria."
-              (retry)="onConfirmClick()"
-            />
-          }
+          <dt>ID da entidade</dt>
+          <dd class="understanding-list__param">{{ interpretation()!.entity_id ?? '—' }}</dd>
+
+          <dt>Confiança</dt>
+          <dd>
+            <span class="confidence-badge confidence-badge--{{ confidenceLevel() }}">
+              {{ confidencePercent() }}% · {{ confidenceLabel() }}
+            </span>
+          </dd>
+        </dl>
+      </section>
+
+      @switch (view()) {
+        @case ('discovery') {
+          <div class="interpretation-panel discovery-panel">
+            <h2 class="interpretation-panel__title">Tipos de entidade no broker</h2>
+            @if (!interpretation()!.broker_reachable) {
+              <p class="discovery-panel__warning">
+                Não foi possível consultar o broker agora. Verifique a conexão na tela de Configuração e tente novamente.
+              </p>
+            } @else if (suggestions().length === 0) {
+              <p class="discovery-panel__empty">Nenhum tipo de entidade cadastrado neste broker.</p>
+            } @else {
+              <ul class="discovery-panel__types">
+                @for (type of suggestions(); track type) {
+                  <li class="discovery-panel__type">{{ type }}</li>
+                }
+              </ul>
+              <p class="status-text">
+                Para auditar um deles, peça por exemplo: "audite as entidades {{ suggestions()[0] }}".
+              </p>
+            }
+          </div>
         }
-      </div>
+
+        @case ('out-of-scope') {
+          <div class="interpretation-panel out-of-scope-panel" role="note">
+            <h2 class="interpretation-panel__title">Pedido fora do escopo</h2>
+            <p>
+              Este console só entende pedidos sobre <strong>auditoria de entidades FIWARE (NGSI-v2)</strong>
+              do seu Context Broker. <strong>Nada foi executado.</strong>
+            </p>
+            <p class="status-text">
+              Lembre-se: o auditor apenas verifica e reporta — ele nunca altera, corrige ou apaga dados.
+            </p>
+            <p class="status-text">Experimente, por exemplo (clique para usar):</p>
+            <ul class="chip-list">
+              @for (example of examples; track example) {
+                <li>
+                  <button type="button" class="chip example-chip" (click)="onUseExample(example)">
+                    {{ example }}
+                  </button>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+
+        @case ('clarify') {
+          <div class="interpretation-panel clarify-panel">
+            <h2 class="interpretation-panel__title">Preciso de um esclarecimento</h2>
+            <p class="clarify-panel__question"><strong>{{ clarificationQuestion() }}</strong></p>
+            @if (suggestions().length > 0) {
+              <p class="status-text">
+                Tipos encontrados no seu broker — escolha um para revisar antes de confirmar:
+              </p>
+              <ul class="chip-list">
+                @for (type of suggestions(); track type) {
+                  <li>
+                    <button type="button" class="chip suggestion-chip" (click)="onChooseSuggestion(type)">
+                      {{ type }}
+                    </button>
+                  </li>
+                }
+              </ul>
+            } @else if (interpretation()!.broker_reachable === false) {
+              <p class="discovery-panel__warning">
+                Não consegui consultar o broker para sugerir tipos. Verifique a conexão na tela de Configuração.
+              </p>
+            }
+            <p class="status-text">
+              Você também pode reescrever o pedido acima de forma mais específica
+              (ex.: "audite os sensores de qualidade do ar").
+            </p>
+          </div>
+        }
+
+        @case ('ready') {
+          <div class="interpretation-panel confirm-panel">
+            <h2 class="interpretation-panel__title">Revise antes de executar</h2>
+            <p class="status-text">
+              A auditoria só começa quando você clicar em <strong>Confirmar e iniciar auditoria</strong>.
+              Você pode corrigir os campos abaixo antes.
+            </p>
+
+            <label class="interpretation-field">
+              <span>Tipo de entidade</span>
+              <input
+                class="interpretation-field__input"
+                name="entityType"
+                [readonly]="confirmState() === 'submitting' || confirmState() === 'submitted'"
+                [ngModel]="editableEntityType()"
+                (ngModelChange)="editableEntityType.set($event)"
+              />
+            </label>
+            <label class="interpretation-field">
+              <span>ID da entidade (opcional)</span>
+              <input
+                class="interpretation-field__input"
+                name="entityId"
+                [readonly]="confirmState() === 'submitting' || confirmState() === 'submitted'"
+                [ngModel]="editableEntityId()"
+                (ngModelChange)="editableEntityId.set($event)"
+              />
+            </label>
+
+            @if (!editableEntityType().trim()) {
+              <p class="field-hint">Informe o tipo de entidade para poder confirmar.</p>
+            }
+
+            @if (confirmState() !== 'submitted') {
+              <button
+                type="button"
+                class="confirm-button"
+                [disabled]="!canConfirm()"
+                (click)="onConfirmClick()"
+              >
+                {{ confirmState() === 'submitting' ? 'Iniciando auditoria…' : 'Confirmar e iniciar auditoria' }}
+              </button>
+            }
+
+            @switch (confirmState()) {
+              @case ('submitted') {
+                <p class="status-text status-text--success" role="status">
+                  Auditoria iniciada — run {{ createdRun()!.run_id }} ({{ createdRun()!.status }}).
+                  <a [routerLink]="['/audit-runs', createdRun()!.run_id]">Ver relatório</a>
+                </p>
+                <button type="button" class="secondary-button" (click)="onNewCommand()">
+                  Fazer outro pedido
+                </button>
+              }
+              @case ('error') {
+                <app-error-state [message]="confirmErrorMessage()" (retry)="onConfirmClick()" />
+              }
+            }
+          </div>
+        }
+      }
     }
   }
 }
