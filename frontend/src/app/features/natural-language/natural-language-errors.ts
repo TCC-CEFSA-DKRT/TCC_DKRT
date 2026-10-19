@@ -13,7 +13,7 @@ export function describeNaturalLanguageError(error: unknown, action: NaturalLang
   if (error instanceof TimeoutError) {
     return action === 'interpret'
       ? 'A interpretação demorou mais do que o esperado. Tente novamente em instantes.'
-      : 'O servidor demorou a responder. Confira em "Audit Runs" se a auditoria foi criada antes de tentar de novo.';
+      : 'O servidor demorou a responder. Confira em "Auditorias" se a auditoria foi criada antes de tentar de novo.';
   }
 
   const status = error instanceof HttpErrorResponse ? error.status : -1;

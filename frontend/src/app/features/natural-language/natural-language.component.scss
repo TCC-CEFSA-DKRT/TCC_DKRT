@@ -49,6 +49,10 @@
   font-weight: 500;
 }
 
+.status-text--success a {
+  color: var(--color-accent);
+}
+
 .interpretation-panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
