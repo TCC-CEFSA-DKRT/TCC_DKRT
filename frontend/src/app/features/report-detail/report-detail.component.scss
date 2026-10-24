@@ -24,7 +24,32 @@
   margin-bottom: var(--space-4);
 }
 
+.export-button {
+  margin-left: auto;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  background: var(--color-accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.export-button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.export-status {
+  margin: calc(-1 * var(--space-2)) 0 var(--space-3);
+}
+
+.export-status.export-status--error {
+  color: var(--color-non-conformant);
+}
+
 .run-header__meta,
+.export-status,
 .schema-origin,
 .recommendation__confidence {
   color: var(--color-text-secondary);

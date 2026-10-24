@@ -20,7 +20,23 @@
       <span class="run-header__meta">
         {{ totalReports() }} entidade(s) · iniciada em {{ run()!.started_at | date: 'dd/MM/yyyy HH:mm' }}
       </span>
+      <button
+        type="button"
+        class="export-button"
+        [disabled]="exportState() === 'exporting'"
+        (click)="onExportPdf()"
+      >
+        {{ exportState() === 'exporting' ? 'Gerando PDF…' : 'Exportar PDF' }}
+      </button>
     </header>
+
+    @if (exportState() === 'exporting') {
+      <p class="export-status" role="status">
+        Gerando o PDF com todas as entidades da auditoria. Relatórios grandes podem levar alguns segundos.
+      </p>
+    } @else if (exportState() === 'error') {
+      <p class="export-status export-status--error" role="alert">{{ exportErrorMessage() }}</p>
+    }
 
     <div class="status-filter" role="group" aria-label="Filtrar entidades por status">
       @for (option of filterOptions(); track option.value) {

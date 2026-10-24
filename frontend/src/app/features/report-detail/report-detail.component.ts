@@ -1,6 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { TimeoutError } from 'rxjs';
+
+import { FileDownloadService, filenameFromContentDisposition } from '../../core/file-download.service';
 
 import { DiffViewComponent } from '../../shared/components/diff-view/diff-view.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
@@ -25,6 +29,7 @@ import {
 } from './report-labels';
 
 type ViewState = 'loading' | 'loaded' | 'empty' | 'error';
+type ExportState = 'idle' | 'exporting' | 'error';
 
 /** Recomendação do SLM pronta para exibição. Quando corresponde a uma
  * violação (`attachedToViolation`), o valor atual já aparece logo acima
@@ -102,8 +107,11 @@ const ALWAYS_VISIBLE_FILTERS: StatusFilter[] = [
 export class ReportDetailComponent {
   private readonly api = inject(ReportDetailApiService);
   private readonly route = inject(ActivatedRoute);
+  private readonly downloads = inject(FileDownloadService);
 
   protected readonly state = signal<ViewState>('loading');
+  protected readonly exportState = signal<ExportState>('idle');
+  protected readonly exportErrorMessage = signal('');
   protected readonly run = signal<AuditRunResponse | null>(null);
   protected readonly statusFilter = signal<StatusFilter>('all');
 
@@ -164,6 +172,55 @@ export class ReportDetailComponent {
   protected onSelectFilter(filter: StatusFilter): void {
     this.statusFilter.set(filter);
   }
+
+  /** Issue #23 — baixa o relatório em PDF, gerado no backend (ADR-0021).
+   * Exporta sempre a auditoria inteira, independentemente do filtro de
+   * status aplicado na tela. */
+  protected onExportPdf(): void {
+    const run = this.run();
+    if (run === null || this.exportState() === 'exporting') {
+      return;
+    }
+    this.exportState.set('exporting');
+    this.exportErrorMessage.set('');
+    this.api.exportPdf(run.id, browserTimeZone()).subscribe({
+      next: (response) => {
+        const filename =
+          filenameFromContentDisposition(response.headers.get('Content-Disposition')) ??
+          `relatorio-${run.id}.pdf`;
+        if (response.body) {
+          this.downloads.save(response.body, filename);
+        }
+        this.exportState.set('idle');
+      },
+      error: (error: unknown) => {
+        this.exportErrorMessage.set(describeExportError(error));
+        this.exportState.set('error');
+      },
+    });
+  }
+}
+
+function browserTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}
+
+function describeExportError(error: unknown): string {
+  if (error instanceof TimeoutError) {
+    return 'A geração do PDF demorou mais do que o esperado. Tente novamente em instantes.';
+  }
+  const status = error instanceof HttpErrorResponse ? error.status : -1;
+  if (status === 0) {
+    return 'Não foi possível conectar ao servidor do auditor. Verifique se a API está em execução.';
+  }
+  if (status === 404) {
+    return 'Esta auditoria não foi encontrada. Atualize a página e tente novamente.';
+  }
+  return 'Não foi possível gerar o PDF. Tente novamente.';
 }
 
 function toEntityReportView(report: EntityReportResponse): EntityReportView {
