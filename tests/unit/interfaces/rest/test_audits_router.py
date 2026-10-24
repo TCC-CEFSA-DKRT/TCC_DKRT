@@ -351,6 +351,80 @@ class TestGetAuditReportSchemaInfo:
         assert body["schema_origin"] is None
 
 
+class TestExportAuditReport:
+    """Issue #23 -- GET /audits/{run_id}/report.pdf."""
+
+    def _store_run(self, repo, fiware_service: str = "openiot") -> AuditRun:
+        tenant = Tenant(fiware_service=fiware_service, fiware_service_path="/")
+        run = AuditRun.create(
+            tenant=tenant,
+            entity_type=EntityType("Streetlight"),
+            broker_url="http://orion:1026",
+            started_at=datetime(2026, 10, 24, 17, 5, tzinfo=timezone.utc),
+        )
+        run.add_report(
+            EntityReport(
+                entity_id="urn:ngsi-ld:Streetlight:001",
+                entity_type=EntityType("Streetlight"),
+                data_model=None,
+                status=ConformanceStatus.NO_MODEL_FOUND,
+                violations=[],
+            )
+        )
+        repo.runs[(run.id, tenant.fiware_service)] = run
+        return run
+
+    @pytest.mark.asyncio
+    async def test_returns_a_pdf_attachment_named_after_the_type_and_local_date(
+        self, client, app_and_repo
+    ):
+        _, repo = app_and_repo
+        run = self._store_run(repo)
+
+        response = await client.get(
+            f"/audits/{run.id}/report.pdf",
+            params={"tz": "America/Sao_Paulo"},
+            headers=_TENANT_HEADERS,
+        )
+
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "application/pdf"
+        assert response.headers["content-disposition"] == (
+            'attachment; filename="relatorio-streetlight-2026-10-24-1405.pdf"'
+        )
+        assert response.headers["cache-control"] == "no-store"
+        assert response.content.startswith(b"%PDF")
+
+    @pytest.mark.asyncio
+    async def test_an_invalid_timezone_falls_back_to_utc_instead_of_failing(
+        self, client, app_and_repo
+    ):
+        _, repo = app_and_repo
+        run = self._store_run(repo)
+
+        response = await client.get(
+            f"/audits/{run.id}/report.pdf", params={"tz": "Not/AZone"}, headers=_TENANT_HEADERS
+        )
+
+        assert response.status_code == 200
+        assert "2026-10-24-1705" in response.headers["content-disposition"]
+
+    @pytest.mark.asyncio
+    async def test_run_of_another_tenant_returns_404(self, client, app_and_repo):
+        _, repo = app_and_repo
+        run = self._store_run(repo, fiware_service="other_city")
+
+        response = await client.get(f"/audits/{run.id}/report.pdf", headers=_TENANT_HEADERS)
+
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_unknown_run_returns_404(self, client):
+        response = await client.get(f"/audits/{uuid4()}/report.pdf", headers=_TENANT_HEADERS)
+
+        assert response.status_code == 404
+
+
 class TestGetAuditProgress:
     """Fase 5, secao 4.1/4.2."""
 

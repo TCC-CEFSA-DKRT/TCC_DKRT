@@ -114,6 +114,9 @@ def create_app(*, start_background_workers: bool = True) -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        # Issue #23: o frontend le o nome do arquivo do PDF exportado neste
+        # header — sem expor, o navegador esconde o header numa resposta CORS.
+        expose_headers=["Content-Disposition"],
     )
     app.add_exception_handler(TenantBrokerNotConfiguredError, _tenant_account_gone)
     app.include_router(audits.router)
