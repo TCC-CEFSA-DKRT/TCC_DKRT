@@ -2,7 +2,13 @@
 // headless com --no-sandbox (obrigatorio rodando como root em container),
 // ver docs/design/design-system.md para o motivo de nao haver rede externa
 // aqui (mesma politica de egress das fases de backend).
-process.env.CHROME_BIN = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+// Só usa o Chromium do sandbox quando ele existe e ninguem definiu CHROME_BIN;
+// nas maquinas da equipe o karma-chrome-launcher acha o Google Chrome sozinho.
+const SANDBOX_CHROMIUM = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+if (!process.env.CHROME_BIN && require('fs').existsSync(SANDBOX_CHROMIUM)) {
+  process.env.CHROME_BIN = SANDBOX_CHROMIUM;
+}
+
 
 module.exports = function (config) {
   config.set({

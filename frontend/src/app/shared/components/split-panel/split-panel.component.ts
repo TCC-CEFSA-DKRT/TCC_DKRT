@@ -8,7 +8,8 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
     <div class="split-panel">
       <div class="split-panel__brand">
         <div class="split-panel__brand-inner">
-          <h1 class="split-panel__brand-title">FIWARE Conformance Auditor</h1>
+          <h1 class="split-panel__brand-title">DKRT</h1>
+          <p class="split-panel__brand-subtitle">Auditoria de Data Spaces</p>
           <p class="split-panel__brand-tagline">
             Opere o Orion Context Broker em linguagem natural, sem aprender a API NGSI-v2.
           </p>
@@ -44,6 +45,12 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
         font-size: 2rem;
         font-weight: 700;
         margin-bottom: var(--space-4);
+      }
+      .split-panel__brand-subtitle {
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 1rem;
+        font-weight: 500;
+        margin-top: var(--space-1);
       }
       .split-panel__brand-tagline {
         color: #fff;

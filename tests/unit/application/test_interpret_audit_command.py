@@ -9,7 +9,11 @@ from __future__ import annotations
 
 import pytest
 
-from auditor.application.use_cases.interpret_audit_command import InterpretAuditCommandUseCase
+from auditor.application.use_cases.interpret_audit_command import (
+    DEFAULT_CLARIFICATION_QUESTION,
+    MIN_CONFIDENCE_TO_CONFIRM,
+    InterpretAuditCommandUseCase,
+)
 from auditor.domain.errors import ContextBrokerUnavailableError
 from auditor.domain.ports.command_interpreter_port import AuditCommandInterpretation
 from auditor.domain.value_objects.tenant import Tenant
@@ -146,3 +150,146 @@ class TestDiscoveryIntent:
 
         assert result.discovered_types == ()
         assert result.broker_reachable is True
+
+
+class TestAmbiguousCommandBecomesClarification:
+    """Issue #21 -- pedido ambiguo gera pergunta de esclarecimento, nunca uma
+    interpretacao "pronta para confirmar"."""
+
+    @pytest.mark.asyncio
+    async def test_audit_without_entity_type_becomes_clarify_with_default_question(self):
+        interpreter = _FakeInterpreter(
+            AuditCommandInterpretation(
+                entity_type=None, entity_id=None, confidence=0.1, raw_command="faz uma coisa ai"
+            )
+        )
+        broker = _FakeContextBroker(types=["Streetlight", "AirQualityObserved"])
+        use_case = InterpretAuditCommandUseCase(interpreter=interpreter, context_broker=broker)
+
+        result = await use_case.execute(_TENANT, "faz uma coisa ai")
+
+        assert result.intent == "clarify"
+        assert result.clarification_question == DEFAULT_CLARIFICATION_QUESTION
+        assert result.discovered_types == ("Streetlight", "AirQualityObserved")
+        assert result.broker_reachable is True
+
+    @pytest.mark.asyncio
+    async def test_low_confidence_audit_becomes_clarify_and_drops_the_guessed_type(self):
+        interpreter = _FakeInterpreter(
+            AuditCommandInterpretation(
+                entity_type="Streetlight", entity_id="urn:x", confidence=0.3, raw_command="audite"
+            )
+        )
+        use_case = InterpretAuditCommandUseCase(
+            interpreter=interpreter, context_broker=_FakeContextBroker()
+        )
+
+        result = await use_case.execute(_TENANT, "audite")
+
+        assert result.intent == "clarify"
+        assert result.entity_type is None
+        assert result.entity_id is None
+
+    @pytest.mark.asyncio
+    async def test_audit_exactly_at_the_threshold_is_not_ambiguous(self):
+        expected = AuditCommandInterpretation(
+            entity_type="Streetlight",
+            entity_id=None,
+            confidence=MIN_CONFIDENCE_TO_CONFIRM,
+            raw_command="audite os postes",
+        )
+        broker = _FakeContextBroker()
+        use_case = InterpretAuditCommandUseCase(
+            interpreter=_FakeInterpreter(expected), context_broker=broker
+        )
+
+        result = await use_case.execute(_TENANT, "audite os postes")
+
+        assert result is expected
+        assert broker.calls == []
+
+    @pytest.mark.asyncio
+    async def test_clarify_from_the_model_keeps_its_own_question(self):
+        interpreter = _FakeInterpreter(
+            AuditCommandInterpretation(
+                entity_type=None,
+                entity_id=None,
+                confidence=0.4,
+                raw_command="audite os sensores",
+                intent="clarify",
+                clarification_question="Quais sensores: qualidade do ar ou clima?",
+            )
+        )
+        use_case = InterpretAuditCommandUseCase(
+            interpreter=interpreter, context_broker=_FakeContextBroker(types=["WeatherObserved"])
+        )
+
+        result = await use_case.execute(_TENANT, "audite os sensores")
+
+        assert result.intent == "clarify"
+        assert result.clarification_question == "Quais sensores: qualidade do ar ou clima?"
+        assert result.discovered_types == ("WeatherObserved",)
+
+    @pytest.mark.asyncio
+    async def test_clarify_with_unreachable_broker_still_asks_without_raising(self):
+        interpreter = _FakeInterpreter(
+            AuditCommandInterpretation(
+                entity_type=None, entity_id=None, confidence=0.2, raw_command="audite tudo"
+            )
+        )
+        broker = _FakeContextBroker(error=ContextBrokerUnavailableError("Orion inacessivel"))
+        use_case = InterpretAuditCommandUseCase(interpreter=interpreter, context_broker=broker)
+
+        result = await use_case.execute(_TENANT, "audite tudo")
+
+        assert result.intent == "clarify"
+        assert result.clarification_question
+        assert result.discovered_types == ()
+        assert result.broker_reachable is False
+
+
+class TestOutOfScopeAndUnavailable:
+    """Issue #21 -- pedido fora do dominio FIWARE e interpretador fora do ar
+    nunca executam nada (nem leitura no broker)."""
+
+    @pytest.mark.asyncio
+    async def test_out_of_scope_never_queries_the_broker_and_carries_no_parameters(self):
+        interpreter = _FakeInterpreter(
+            AuditCommandInterpretation(
+                entity_type="Streetlight",
+                entity_id="urn:x",
+                confidence=0.9,
+                raw_command="qual a capital da Franca?",
+                intent="out_of_scope",
+            )
+        )
+        broker = _FakeContextBroker(types=["Streetlight"])
+        use_case = InterpretAuditCommandUseCase(interpreter=interpreter, context_broker=broker)
+
+        result = await use_case.execute(_TENANT, "qual a capital da Franca?")
+
+        assert result.intent == "out_of_scope"
+        assert result.entity_type is None
+        assert result.entity_id is None
+        assert result.discovered_types is None
+        assert broker.calls == []
+
+    @pytest.mark.asyncio
+    async def test_unavailable_interpreter_is_returned_as_is_without_querying_the_broker(self):
+        expected = AuditCommandInterpretation(
+            entity_type=None,
+            entity_id=None,
+            confidence=0.0,
+            raw_command="audite os postes",
+            interpreter_available=False,
+        )
+        broker = _FakeContextBroker(types=["Streetlight"])
+        use_case = InterpretAuditCommandUseCase(
+            interpreter=_FakeInterpreter(expected), context_broker=broker
+        )
+
+        result = await use_case.execute(_TENANT, "audite os postes")
+
+        assert result is expected
+        assert result.intent == "audit"
+        assert broker.calls == []
