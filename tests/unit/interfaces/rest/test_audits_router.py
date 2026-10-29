@@ -581,3 +581,95 @@ class TestInterpretAuditCommand:
         assert body["intent"] == "audit"
         assert body["discovered_types"] is None
         assert body["broker_reachable"] is None
+
+    @pytest.mark.asyncio
+    async def test_clarify_result_serializes_question_and_suggested_types(
+        self, client, fake_interpret_use_case, fake_use_case
+    ):
+        """Issue #21 -- pedido ambiguo devolve a pergunta de esclarecimento."""
+        fake_interpret_use_case._interpretation = AuditCommandInterpretation(
+            entity_type=None,
+            entity_id=None,
+            confidence=0.3,
+            raw_command="audite os sensores",
+            intent="clarify",
+            clarification_question="Quais sensores voce quer auditar?",
+            discovered_types=("AirQualityObserved", "WeatherObserved"),
+            broker_reachable=True,
+        )
+
+        response = await client.post(
+            "/audits/interpret", json={"command_text": "audite os sensores"}, headers=_TENANT_HEADERS
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["intent"] == "clarify"
+        assert body["clarification_question"] == "Quais sensores voce quer auditar?"
+        assert body["discovered_types"] == ["AirQualityObserved", "WeatherObserved"]
+        assert body["interpreter_available"] is True
+        assert fake_use_case.started == []
+
+    @pytest.mark.asyncio
+    async def test_out_of_scope_result_is_a_200_and_never_starts_an_audit(
+        self, client, fake_interpret_use_case, fake_use_case
+    ):
+        """Issue #21 -- pedido fora do dominio FIWARE: resposta clara, nada executado."""
+        fake_interpret_use_case._interpretation = AuditCommandInterpretation(
+            entity_type=None,
+            entity_id=None,
+            confidence=0.95,
+            raw_command="qual a capital da Franca?",
+            intent="out_of_scope",
+        )
+
+        response = await client.post(
+            "/audits/interpret",
+            json={"command_text": "qual a capital da Franca?"},
+            headers=_TENANT_HEADERS,
+        )
+
+        assert response.status_code == 200
+        assert response.json()["intent"] == "out_of_scope"
+        assert fake_use_case.started == []
+
+    @pytest.mark.asyncio
+    async def test_unavailable_interpreter_is_a_200_flagged_response_not_a_5xx(
+        self, client, fake_interpret_use_case
+    ):
+        fake_interpret_use_case._interpretation = AuditCommandInterpretation(
+            entity_type=None,
+            entity_id=None,
+            confidence=0.0,
+            raw_command="audite os postes",
+            interpreter_available=False,
+        )
+
+        response = await client.post(
+            "/audits/interpret", json={"command_text": "audite os postes"}, headers=_TENANT_HEADERS
+        )
+
+        assert response.status_code == 200
+        assert response.json()["interpreter_available"] is False
+
+    @pytest.mark.asyncio
+    async def test_empty_command_is_rejected_before_reaching_the_interpreter(
+        self, client, fake_interpret_use_case
+    ):
+        response = await client.post(
+            "/audits/interpret", json={"command_text": ""}, headers=_TENANT_HEADERS
+        )
+
+        assert response.status_code == 422
+        assert fake_interpret_use_case.received_commands == []
+
+    @pytest.mark.asyncio
+    async def test_command_longer_than_the_limit_is_rejected(
+        self, client, fake_interpret_use_case
+    ):
+        response = await client.post(
+            "/audits/interpret", json={"command_text": "a" * 501}, headers=_TENANT_HEADERS
+        )
+
+        assert response.status_code == 422
+        assert fake_interpret_use_case.received_commands == []

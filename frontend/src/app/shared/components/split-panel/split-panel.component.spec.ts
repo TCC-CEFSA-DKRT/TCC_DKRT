@@ -16,8 +16,9 @@ describe('SplitPanelComponent', () => {
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
 
-    expect(el.querySelector('.split-panel__brand-title')?.textContent).toContain(
-      'FIWARE Conformance Auditor'
+    expect(el.querySelector('.split-panel__brand-title')?.textContent).toContain('DKRT');
+    expect(el.querySelector('.split-panel__brand-subtitle')?.textContent).toContain(
+      'Auditoria de Data Spaces'
     );
     const projected = el.querySelector('.split-panel__form .probe');
     expect(projected?.textContent).toContain('conteúdo do formulário');

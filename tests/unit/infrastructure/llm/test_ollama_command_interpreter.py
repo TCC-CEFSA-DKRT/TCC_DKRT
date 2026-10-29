@@ -286,3 +286,175 @@ class TestIntentClassification:
 
         assert '"intent"' in captured["body"]["prompt"]
         assert "discovery" in captured["body"]["prompt"]
+
+
+def _interpreter_returning(payload: dict) -> OllamaCommandInterpreter:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"response": json.dumps(payload)})
+
+    return OllamaCommandInterpreter(
+        client=_client_with_handler(handler), base_url="http://ollama:11434"
+    )
+
+
+class TestClarifyAndOutOfScopeIntents:
+    """Issue #21 -- console de linguagem natural."""
+
+    @pytest.mark.asyncio
+    async def test_clarify_intent_propagates_the_question_and_discards_any_guessed_type(self):
+        interpreter = _interpreter_returning(
+            {
+                "intent": "clarify",
+                "entity_type": "AirQualityObserved",
+                "entity_id": None,
+                "confidence": 0.4,
+                "clarification_question": "  Quais sensores voce quer auditar?  ",
+            }
+        )
+
+        result = await interpreter.interpret("audite os sensores")
+
+        assert result.intent == "clarify"
+        assert result.entity_type is None
+        assert result.clarification_question == "Quais sensores voce quer auditar?"
+        assert result.interpreter_available is True
+
+    @pytest.mark.asyncio
+    async def test_out_of_scope_intent_discards_type_and_id(self):
+        interpreter = _interpreter_returning(
+            {
+                "intent": "out_of_scope",
+                "entity_type": "Streetlight",
+                "entity_id": "urn:x",
+                "confidence": 0.95,
+                "clarification_question": None,
+            }
+        )
+
+        result = await interpreter.interpret("qual a capital da Franca?")
+
+        assert result.intent == "out_of_scope"
+        assert result.entity_type is None
+        assert result.entity_id is None
+        assert result.clarification_question is None
+
+    @pytest.mark.asyncio
+    async def test_question_is_ignored_when_the_intent_is_not_clarify(self):
+        interpreter = _interpreter_returning(
+            {
+                "intent": "audit",
+                "entity_type": "Streetlight",
+                "entity_id": None,
+                "confidence": 0.9,
+                "clarification_question": "pergunta que nao deveria aparecer",
+            }
+        )
+
+        result = await interpreter.interpret("audite os postes")
+
+        assert result.clarification_question is None
+        assert result.entity_type == "Streetlight"
+
+    @pytest.mark.asyncio
+    async def test_blank_entity_type_is_treated_as_null(self):
+        interpreter = _interpreter_returning(
+            {"intent": "audit", "entity_type": "   ", "entity_id": "", "confidence": 0.9}
+        )
+
+        result = await interpreter.interpret("audite")
+
+        assert result.entity_type is None
+        assert result.entity_id is None
+
+    @pytest.mark.asyncio
+    async def test_prompt_teaches_clarify_and_out_of_scope_intents(self):
+        captured = {}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            captured["body"] = json.loads(request.content)
+            return httpx.Response(
+                200, json={"response": json.dumps({"entity_type": None, "confidence": 0.0})}
+            )
+
+        interpreter = OllamaCommandInterpreter(
+            client=_client_with_handler(handler), base_url="http://ollama:11434"
+        )
+
+        await interpreter.interpret("audite os postes de luz")
+
+        prompt = captured["body"]["prompt"]
+        assert "clarify" in prompt
+        assert "out_of_scope" in prompt
+        assert "clarification_question" in prompt
+
+
+class TestInterpreterAvailability:
+    """Issue #21 -- distinguir "servico fora do ar" de "nao entendi"."""
+
+    @pytest.mark.asyncio
+    async def test_connection_error_marks_the_interpreter_as_unavailable(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            raise httpx.ConnectError("connection refused", request=request)
+
+        interpreter = OllamaCommandInterpreter(
+            client=_client_with_handler(handler), base_url="http://ollama:11434"
+        )
+
+        result = await interpreter.interpret("audite os postes")
+
+        assert result.interpreter_available is False
+
+    @pytest.mark.asyncio
+    async def test_timeout_marks_the_interpreter_as_unavailable(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            raise httpx.ReadTimeout("timed out", request=request)
+
+        interpreter = OllamaCommandInterpreter(
+            client=_client_with_handler(handler), base_url="http://ollama:11434"
+        )
+
+        result = await interpreter.interpret("audite os postes")
+
+        assert result.interpreter_available is False
+        assert result.confidence == 0.0
+
+    @pytest.mark.asyncio
+    async def test_http_500_marks_the_interpreter_as_unavailable(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(500, text="internal error")
+
+        interpreter = OllamaCommandInterpreter(
+            client=_client_with_handler(handler), base_url="http://ollama:11434"
+        )
+
+        result = await interpreter.interpret("audite os postes")
+
+        assert result.interpreter_available is False
+
+    @pytest.mark.asyncio
+    async def test_malformed_output_means_not_understood_but_service_available(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json={"response": "isso nao e' JSON valido"})
+
+        interpreter = OllamaCommandInterpreter(
+            client=_client_with_handler(handler), base_url="http://ollama:11434"
+        )
+
+        result = await interpreter.interpret("audite os postes")
+
+        assert result.interpreter_available is True
+        assert result.entity_type is None
+
+    @pytest.mark.asyncio
+    async def test_non_json_http_body_falls_back_without_raising(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, text="<html>proxy error</html>")
+
+        interpreter = OllamaCommandInterpreter(
+            client=_client_with_handler(handler), base_url="http://ollama:11434"
+        )
+
+        result = await interpreter.interpret("audite os postes")
+
+        assert result.entity_type is None
+        assert result.confidence == 0.0

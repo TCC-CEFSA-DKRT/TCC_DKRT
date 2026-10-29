@@ -32,7 +32,8 @@ class _InterpretationOutputSchema(BaseModel):
     entity_type: str | None = None
     entity_id: str | None = None
     confidence: float = _LOW_CONFIDENCE_FALLBACK
-    intent: Literal["audit", "discovery"] = "audit"
+    intent: Literal["audit", "discovery", "clarify", "out_of_scope"] = "audit"
+    clarification_question: str | None = None
 
 
 def _build_prompt(command_text: str) -> str:
@@ -40,13 +41,28 @@ def _build_prompt(command_text: str) -> str:
     return template.replace("%%COMMAND_TEXT%%", command_text)
 
 
-def _fallback(command_text: str) -> AuditCommandInterpretation:
+# Intencoes em que o comando nao aponta para uma entidade especifica: o
+# tipo/ID que o modelo devolver nesses casos e' descartado (nunca vira
+# parametro de auditoria).
+_INTENTS_WITHOUT_TARGET = frozenset({"discovery", "clarify", "out_of_scope"})
+
+
+def _fallback(command_text: str, *, interpreter_available: bool = True) -> AuditCommandInterpretation:
     return AuditCommandInterpretation(
         entity_type=None,
         entity_id=None,
         confidence=_LOW_CONFIDENCE_FALLBACK,
         raw_command=command_text,
+        interpreter_available=interpreter_available,
     )
+
+
+def _clean(value: str | None) -> str | None:
+    """String vazia/so' espacos vinda do modelo vale o mesmo que `null`."""
+    if value is None:
+        return None
+    stripped = value.strip()
+    return stripped or None
 
 
 class OllamaCommandInterpreter(CommandInterpreterPort):
@@ -78,22 +94,26 @@ class OllamaCommandInterpreter(CommandInterpreterPort):
         except httpx.HTTPError:
             # Mesmo contrato do OllamaAnalyzer (Fase 7): nunca propaga —
             # "nao entendi" e' um resultado valido desta porta, nao uma
-            # falha do endpoint que a chama.
-            return _fallback(command_text)
+            # falha do endpoint que a chama. Issue #21: marca o servico como
+            # indisponivel para a tela diferenciar de "nao entendi".
+            return _fallback(command_text, interpreter_available=False)
 
-        body = response.json()
-        raw_output = body.get("response", "")
         try:
+            body = response.json()
+            raw_output = body.get("response", "") if isinstance(body, dict) else ""
             parsed = _InterpretationOutputSchema.model_validate_json(raw_output)
         except (ValidationError, ValueError):
             return _fallback(command_text)
 
         confidence = max(0.0, min(1.0, parsed.confidence))
-        is_discovery = parsed.intent == "discovery"
+        has_target = parsed.intent not in _INTENTS_WITHOUT_TARGET
         return AuditCommandInterpretation(
-            entity_type=None if is_discovery else parsed.entity_type,
-            entity_id=None if is_discovery else parsed.entity_id,
+            entity_type=_clean(parsed.entity_type) if has_target else None,
+            entity_id=_clean(parsed.entity_id) if has_target else None,
             confidence=confidence,
             raw_command=command_text,
             intent=parsed.intent,
+            clarification_question=(
+                _clean(parsed.clarification_question) if parsed.intent == "clarify" else None
+            ),
         )

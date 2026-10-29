@@ -1,16 +1,16 @@
-<h1 class="page-title">Dashboard</h1>
+<h1 class="page-title">Painel</h1>
 
 @switch (state()) {
   @case ('loading') {
     <app-loading-skeleton [rows]="5" />
   }
   @case ('error') {
-    <app-error-state message="Não foi possível carregar os dados do dashboard." (retry)="load()" />
+    <app-error-state message="Não foi possível carregar os dados do painel." (retry)="load()" />
   }
   @case ('empty') {
     <app-empty-state
       message="Nenhuma auditoria registrada ainda para este tenant."
-      hint="Inicie uma auditoria pela tela Natural Language ou via a API para ver dados aqui."
+      hint="Solicite uma auditoria pelo Assistente para visualizar os dados aqui."
     />
   }
   @case ('loaded') {

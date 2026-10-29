@@ -274,18 +274,25 @@ class PageResponse(BaseModel, Generic[T]):
         )
 
 
+# Issue #21: limite de tamanho do comando — evita prompts gigantes no
+# Ollama; o frontend aplica o mesmo limite (maxlength) no campo de texto.
+COMMAND_TEXT_MAX_LENGTH = 500
+
+
 class InterpretAuditRequest(BaseModel):
-    command_text: str
+    command_text: str = Field(min_length=1, max_length=COMMAND_TEXT_MAX_LENGTH)
 
 
 class InterpretAuditResponse(BaseModel):
-    intent: Literal["audit", "discovery"]
+    intent: Literal["audit", "discovery", "clarify", "out_of_scope"]
     entity_type: str | None
     entity_id: str | None
     confidence: float
     raw_command: str
     discovered_types: list[str] | None
     broker_reachable: bool | None
+    clarification_question: str | None = None
+    interpreter_available: bool = True
 
     @classmethod
     def from_domain(cls, interpretation: AuditCommandInterpretation) -> "InterpretAuditResponse":
@@ -301,6 +308,8 @@ class InterpretAuditResponse(BaseModel):
                 else None
             ),
             broker_reachable=interpretation.broker_reachable,
+            clarification_question=interpretation.clarification_question,
+            interpreter_available=interpretation.interpreter_available,
         )
 
 

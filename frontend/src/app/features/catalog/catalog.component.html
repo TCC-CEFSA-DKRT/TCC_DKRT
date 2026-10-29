@@ -1,4 +1,4 @@
-<h1 class="page-title">Catalog</h1>
+<h1 class="page-title">Catálogo</h1>
 
 @switch (state()) {
   @case ('loading') {
@@ -10,7 +10,7 @@
   @case ('never_synced') {
     <app-empty-state
       message="O catálogo ainda não foi sincronizado nenhuma vez."
-      hint="A sincronização do catálogo de Smart Data Models é administrativa (ver SyncCatalogUseCase) — sem gatilho nesta tela."
+      hint="O catálogo de Smart Data Models é sincronizado automaticamente pelo servidor. Tente novamente em alguns minutos."
     />
   }
   @case ('loaded') {

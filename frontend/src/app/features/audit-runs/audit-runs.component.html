@@ -1,4 +1,4 @@
-<h1 class="page-title">Audit Runs</h1>
+<h1 class="page-title">Auditorias</h1>
 
 <form
   class="filters"
@@ -25,11 +25,11 @@
     <app-loading-skeleton [rows]="6" />
   }
   @case ('error') {
-    <app-error-state message="Não foi possível carregar os runs." (retry)="load()" />
+    <app-error-state message="Não foi possível carregar as auditorias." (retry)="load()" />
   }
   @case ('empty') {
     <app-empty-state
-      message="Nenhum run encontrado para os filtros atuais."
+      message="Nenhuma auditoria encontrada para os filtros atuais."
       hint="Ajuste os filtros acima ou inicie uma nova auditoria."
     />
   }
