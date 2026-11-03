@@ -1,0 +1,54 @@
+name: Publicar versão nas funções Lambda
+description: >-
+  Troca a imagem das funções Lambda de um ambiente (API, worker, worker-dlq e
+  admin). As migrações Alembic rodam antes, pela função admin já com a imagem
+  nova, para o esquema estar pronto quando o código novo receber tráfego.
+  Requer credenciais AWS do ambiente já configuradas.
+
+inputs:
+  name-prefix:
+    description: Prefixo do ambiente (ex.- auditor-homolog)
+    required: true
+  image-uri:
+    description: Imagem completa no ECR (repositório:tag)
+    required: true
+  run-migrations:
+    description: "'true' aplica as migrações; 'false' no rollback (migrações são compatíveis, voltar o código não exige voltar o banco)"
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Atualizar a função admin
+      shell: bash
+      run: |
+        aws lambda update-function-code --function-name "${{ inputs.name-prefix }}-admin" --image-uri "${{ inputs.image-uri }}" > /dev/null
+        aws lambda wait function-updated --function-name "${{ inputs.name-prefix }}-admin"
+
+    - name: Migrações Alembic
+      if: inputs.run-migrations == 'true'
+      shell: bash
+      run: |
+        aws lambda invoke \
+          --function-name "${{ inputs.name-prefix }}-admin" \
+          --cli-binary-format raw-in-base64-out \
+          --cli-read-timeout 900 \
+          --payload '{"argv":["migrate"]}' \
+          /tmp/migrate.json > /tmp/migrate-meta.json
+        cat /tmp/migrate-meta.json /tmp/migrate.json
+        if jq -e '.FunctionError' /tmp/migrate-meta.json > /dev/null; then
+          echo "A função admin falhou ao migrar" >&2
+          exit 1
+        fi
+        jq -e '.exit_code == 0' /tmp/migrate.json > /dev/null
+
+    - name: Atualizar API e workers
+      shell: bash
+      run: |
+        for fn in api worker worker-dlq; do
+          aws lambda update-function-code --function-name "${{ inputs.name-prefix }}-$fn" --image-uri "${{ inputs.image-uri }}" > /dev/null
+        done
+        for fn in api worker worker-dlq; do
+          aws lambda wait function-updated --function-name "${{ inputs.name-prefix }}-$fn"
+        done

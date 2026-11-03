@@ -20,7 +20,7 @@ resource "aws_sqs_queue" "audit_jobs" {
   # aqui, apenas o número de tentativas antes de mover para a DLQ.
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.dlq.arn
-    maxReceiveCount = var.max_receive_count
+    maxReceiveCount     = var.max_receive_count
   })
 
   tags = var.tags

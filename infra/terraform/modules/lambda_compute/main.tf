@@ -150,21 +150,21 @@ locals {
   # silenciosamente (guard `if "DATABASE_URL" in os.environ: return` em
   # secrets_bootstrap.py).
   common_env = {
-    DEPLOYMENT_MODE                                = var.deployment_mode
-    FIWARE_BROKER_URL                              = var.fiware_broker_url
-    OLLAMA_BASE_URL                                = var.ollama_base_url
-    OLLAMA_MODEL                                   = var.ollama_model
-    CORS_ALLOWED_ORIGINS                           = var.cors_allowed_origins
-    QUEUE_BACKEND                                  = "sqs"
-    SQS_QUEUE_URL                                  = var.queue_url
-    SQS_DEAD_LETTER_QUEUE_URL                      = var.dead_letter_queue_url
-    DB_HOST                                        = var.db_host
-    DB_PORT                                        = tostring(var.db_port)
-    DB_NAME                                        = var.db_name
-    DB_MASTER_USER_SECRET_ARN                      = var.db_master_user_secret_arn
-    ORION_CREDENTIALS_PARAMETER_NAME               = var.orion_credentials_parameter_name
-    JWT_SIGNING_KEY_PARAMETER_NAME                 = var.jwt_signing_key_parameter_name
-    BROKER_API_KEY_ENCRYPTION_KEYS_PARAMETER_NAME  = var.broker_api_key_encryption_keys_parameter_name
+    DEPLOYMENT_MODE                               = var.deployment_mode
+    FIWARE_BROKER_URL                             = var.fiware_broker_url
+    OLLAMA_BASE_URL                               = var.ollama_base_url
+    OLLAMA_MODEL                                  = var.ollama_model
+    CORS_ALLOWED_ORIGINS                          = var.cors_allowed_origins
+    QUEUE_BACKEND                                 = "sqs"
+    SQS_QUEUE_URL                                 = var.queue_url
+    SQS_DEAD_LETTER_QUEUE_URL                     = var.dead_letter_queue_url
+    DB_HOST                                       = var.db_host
+    DB_PORT                                       = tostring(var.db_port)
+    DB_NAME                                       = var.db_name
+    DB_MASTER_USER_SECRET_ARN                     = var.db_master_user_secret_arn
+    ORION_CREDENTIALS_PARAMETER_NAME              = var.orion_credentials_parameter_name
+    JWT_SIGNING_KEY_PARAMETER_NAME                = var.jwt_signing_key_parameter_name
+    BROKER_API_KEY_ENCRYPTION_KEYS_PARAMETER_NAME = var.broker_api_key_encryption_keys_parameter_name
   }
 
   image_uri = "${aws_ecr_repository.this.repository_url}:${var.image_tag}"
@@ -188,6 +188,12 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = local.common_env
+  }
+
+  # O pipeline de deploy troca a imagem com update-function-code; sem isto um
+  # terraform apply voltaria a função para var.image_tag (ADR-0021).
+  lifecycle {
+    ignore_changes = [image_uri]
   }
 
   depends_on = [aws_cloudwatch_log_group.api, aws_iam_role_policy_attachment.vpc_access]
@@ -216,6 +222,12 @@ resource "aws_lambda_function" "worker" {
     variables = local.common_env
   }
 
+  # O pipeline de deploy troca a imagem com update-function-code; sem isto um
+  # terraform apply voltaria a função para var.image_tag (ADR-0021).
+  lifecycle {
+    ignore_changes = [image_uri]
+  }
+
   depends_on = [aws_cloudwatch_log_group.worker, aws_iam_role_policy_attachment.vpc_access]
   tags       = merge(var.tags, { Name = "${var.name_prefix}-worker" })
 }
@@ -240,6 +252,12 @@ resource "aws_lambda_function" "worker_dlq" {
 
   environment {
     variables = local.common_env
+  }
+
+  # O pipeline de deploy troca a imagem com update-function-code; sem isto um
+  # terraform apply voltaria a função para var.image_tag (ADR-0021).
+  lifecycle {
+    ignore_changes = [image_uri]
   }
 
   depends_on = [aws_cloudwatch_log_group.worker_dlq, aws_iam_role_policy_attachment.vpc_access]
@@ -299,6 +317,12 @@ resource "aws_lambda_function" "admin" {
 
   environment {
     variables = local.common_env
+  }
+
+  # O pipeline de deploy troca a imagem com update-function-code; sem isto um
+  # terraform apply voltaria a função para var.image_tag (ADR-0021).
+  lifecycle {
+    ignore_changes = [image_uri]
   }
 
   depends_on = [aws_cloudwatch_log_group.admin, aws_iam_role_policy_attachment.vpc_access]

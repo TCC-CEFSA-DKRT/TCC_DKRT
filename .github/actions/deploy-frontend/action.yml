@@ -1,0 +1,49 @@
+name: Publicar o frontend (S3 e CloudFront)
+description: >-
+  Baixa o build do frontend guardado no bucket de artefatos, ajusta a URL da API
+  do ambiente, publica no bucket do site e invalida o cache do CloudFront. O
+  build é o mesmo em todos os ambientes: só a URL da API muda.
+  Requer credenciais AWS do ambiente já configuradas.
+
+inputs:
+  artifact:
+    description: URI S3 do dist.tgz (s3://bucket/frontend/<tag>/dist.tgz)
+    required: true
+  api-url:
+    description: URL pública da API do ambiente
+    required: true
+  bucket:
+    description: Bucket do site (<prefixo>-frontend)
+    required: true
+  domain:
+    description: Domínio do frontend, para achar a distribuição do CloudFront
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Baixar e ajustar o build
+      shell: bash
+      run: |
+        mkdir -p dist
+        aws s3 cp "${{ inputs.artifact }}" - | tar xz -C dist
+        bash scripts/ci/set_api_url.sh dist "${{ inputs.api-url }}"
+
+    - name: Publicar no S3
+      shell: bash
+      run: |
+        aws s3 sync dist "s3://${{ inputs.bucket }}" --delete --exclude index.html --cache-control "public,max-age=31536000,immutable"
+        aws s3 cp dist/index.html "s3://${{ inputs.bucket }}/index.html" --cache-control "no-cache"
+
+    - name: Invalidar o CloudFront
+      shell: bash
+      run: |
+        DIST_ID="$(aws cloudfront list-distributions \
+          --query "DistributionList.Items[?Aliases.Items!=null && contains(Aliases.Items, '${{ inputs.domain }}')].Id | [0]" \
+          --output text)"
+        if [ -z "$DIST_ID" ] || [ "$DIST_ID" = "None" ]; then
+          echo "Distribuição do CloudFront para ${{ inputs.domain }} não encontrada" >&2
+          exit 1
+        fi
+        aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*" > /dev/null
+        echo "Invalidação criada em $DIST_ID"
