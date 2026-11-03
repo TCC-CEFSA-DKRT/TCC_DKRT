@@ -11,7 +11,8 @@ Complementa `docs/devops/pipeline-e-ambientes.md` (configuração inicial) e `do
     ci-frontend.yml         testes e build do Angular
     ci-images.yml           confere se as 3 imagens Docker compilam
     ci-infra.yml            terraform fmt, validate e plan (informativo)
-    security.yml            pip-audit, npm audit, gitleaks, SAST (Semgrep)
+    security.yml            pip-audit, npm audit, gitleaks, Semgrep (IaC)
+    codeql.yml              SAST do código (Python e TypeScript)
     deploy-dev.yml          entrega no DEV (manual, escolhe a branch)
     deploy-homologacao.yml  entrega na HOMOLOGAÇÃO (tag vX.Y.Z-rc.N)
     deploy-producao.yml     entrega na PRODUÇÃO (tag vX.Y.Z)
@@ -42,7 +43,7 @@ Duas ideias organizam tudo:
 | O que você faz | O que roda | Resultado |
 |---|---|---|
 | `git push` de uma branch de trabalho (feature, fix) | **Nada.** Os CI não disparam em push de branch comum | Abra o PR |
-| Abrir/atualizar um **PR para a `main`** | `ci-backend`, `ci-frontend`, `ci-images`, `ci-infra`, `security` (cada um só se o PR tocou as pastas dele) | Checks verdes/vermelhos no PR. O Tech Lead só faz merge com tudo verde |
+| Abrir/atualizar um **PR para a `main`** | `ci-backend`, `ci-frontend`, `ci-images`, `ci-infra`, `security`, `codeql` (cada um só se o PR tocou as pastas dele) | Checks verdes/vermelhos no PR. O Tech Lead só faz merge com tudo verde |
 | PR que mexe em `infra/terraform/**` | `ci-infra`: `fmt` e `validate` bloqueiam; em seguida o `plan` dos 3 ambientes é publicado no resumo do job | Revisar o plano antes do merge. O plan não bloqueia |
 | **Merge na `main`** | **Nada é implantado.** (Não há deploy automático na `main`) | A entrega é sempre por ação explícita (abaixo) |
 | Dev quer testar no DEV: **Actions → Deploy DEV → Run workflow**, escolhendo a branch | `ci-backend` + `ci-frontend` + `security` → build da imagem → migrações → troca do contêiner → build e publicação do frontend → fumaça | DEV com a branch escolhida. O Q.A testa (1º ciclo) |
@@ -51,7 +52,7 @@ Duas ideias organizam tudo:
 | Q.A aprovou: Tech Lead faz **merge da `release/X.Y.Z` na `main`** e publica a tag **`vX.Y.Z`** na `main` | `deploy-producao` (seção 3.8). Pausa pedindo **aprovação manual** | PRODUÇÃO atualizada com a mesma imagem/frontend da `-rc`; release criada no GitHub |
 | Deu problema em produção: **Actions → Rollback PRODUÇÃO → Run workflow** com a versão anterior | `rollback-producao` (seção 3.9) | Produção volta para a versão informada |
 | Precisa mudar infraestrutura: **Actions → Infra (Terraform plan/apply)** | `infra-apply` (seção 3.10) | Plano mostrado; apply só se pedido e aprovado |
-| Segunda-feira de manhã (cron) | `security` (07:00 UTC) e `golden` do SLM (06:00 UTC, em `ci-backend`) | Alerta de vulnerabilidade nova e regressão de prompt, sem commit |
+| Segunda-feira de manhã (cron) | `security` (07:00 UTC), `codeql` (08:00 UTC) e `golden` do SLM (06:00 UTC, em `ci-backend`) | Alerta de vulnerabilidade nova e regressão de prompt, sem commit |
 | Toda semana | Dependabot abre PRs | Revisar e fazer merge |
 
 Linha do tempo de uma versão:
@@ -91,7 +92,11 @@ Compila (sem publicar) as três imagens: Lambda (`Dockerfile` da raiz), API self
 
 ### 3.5 `security.yml`
 
-`pip-audit` (requirements.txt), `npm audit` (só produção, críticas e altas), `gitleaks` (varredura de segredos no histórico) e **SAST com Semgrep** (job `sast`: regras públicas para Python, TypeScript, Terraform, Dockerfile e GitHub Actions; gratuito, sem conta nem token). No SAST, em PR, release e deploy só os achados **novos** em relação à `main` contam e só a severidade ERROR reprova; no cron semanal ele varre tudo e não bloqueia, para mostrar o débito acumulado. Roda em PR, push em `release/**`, cron semanal e antes de cada deploy.
+`pip-audit` (requirements.txt), `npm audit` (só produção, críticas e altas), `gitleaks` (varredura de segredos no histórico) e **Semgrep** (job `semgrep-config`) para o que o CodeQL não cobre: Terraform, Dockerfile e workflows do GitHub Actions. Gratuito, sem conta nem token. Em PR, release e deploy só os achados **novos** em relação à `main` contam e só a severidade ERROR reprova; no cron semanal varre tudo e não bloqueia, para mostrar o débito acumulado. Roda em PR, push em `release/**`, cron semanal e antes de cada deploy.
+
+### 3.5.1 `codeql.yml` (SAST do código)
+
+CodeQL em Python e TypeScript, com a suíte `security-extended`: segue o dado da entrada do usuário até SQL, URL, comando ou HTML. Gratuito em repositório público. Roda em PR para a `main` que toque `src/` ou `frontend/`, push em `release/**` e cron semanal (segunda, 08:00 UTC). Os achados aparecem em **Security → Code scanning** e como anotação no PR. O job em si não reprova o PR; para bloquear o merge, exija o check `CodeQL` na proteção da `main`. Não habilite o "default setup" do CodeQL nas configurações do repositório (conflita com este workflow). Por não bloquear sozinho, ele não faz parte dos portões dos deploys.
 
 ### 3.6 `deploy-dev.yml`
 
@@ -195,4 +200,4 @@ Para o `dev` (EC2), não há essa etapa: faça `apply` e depois rode o **Deploy 
 - **`infra-dev`, `infra-homolog`, `infra-production`:** `AWS_TERRAFORM_ROLE_ARN`.
 - **`dev`, `homologacao`, `producao`:** `AWS_DEPLOY_ROLE_ARN`, `NAME_PREFIX`, `API_URL`, `FRONTEND_URL`, `FRONTEND_DOMAIN` (homolog e produção). Em `producao`, também `HOMOLOG_NAME_PREFIX`.
 - **Opcionais em `homologacao`:** `ORION_URL`, `FIWARE_SERVICE`, `FIWARE_SERVICE_PATH` e os segredos `ACCEPTANCE_EMAIL` e `ACCEPTANCE_PASSWORD`.
-- **Proteções:** `producao` e `infra-production` com revisores obrigatórios e "Prevent self-review"; branch protection na `main` exigindo os checks `ci-backend`, `ci-frontend`, `ci-infra` e `security`.
+- **Proteções:** `producao` e `infra-production` com revisores obrigatórios e "Prevent self-review"; branch protection na `main` exigindo os checks `ci-backend`, `ci-frontend`, `ci-infra`, `security` e `CodeQL`.
