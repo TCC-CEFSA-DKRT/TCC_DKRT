@@ -30,6 +30,11 @@ concurrency:
 
 env:
   TF_VERSION: "1.9.8"
+  # Valores usados pelos scripts via variável de ambiente (nunca ${{ }} dentro do run:).
+  AMBIENTE: ${{ inputs.ambiente }}
+  TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+  TF_STATE_LOCK_TABLE: ${{ vars.TF_STATE_LOCK_TABLE }}
+  STATE_REGION: ${{ vars.AWS_REGION }}
 
 jobs:
   plan:
@@ -58,18 +63,18 @@ jobs:
       - name: terraform init
         run: |
           terraform init -input=false \
-            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
-            -backend-config="key=${{ inputs.ambiente }}/terraform.tfstate" \
-            -backend-config="region=${{ vars.AWS_REGION }}" \
-            -backend-config="dynamodb_table=${{ vars.TF_STATE_LOCK_TABLE }}"
+            -backend-config="bucket=$TF_STATE_BUCKET" \
+            -backend-config="key=$AMBIENTE/terraform.tfstate" \
+            -backend-config="region=$STATE_REGION" \
+            -backend-config="dynamodb_table=$TF_STATE_LOCK_TABLE"
 
       - name: terraform plan
         run: |
-          VAR_NAME="TFVARS_$(echo '${{ inputs.ambiente }}' | tr '[:lower:]' '[:upper:]')"
+          VAR_NAME="TFVARS_$(echo "$AMBIENTE" | tr '[:lower:]' '[:upper:]')"
           printf '%s\n' "${!VAR_NAME}" > terraform.tfvars
           terraform plan -input=false -no-color -lock-timeout=300s -out=tfplan | tee plan.txt
           {
-            echo "### terraform plan: ${{ inputs.ambiente }}"
+            echo "### terraform plan: $AMBIENTE"
             echo '```'
             tail -n 80 plan.txt
             echo '```'
@@ -114,10 +119,10 @@ jobs:
       - name: terraform init
         run: |
           terraform init -input=false \
-            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
-            -backend-config="key=${{ inputs.ambiente }}/terraform.tfstate" \
-            -backend-config="region=${{ vars.AWS_REGION }}" \
-            -backend-config="dynamodb_table=${{ vars.TF_STATE_LOCK_TABLE }}"
+            -backend-config="bucket=$TF_STATE_BUCKET" \
+            -backend-config="key=$AMBIENTE/terraform.tfstate" \
+            -backend-config="region=$STATE_REGION" \
+            -backend-config="dynamodb_table=$TF_STATE_LOCK_TABLE"
 
       - name: terraform apply
         run: terraform apply -input=false -lock-timeout=300s tfplan

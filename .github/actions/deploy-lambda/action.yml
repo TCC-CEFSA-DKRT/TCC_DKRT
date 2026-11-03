@@ -17,21 +17,28 @@ inputs:
     required: false
     default: "true"
 
+# Os inputs entram por variáveis de ambiente (e não por ${{ }} dentro do script)
+# para que um valor com aspas ou ; nunca vire comando de shell.
 runs:
   using: composite
   steps:
     - name: Atualizar a função admin
       shell: bash
+      env:
+        NAME_PREFIX: ${{ inputs.name-prefix }}
+        IMAGE_URI: ${{ inputs.image-uri }}
       run: |
-        aws lambda update-function-code --function-name "${{ inputs.name-prefix }}-admin" --image-uri "${{ inputs.image-uri }}" > /dev/null
-        aws lambda wait function-updated --function-name "${{ inputs.name-prefix }}-admin"
+        aws lambda update-function-code --function-name "${NAME_PREFIX}-admin" --image-uri "$IMAGE_URI" > /dev/null
+        aws lambda wait function-updated --function-name "${NAME_PREFIX}-admin"
 
     - name: Migrações Alembic
       if: inputs.run-migrations == 'true'
       shell: bash
+      env:
+        NAME_PREFIX: ${{ inputs.name-prefix }}
       run: |
         aws lambda invoke \
-          --function-name "${{ inputs.name-prefix }}-admin" \
+          --function-name "${NAME_PREFIX}-admin" \
           --cli-binary-format raw-in-base64-out \
           --cli-read-timeout 900 \
           --payload '{"argv":["migrate"]}' \
@@ -45,10 +52,13 @@ runs:
 
     - name: Atualizar API e workers
       shell: bash
+      env:
+        NAME_PREFIX: ${{ inputs.name-prefix }}
+        IMAGE_URI: ${{ inputs.image-uri }}
       run: |
         for fn in api worker worker-dlq; do
-          aws lambda update-function-code --function-name "${{ inputs.name-prefix }}-$fn" --image-uri "${{ inputs.image-uri }}" > /dev/null
+          aws lambda update-function-code --function-name "${NAME_PREFIX}-$fn" --image-uri "$IMAGE_URI" > /dev/null
         done
         for fn in api worker worker-dlq; do
-          aws lambda wait function-updated --function-name "${{ inputs.name-prefix }}-$fn"
+          aws lambda wait function-updated --function-name "${NAME_PREFIX}-$fn"
         done

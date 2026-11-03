@@ -19,30 +19,38 @@ inputs:
     description: Domínio do frontend, para achar a distribuição do CloudFront
     required: true
 
+# Os inputs entram por variáveis de ambiente (e não por ${{ }} dentro do script).
 runs:
   using: composite
   steps:
     - name: Baixar e ajustar o build
       shell: bash
+      env:
+        ARTIFACT: ${{ inputs.artifact }}
+        API_URL: ${{ inputs.api-url }}
       run: |
         mkdir -p dist
-        aws s3 cp "${{ inputs.artifact }}" - | tar xz -C dist
-        bash scripts/ci/set_api_url.sh dist "${{ inputs.api-url }}"
+        aws s3 cp "$ARTIFACT" - | tar xz -C dist
+        bash scripts/ci/set_api_url.sh dist "$API_URL"
 
     - name: Publicar no S3
       shell: bash
+      env:
+        BUCKET: ${{ inputs.bucket }}
       run: |
-        aws s3 sync dist "s3://${{ inputs.bucket }}" --delete --exclude index.html --cache-control "public,max-age=31536000,immutable"
-        aws s3 cp dist/index.html "s3://${{ inputs.bucket }}/index.html" --cache-control "no-cache"
+        aws s3 sync dist "s3://$BUCKET" --delete --exclude index.html --cache-control "public,max-age=31536000,immutable"
+        aws s3 cp dist/index.html "s3://$BUCKET/index.html" --cache-control "no-cache"
 
     - name: Invalidar o CloudFront
       shell: bash
+      env:
+        DOMAIN: ${{ inputs.domain }}
       run: |
         DIST_ID="$(aws cloudfront list-distributions \
-          --query "DistributionList.Items[?Aliases.Items!=null && contains(Aliases.Items, '${{ inputs.domain }}')].Id | [0]" \
+          --query "DistributionList.Items[?Aliases.Items!=null && contains(Aliases.Items, '$DOMAIN')].Id | [0]" \
           --output text)"
         if [ -z "$DIST_ID" ] || [ "$DIST_ID" = "None" ]; then
-          echo "Distribuição do CloudFront para ${{ inputs.domain }} não encontrada" >&2
+          echo "Distribuição do CloudFront para $DOMAIN não encontrada" >&2
           exit 1
         fi
         aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*" > /dev/null
