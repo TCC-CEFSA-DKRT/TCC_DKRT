@@ -1,6 +1,7 @@
 name: Segurança
 
-# Seção 3.1 do manual: pip-audit, npm audit e varredura de segredos. Roda em
+# Seção 3.1 do manual: pip-audit, npm audit e varredura de segredos, mais SAST
+# com Semgrep (ADR-0021: o manual não exige SAST; foi adicionado). Roda em
 # PR para a main, em push em release/*, antes das implantações e semanalmente
 # (novas vulnerabilidades surgem mesmo sem commits).
 
@@ -64,3 +65,38 @@ jobs:
         run: |
           docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.21.2 \
             detect --source /repo --no-banner --redact --verbose
+
+  # SAST: Semgrep CE (gratuito, sem conta nem token). Regras do registro público
+  # para Python, TypeScript, Terraform, Dockerfile e GitHub Actions.
+  # Em PR/release/deploy só entram achados NOVOS em relação à main (o débito
+  # antigo não bloqueia, como no ruff); só severidade ERROR reprova. No cron
+  # semanal varre tudo e não bloqueia, para o time ver o débito acumulado.
+  sast:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install --quiet semgrep==1.97.0
+
+      - name: semgrep
+        env:
+          SEMGREP_SEND_METRICS: "off"
+        run: |
+          ARGS=""
+          if [ "$GITHUB_EVENT_NAME" != "schedule" ]; then
+            git fetch --no-tags origin main
+            ARGS="--baseline-commit $(git merge-base origin/main HEAD)"
+          fi
+          semgrep scan $ARGS --metrics=off --severity ERROR --error \
+            --config p/security-audit --config p/python --config p/typescript \
+            --config p/terraform --config p/dockerfile --config p/github-actions \
+            --exclude node_modules --exclude tests --exclude '*.spec.ts' --exclude dist \
+            src frontend/src infra Dockerfile selfhosted .github \
+            || [ "$GITHUB_EVENT_NAME" = "schedule" ]

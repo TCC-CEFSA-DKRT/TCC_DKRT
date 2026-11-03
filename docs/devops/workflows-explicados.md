@@ -11,7 +11,7 @@ Complementa `docs/devops/pipeline-e-ambientes.md` (configuração inicial) e `do
     ci-frontend.yml         testes e build do Angular
     ci-images.yml           confere se as 3 imagens Docker compilam
     ci-infra.yml            terraform fmt, validate e plan (informativo)
-    security.yml            pip-audit, npm audit, gitleaks
+    security.yml            pip-audit, npm audit, gitleaks, SAST (Semgrep)
     deploy-dev.yml          entrega no DEV (manual, escolhe a branch)
     deploy-homologacao.yml  entrega na HOMOLOGAÇÃO (tag vX.Y.Z-rc.N)
     deploy-producao.yml     entrega na PRODUÇÃO (tag vX.Y.Z)
@@ -91,7 +91,7 @@ Compila (sem publicar) as três imagens: Lambda (`Dockerfile` da raiz), API self
 
 ### 3.5 `security.yml`
 
-`pip-audit` (requirements.txt), `npm audit` (só produção, críticas e altas) e `gitleaks` (varredura de segredos no histórico). Roda em PR, push em `release/**`, cron semanal e antes de cada deploy.
+`pip-audit` (requirements.txt), `npm audit` (só produção, críticas e altas), `gitleaks` (varredura de segredos no histórico) e **SAST com Semgrep** (job `sast`: regras públicas para Python, TypeScript, Terraform, Dockerfile e GitHub Actions; gratuito, sem conta nem token). No SAST, em PR, release e deploy só os achados **novos** em relação à `main` contam e só a severidade ERROR reprova; no cron semanal ele varre tudo e não bloqueia, para mostrar o débito acumulado. Roda em PR, push em `release/**`, cron semanal e antes de cada deploy.
 
 ### 3.6 `deploy-dev.yml`
 
