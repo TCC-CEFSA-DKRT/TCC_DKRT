@@ -94,7 +94,7 @@ jobs:
       # provenance/sbom desligados: o Lambda não aceita a lista de manifestos
       # (OCI index) que o buildx gera quando eles estão ligados.
       - name: Build e push da imagem Lambda
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile
