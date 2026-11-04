@@ -100,7 +100,7 @@ CodeQL em Python e TypeScript, com a suíte `security-extended`: segue o dado da
 
 Ajustes que nasceram da primeira execução no GitHub (PR #45):
 
-- **`npm audit` está informativo (`continue-on-error`).** O Angular 19 tem 7 vulnerabilidades altas sem correção na linha 19; a correção é a atualização para o Angular 21 (mudança grande). Quando a atualização for feita, remova o `continue-on-error` do passo `npm audit`.
+- **`npm audit` volta a bloquear.** O frontend foi atualizado do Angular 19 para o 21, o que zerou as vulnerabilidades altas das dependências de produção.
 - **`.gitleaksignore`** lista 3 falsos positivos (senhas fictícias de casos de teste em `tests/qualidade/test_bb_04_api_inputs.py`). Cada linha é a impressão digital do achado.
 
 ### Testes de integração excluídos do CI

@@ -49,14 +49,9 @@ jobs:
         with:
           node-version: 20
 
-      # ponytail: informativo até o Angular sair da 19.x (7 vulnerabilidades altas
-      # sem correção na 19; a correção é a atualização para o Angular 21, que é
-      # uma mudança grande). O continue-on-error fica no PASSO (não no job) para o
-      # check ficar verde; o achado aparece como aviso. Remova quando atualizar.
       - name: npm audit
         working-directory: frontend
-        continue-on-error: true
-        run: npm audit --omit=dev --audit-level=high || { echo "::warning::npm audit encontrou vulnerabilidades altas (Angular 19); ver o log"; exit 1; }
+        run: npm audit --omit=dev --audit-level=high
 
   secrets:
     name: Varredura de segredos (gitleaks)
