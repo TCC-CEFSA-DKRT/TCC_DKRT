@@ -1,0 +1,10 @@
+# Copie para terraform.tfvars (gitignored). Nenhum segredo aqui: as credenciais
+# AWS vêm do papel OIDC no pipeline ou do perfil local de quem aplica.
+# No pipeline, estes valores vêm de variáveis do GitHub Environment (TF_VAR_*).
+
+region               = "us-east-1"
+name_prefix          = "auditor-prod"
+api_domain_name      = "api.production.exemplo.com.br"
+frontend_domain_name = "app.production.exemplo.com.br"
+route53_zone_id      = "Z0000000000000000000"
+fiware_broker_url    = "http://orion.exemplo.com.br:1026"

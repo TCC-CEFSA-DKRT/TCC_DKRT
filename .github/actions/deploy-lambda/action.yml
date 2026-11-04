@@ -1,0 +1,64 @@
+name: Publicar versão nas funções Lambda
+description: >-
+  Troca a imagem das funções Lambda de um ambiente (API, worker, worker-dlq e
+  admin). As migrações Alembic rodam antes, pela função admin já com a imagem
+  nova, para o esquema estar pronto quando o código novo receber tráfego.
+  Requer credenciais AWS do ambiente já configuradas.
+
+inputs:
+  name-prefix:
+    description: Prefixo do ambiente (ex.- auditor-homolog)
+    required: true
+  image-uri:
+    description: Imagem completa no ECR (repositório:tag)
+    required: true
+  run-migrations:
+    description: "'true' aplica as migrações; 'false' no rollback (migrações são compatíveis, voltar o código não exige voltar o banco)"
+    required: false
+    default: "true"
+
+# Os inputs entram por variáveis de ambiente (e não por ${{ }} dentro do script)
+# para que um valor com aspas ou ; nunca vire comando de shell.
+runs:
+  using: composite
+  steps:
+    - name: Atualizar a função admin
+      shell: bash
+      env:
+        NAME_PREFIX: ${{ inputs.name-prefix }}
+        IMAGE_URI: ${{ inputs.image-uri }}
+      run: |
+        aws lambda update-function-code --function-name "${NAME_PREFIX}-admin" --image-uri "$IMAGE_URI" > /dev/null
+        aws lambda wait function-updated --function-name "${NAME_PREFIX}-admin"
+
+    - name: Migrações Alembic
+      if: inputs.run-migrations == 'true'
+      shell: bash
+      env:
+        NAME_PREFIX: ${{ inputs.name-prefix }}
+      run: |
+        aws lambda invoke \
+          --function-name "${NAME_PREFIX}-admin" \
+          --cli-binary-format raw-in-base64-out \
+          --cli-read-timeout 900 \
+          --payload '{"argv":["migrate"]}' \
+          /tmp/migrate.json > /tmp/migrate-meta.json
+        cat /tmp/migrate-meta.json /tmp/migrate.json
+        if jq -e '.FunctionError' /tmp/migrate-meta.json > /dev/null; then
+          echo "A função admin falhou ao migrar" >&2
+          exit 1
+        fi
+        jq -e '.exit_code == 0' /tmp/migrate.json > /dev/null
+
+    - name: Atualizar API e workers
+      shell: bash
+      env:
+        NAME_PREFIX: ${{ inputs.name-prefix }}
+        IMAGE_URI: ${{ inputs.image-uri }}
+      run: |
+        for fn in api worker worker-dlq; do
+          aws lambda update-function-code --function-name "${NAME_PREFIX}-$fn" --image-uri "$IMAGE_URI" > /dev/null
+        done
+        for fn in api worker worker-dlq; do
+          aws lambda wait function-updated --function-name "${NAME_PREFIX}-$fn"
+        done

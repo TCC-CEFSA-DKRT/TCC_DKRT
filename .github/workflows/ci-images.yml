@@ -1,0 +1,59 @@
+name: CI Imagens
+
+# Valida que as imagens compilam, sem publicar (a publicação é feita pelos
+# workflows de deploy, uma vez por versão).
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "Dockerfile"
+      - "selfhosted/**"
+      - "src/**"
+      - "migrations/**"
+      - "alembic.ini"
+      - "requirements.txt"
+      - "pyproject.toml"
+      - "frontend/**"
+      - ".github/workflows/ci-images.yml"
+  push:
+    branches: ["release/**"]
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-images-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: docker build (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: lambda (Dockerfile da raiz)
+            file: Dockerfile
+            scope: lambda
+          - name: self-hosted API
+            file: selfhosted/Dockerfile
+            scope: selfhosted-api
+          - name: self-hosted frontend
+            file: selfhosted/frontend.Dockerfile
+            scope: selfhosted-frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.scope }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
