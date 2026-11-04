@@ -16,7 +16,7 @@ mesmo frontend, promovidos). Rollback: workflow `Rollback PRODUÇÃO` com a vers
 
 ## Workflows
 
-- `ci-backend`, `ci-frontend`, `ci-infra`, `ci-images`, `security` (inclui SAST com Semgrep): rodam em PR por pasta e são chamados pelos deploys.
+- `ci-backend`, `ci-frontend`, `ci-infra`, `ci-images`, `security`: rodam em PR por pasta e são chamados pelos deploys. `codeql` (SAST do código) roda em PR, release e cron, fora dos deploys (exige repositório público).
 - `deploy-dev`, `deploy-homologacao`, `deploy-producao`, `rollback-producao`: entrega.
 - `infra-apply`: Terraform `plan`/`apply` manual por ambiente.
 - Ações compostas: `.github/actions/deploy-lambda` (migra e troca as funções) e `deploy-frontend`.
@@ -39,7 +39,7 @@ mesmo frontend, promovidos). Rollback: workflow `Rollback PRODUÇÃO` com a vers
      segredos `ACCEPTANCE_EMAIL`/`ACCEPTANCE_PASSWORD` para os 3 cenários DKRT.
    - `producao`: revisores obrigatórios e "Prevent self-review".
 4. **Branch protection** (`main`, `develop`): exigir os checks `ci-backend`, `ci-frontend`,
-   `ci-infra` e `security`.
+   `ci-infra`, `security` e `CodeQL`.
 5. **Primeiro provisionamento** de cada ambiente: `infra-apply` (plan, depois apply). Nos
    ambientes Lambda a primeira criação usa a imagem `bootstrap`; em seguida rodar o deploy do
    ambiente (DEV manual, HOMOLOG por tag `-rc`).
