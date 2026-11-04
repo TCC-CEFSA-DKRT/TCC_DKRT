@@ -85,7 +85,7 @@ jobs:
       - name: Trocar o contêiner da API
         run: bash scripts/ci/ssm_run.sh "${{ steps.instance.outputs.id }}" "auditor-deploy start ${{ steps.meta.outputs.image }}"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: npm
