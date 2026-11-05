@@ -60,7 +60,7 @@ jobs:
 
       # Imagem do modo self-hosted (uvicorn), que sobe API e worker no mesmo processo.
       - name: Build e push da imagem
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: selfhosted/Dockerfile
