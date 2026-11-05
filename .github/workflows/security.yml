@@ -93,6 +93,7 @@ jobs:
           ARGS=""
           if [ "$GITHUB_EVENT_NAME" != "schedule" ]; then
             git fetch --no-tags origin main
+            printf '* -text\n' >> "$(git rev-parse --git-common-dir)/info/attributes"
             ARGS="--baseline-commit $(git merge-base origin/main HEAD)"
           fi
           semgrep scan $ARGS --metrics=off --severity ERROR --error \
