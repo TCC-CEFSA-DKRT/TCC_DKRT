@@ -20,3 +20,14 @@ Para a arquitetura, escopo e especificações vigentes: `.cursor/specs/fase1.spe
   (o restante daquele arquivo continua válido como referência genérica de FIWARE/NGSI-v2)
 - `readme-raiz-antigo-dkrt.md` — íntegra do `README.md` da raiz antes da reescrita (o `README.md`
   atual já reflete a arquitetura vigente; nada de novo precisou ser extraído dele, só arquivado)
+- `imagens/` — diagramas do orquestrador multiagente (abril/2026), do produto antigo
+- `entrega/pre_projeto_tcc.*` — pré-projeto do TCC, escrito para o multiagente (os RF/RNF dele não são os do Auditor atual)
+- `mapeamento_processos.xlsx` — mapa das classes de agentes (`CreateAgent`, `IntentRouter`…) da arquitetura antiga
+- `devops/fluxo_pipe_atualizado_20261103.md` — versão anterior do guia do pipeline; a vigente é `docs/devops/workflows-explicados.md`
+
+## Regra para `docs/`
+
+Dentro de `docs/` ficam só documentos vigentes, que orientam quem trabalha no projeto hoje. O que deixa de
+condizer com a estrutura e o funcionamento atuais é movido para cá, com o conteúdo preservado, em vez de ficar
+ao lado dos documentos atuais. Os ADRs ficam em `docs/adr/` porque são registro de decisões e trazem o status
+(aceita, substituída) em cada um.
