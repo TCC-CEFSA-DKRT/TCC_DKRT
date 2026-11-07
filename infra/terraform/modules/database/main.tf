@@ -29,9 +29,9 @@ resource "aws_db_instance" "this" {
   vpc_security_group_ids = [var.security_group_id]
   publicly_accessible    = false
 
-  backup_retention_period = var.backup_retention_days
-  multi_az                = var.multi_az
-  skip_final_snapshot     = var.skip_final_snapshot
+  backup_retention_period   = var.backup_retention_days
+  multi_az                  = var.multi_az
+  skip_final_snapshot       = var.skip_final_snapshot
   final_snapshot_identifier = var.skip_final_snapshot ? null : "${var.name_prefix}-db-final"
 
   # sslmode=require é reforçado do lado da aplicação (DATABASE_URL), não

@@ -1,0 +1,118 @@
+name: Deploy DEV
+
+# Seção 4 do manual: o DEV não tem branch fixa. O Dev escolhe a branch no botão
+# "Run workflow" do GitHub (a branch selecionada é a que será implantada). Uma
+# branch por vez: a fila de concurrency impede dois deploys simultâneos.
+# Fluxo: CI -> build da imagem -> migrações -> troca do contêiner -> frontend
+# -> teste de fumaça. O artefato do DEV nunca é promovido para homologação.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  ci-backend:
+    uses: ./.github/workflows/ci-backend.yml
+
+  ci-frontend:
+    uses: ./.github/workflows/ci-frontend.yml
+
+  security:
+    uses: ./.github/workflows/security.yml
+
+  deploy:
+    name: Build, migrações, deploy e fumaça (dev)
+    needs: [ci-backend, ci-frontend, security]
+    runs-on: ubuntu-latest
+    environment: dev
+    timeout-minutes: 60
+    env:
+      NAME_PREFIX: ${{ vars.NAME_PREFIX }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      API_URL: ${{ vars.API_URL }}
+      FRONTEND_URL: ${{ vars.FRONTEND_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Definir a tag da imagem
+        id: meta
+        run: |
+          TAG="dev-${GITHUB_SHA::7}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "image=${{ steps.ecr.outputs.registry }}/$NAME_PREFIX-auditor:$TAG" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Imagem do modo self-hosted (uvicorn), que sobe API e worker no mesmo processo.
+      - name: Build e push da imagem
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: selfhosted/Dockerfile
+          push: true
+          provenance: false
+          tags: ${{ steps.meta.outputs.image }}
+          cache-from: type=gha,scope=selfhosted-api
+          cache-to: type=gha,mode=max,scope=selfhosted-api
+
+      - name: Localizar a instância da API
+        id: instance
+        run: |
+          INSTANCE_ID="$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=$NAME_PREFIX-api" "Name=instance-state-name,Values=running" \
+            --query 'Reservations[0].Instances[0].InstanceId' --output text)"
+          [ -n "$INSTANCE_ID" ] && [ "$INSTANCE_ID" != "None" ] || { echo "Instância $NAME_PREFIX-api não encontrada (rodou o infra-apply do dev?)" >&2; exit 1; }
+          echo "id=$INSTANCE_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Migrações Alembic
+        run: bash scripts/ci/ssm_run.sh "${{ steps.instance.outputs.id }}" "auditor-deploy migrate ${{ steps.meta.outputs.image }}"
+
+      - name: Trocar o contêiner da API
+        run: bash scripts/ci/ssm_run.sh "${{ steps.instance.outputs.id }}" "auditor-deploy start ${{ steps.meta.outputs.image }}"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build do frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build -- --configuration production
+
+      - name: Publicar o frontend
+        run: |
+          bash scripts/ci/set_api_url.sh frontend/dist/frontend/browser "$API_URL"
+          aws s3 sync frontend/dist/frontend/browser "s3://$NAME_PREFIX-frontend" --delete
+
+      - name: Teste de fumaça
+        run: bash scripts/ci/smoke.sh "$API_URL" "$FRONTEND_URL"
+
+      - name: Resumo
+        run: |
+          {
+            echo "### DEV atualizado"
+            echo "- Branch: \`${GITHUB_REF_NAME}\` (\`${GITHUB_SHA::7}\`)"
+            echo "- Imagem: \`${{ steps.meta.outputs.image }}\`"
+            echo "- API: $API_URL"
+            echo "- Frontend: $FRONTEND_URL"
+            echo ""
+            echo "Próximo passo: o Q.A testa (1º ciclo) e registra a aprovação no PR."
+          } >> "$GITHUB_STEP_SUMMARY"

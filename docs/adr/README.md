@@ -36,9 +36,10 @@ As ADRs 0000 a 0012 documentam a fase multiagente inicial do projeto, substituí
 | [0015](adr-0015.md) | Ollama em instância com GPU para o SLM de produção | Aceito |
 | [0016](adr-0016.md) | Servidor MCP como adaptador de entrada para expor a auditoria a clientes de IA | Aceito |
 | [0017](adr-0017.md) | API e worker de produção migram de EC2 para Lambda (imagem de contêiner) atrás de um ALB, com CloudFront/S3, Parameter Store e VPC endpoints | Aceito |
-| [0018](adr-0018.md) | AWS Academy Learner Lab descontinuada — `environments/academy` renomeado para `environments/homolog` | Aceito |
+| [0018](adr-0018.md) | AWS Academy Learner Lab descontinuada — `environments/academy` renomeado para `environments/homolog` | Parcialmente substituído por ADR-0021 |
 | [0019](adr-0019.md) | Dois modos de implantação (SaaS multi-tenant + self-hosted no ambiente do produtor) | Proposto |
 | [0020](adr-0020.md) | Sessão por cookie httpOnly (SaaS) + gate de Configuração (self-hosted) + `/session` em runtime no lugar da flag de build | Proposto |
+| [0021](adr-0021.md) | Três ambientes AWS (dev em EC2, homologação e produção em Lambda), pipeline por GitHub Actions com OIDC e build único promovido | Aceito |
 
 ## Como escrever o próximo
 

@@ -433,7 +433,7 @@ Esta seção descrevia a arquitetura multiagente descartada e foi movida para [`
 ### 12.5 Documentação interna do repositório
 
 - [Fase 4 — Nível 1 ponta a ponta (spec vigente)](../../.cursor/specs/fase4.spec.md)
-- [Pre-projeto TCC](../entrega/pre_projeto_tcc.md)
+- [Pre-projeto TCC](../legacy/entrega/pre_projeto_tcc.md)
 
 ---
 
