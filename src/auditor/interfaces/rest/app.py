@@ -87,7 +87,9 @@ def _make_lifespan(*, start_background_workers: bool):
     return _lifespan
 
 
-async def _tenant_account_gone(request: Request, exc: TenantBrokerNotConfiguredError) -> JSONResponse:
+async def _tenant_account_gone(request: Request, exc: Exception) -> JSONResponse:
+    # Registrado so' para TenantBrokerNotConfiguredError (ver create_app); o tipo
+    # amplo e' o que o Starlette espera de um exception handler.
     return JSONResponse(
         status_code=401,
         content={"detail": "Conta nao encontrada; faca login novamente."},

@@ -30,6 +30,7 @@ import json
 from collections import Counter
 from datetime import datetime, timezone, tzinfo
 from io import BytesIO
+from typing import Any
 from xml.sax.saxutils import escape
 
 from reportlab.lib import colors
@@ -280,7 +281,7 @@ class PdfAuditReportRenderer:
             row += [_badge_cell(severity), Paragraph(safe_text(description), STYLES["muted"])]
             widths += [BADGE_COLUMN_WIDTH, CONTENT_WIDTH / 3 - BADGE_COLUMN_WIDTH]
         table = Table([row], colWidths=widths)
-        commands = [
+        commands: list[tuple[Any, ...]] = [
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("LEFTPADDING", (1, 0), (-1, -1), 6),
         ]
