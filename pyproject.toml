@@ -45,6 +45,7 @@ dev = [
     "moto[sqs]>=5.0.0",
     "boto3>=1.34.0",
     "jsonschema>=4.21.0",
+    "locust>=2.29.0",
 ]
 aws = [
     "boto3>=1.34.0",
@@ -63,5 +64,7 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 markers = [
     "integration: requer infraestrutura externa (Orion, Postgres) em execucao",
+    "req(id): requisito (RF-xx/RNF-xx) rastreado pelo caso de teste — ver tests/qualidade",
+    "tecnica(nome): tecnica de projeto de teste (CE, AVL, TD, CB)",
     "golden: requer Ollama real (Qwen2.5) rodando localmente — detecta regressao de prompt/modelo (Fase 7)",
 ]

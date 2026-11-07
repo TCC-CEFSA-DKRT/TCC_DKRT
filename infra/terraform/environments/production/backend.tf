@@ -1,9 +1,9 @@
+# Backend S3 + DynamoDB (lock), criados pelo stack infra/terraform/bootstrap.
+# bucket, key, region e dynamodb_table são passados via -backend-config (ver
+# docs/devops/pipeline-e-ambientes.md); a key deste ambiente é
+# production/terraform.tfstate.
 terraform {
   backend "s3" {
-    # bucket, key, region, dynamodb_table: fornecidos via -backend-config,
-    # igual ao ambiente academy (ver environments/academy/backend.tf) --
-    # tipicamente um bucket/tabela SEPARADOS dos da academy, para não
-    # misturar state de ambientes.
     encrypt = true
   }
 

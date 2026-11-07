@@ -1,0 +1,126 @@
+﻿requisito;caso;tecnica;nome;script;resultado;defeito
+RF-01;CT-VAL-01;CE;Entidade totalmente valida;tests/qualidade/test_bb_01_structural_validator.py;PASSOU;
+RF-01;CT-VAL-02;CE;Obrigatório ausente;tests/qualidade/test_bb_01_structural_validator.py;PASSOU;
+RF-01;CT-VAL-03;CE;Obrigatório presente porém nulo;tests/qualidade/test_bb_01_structural_validator.py;PASSOU;
+RF-01;CT-VAL-04;CE;Tipo errado (string onde se espera number);tests/qualidade/test_bb_01_structural_validator.py;PASSOU;
+RF-01;CT-VAL-05;CE;Booleano onde se espera number;tests/qualidade/test_bb_01_structural_validator.py;PASSOU;
+RF-01;CT-VAL-06;CE;Valor fora do enum;tests/qualidade/test_bb_01_structural_validator.py;PASSOU;
+RF-01;CT-VAL-07;CE;date-time inválido (texto livre);tests/qualidade/test_bb_01_structural_validator.py;PASSOU;
+RF-01;CT-VAL-08;CE;date-time válido com offset;tests/qualidade/test_bb_01_structural_validator.py;PASSOU;
+RF-01;CT-VAL-09;CE;Propriedade fora do schema;tests/qualidade/test_bb_01_structural_validator.py;PASSOU;
+RF-01;CT-VAL-10;CE;Várias violações simultâneas;tests/qualidade/test_bb_01_structural_validator.py;PASSOU;
+RF-01;CT-VAL-11;CE;Obrigatório alternativo (anyOf) satisfeito por location;tests/qualidade/test_bb_01_structural_validator.py;PASSOU;
+RF-01;CT-VAL-12;CE;Obrigatório alternativo (anyOf) satisfeito por address;tests/qualidade/test_bb_01_structural_validator.py;PASSOU;
+RF-01;CT-VAL-13;CE;Nenhuma alternativa do anyOf satisfeita;tests/qualidade/test_bb_01_structural_validator.py;PASSOU;
+RF-01;CT-VAL-14;AVL;lanternHeight no limite inferior − (abaixo de 0);tests/qualidade/test_bb_01_structural_validator.py;PASSOU;
+RF-01;CT-VAL-15;AVL;lanternHeight no limite inferior (0);tests/qualidade/test_bb_01_structural_validator.py;PASSOU;
+RF-01;CT-VAL-16;AVL;lanternHeight no limite inferior + (logo acima de 0);tests/qualidade/test_bb_01_structural_validator.py;PASSOU;
+RF-01;CT-VAL-17;AVL;lanternHeight no valor nominal (10);tests/qualidade/test_bb_01_structural_validator.py;PASSOU;
+RF-01;CT-VAL-18;AVL;lanternHeight no limite superior − (logo abaixo de 20);tests/qualidade/test_bb_01_structural_validator.py;PASSOU;
+RF-01;CT-VAL-19;AVL;lanternHeight no limite superior (20);tests/qualidade/test_bb_01_structural_validator.py;PASSOU;
+RF-01;CT-VAL-20;AVL;lanternHeight no limite superior + (acima de 20);tests/qualidade/test_bb_01_structural_validator.py;PASSOU;
+RF-01;CT-VAL-21;CE;Booleano aceito como integer;tests/qualidade/test_bb_01_structural_validator.py;DEFEITO CONHECIDO;D-03
+RF-01;CT-VAL-22;CE;Data sem hora aceita como date-time;tests/qualidade/test_bb_01_structural_validator.py;DEFEITO CONHECIDO;D-04
+RF-01;CT-VAL-23;AVL;NaN passa na checagem de faixa;tests/qualidade/test_bb_01_structural_validator.py;DEFEITO CONHECIDO;D-05
+RF-02;CT-STA-01;TD;R1: modelo inexistente, sem violações;tests/qualidade/test_bb_02_conformance_status.py;PASSOU;
+RF-02;CT-STA-02;TD;R1: modelo inexistente ignora violações;tests/qualidade/test_bb_02_conformance_status.py;PASSOU;
+RF-02;CT-STA-03;TD;R2: modelo existe, sem violações;tests/qualidade/test_bb_02_conformance_status.py;PASSOU;
+RF-02;CT-STA-04;TD;R3: apenas WARNING;tests/qualidade/test_bb_02_conformance_status.py;PASSOU;
+RF-02;CT-STA-05;TD;R4: apenas INFO;tests/qualidade/test_bb_02_conformance_status.py;PASSOU;
+RF-02;CT-STA-06;TD;R5: apenas ERROR;tests/qualidade/test_bb_02_conformance_status.py;PASSOU;
+RF-02;CT-STA-07;TD;R6: ERROR junto com WARNING e INFO;tests/qualidade/test_bb_02_conformance_status.py;PASSOU;
+RF-03;CT-NL-01;TD;R1: SLM indisponível;tests/qualidade/test_bb_03_interpret_command.py;PASSOU;
+RF-03;CT-NL-02;TD;R2: pedido fora do escopo;tests/qualidade/test_bb_03_interpret_command.py;PASSOU;
+RF-03;CT-NL-03;TD;R3: auditoria clara e confiante;tests/qualidade/test_bb_03_interpret_command.py;PASSOU;
+RF-03;CT-NL-04;TD;R4: auditoria sem tipo;tests/qualidade/test_bb_03_interpret_command.py;PASSOU;
+RF-03;CT-NL-05;TD;R5: auditoria com confiança baixa;tests/qualidade/test_bb_03_interpret_command.py;PASSOU;
+RF-03;CT-NL-06;TD;R6: clarify mantém a pergunta do SLM;tests/qualidade/test_bb_03_interpret_command.py;PASSOU;
+RF-03;CT-NL-07;TD;R7: clarify com broker fora do ar;tests/qualidade/test_bb_03_interpret_command.py;PASSOU;
+RF-03;CT-NL-08;TD;R8: discovery com broker no ar;tests/qualidade/test_bb_03_interpret_command.py;PASSOU;
+RF-03;CT-NL-09;TD;R9: discovery com broker fora do ar;tests/qualidade/test_bb_03_interpret_command.py;PASSOU;
+RF-03;CT-NL-10;AVL;Confiança 0.0 (limiar 0.5);tests/qualidade/test_bb_03_interpret_command.py;PASSOU;
+RF-03;CT-NL-11;AVL;Confiança 0.49 (limiar 0.5);tests/qualidade/test_bb_03_interpret_command.py;PASSOU;
+RF-03;CT-NL-12;AVL;Confiança 0.5 (limiar 0.5);tests/qualidade/test_bb_03_interpret_command.py;PASSOU;
+RF-03;CT-NL-13;AVL;Confiança 0.51 (limiar 0.5);tests/qualidade/test_bb_03_interpret_command.py;PASSOU;
+RF-03;CT-NL-14;AVL;Confiança 1.0 (limiar 0.5);tests/qualidade/test_bb_03_interpret_command.py;PASSOU;
+RF-03;CT-API-01;AVL;Vazio (0 caracteres): limite inferior −;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-03;CT-API-02;AVL;1 caractere: limite inferior;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-03;CT-API-03;AVL;2 caracteres: limite inferior +;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-03;CT-API-04;AVL;499 caracteres: limite superior −;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-03;CT-API-05;AVL;500 caracteres: limite superior;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-03;CT-API-06;AVL;501 caracteres: limite superior +;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-03;CT-API-07;CE;Frase típica em português;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-03;CT-API-08;CE;Somente espaços (comando semanticamente vazio);tests/qualidade/test_bb_04_api_inputs.py;DEFEITO CONHECIDO;D-06
+RF-03;CT-API-09;CE;Campo command_text ausente;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-03;CT-API-10;CE;command_text com tipo errado (número);tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-03;CT-API-11;CE;command_text nulo;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-04;CT-API-12;CE;Auditoria de um tipo;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-04;CT-API-13;CE;Auditoria ampla (corpo vazio);tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-04;CT-API-14;CE;entity_type com tipo errado (número);tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-04;CT-API-15;CE;entity_type só com espaços;tests/qualidade/test_bb_04_api_inputs.py;DEFEITO CONHECIDO;D-06
+RF-05;CT-PAG-01;AVL;page=1 (limite inferior);tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-05;CT-PAG-02;AVL;page=0 (abaixo do limite);tests/qualidade/test_bb_04_api_inputs.py;DEFEITO CONHECIDO;D-01
+RF-05;CT-PAG-03;AVL;page=-1;tests/qualidade/test_bb_04_api_inputs.py;DEFEITO CONHECIDO;D-01
+RF-05;CT-PAG-04;CE;page=abc (tipo inválido);tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-05;CT-PAG-05;AVL;page_size=1 (limite inferior);tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-05;CT-PAG-06;AVL;page_size=0 (abaixo do limite);tests/qualidade/test_bb_04_api_inputs.py;DEFEITO CONHECIDO;D-01
+RF-05;CT-PAG-07;AVL;page_size=-5;tests/qualidade/test_bb_04_api_inputs.py;DEFEITO CONHECIDO;D-01
+RF-05;CT-PAG-08;AVL;page_size=100 (limite superior);tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-05;CT-PAG-09;AVL;page_size=101 (acima do limite);tests/qualidade/test_bb_04_api_inputs.py;DEFEITO CONHECIDO;D-01
+RF-05;CT-PAG-10;AVL;page_size=1000000 (carga abusiva);tests/qualidade/test_bb_04_api_inputs.py;DEFEITO CONHECIDO;D-01
+RF-05;CT-PAG-11;CE;Filtro status válido;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-05;CT-PAG-12;CE;Filtro status inexistente;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-05;CT-PAG-13;CE;Sem parâmetros (padrões);tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-05;CT-PAG-14;CE;summary-over-time com tipo válido;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-05;CT-PAG-15;CE;summary-over-time sem o parâmetro;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-05;CT-PAG-16;CE;summary-over-time com tipo vazio;tests/qualidade/test_bb_04_api_inputs.py;DEFEITO CONHECIDO;D-02
+RF-06;CT-CFG-01;CE;Configuração válida;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-06;CT-CFG-02;CE;broker_url https com porta;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-06;CT-CFG-03;CE;broker_url com esquema ftp;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-06;CT-CFG-04;CE;broker_url sem esquema;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-06;CT-CFG-05;CE;broker_url com espaço;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-06;CT-CFG-06;CE;broker_url só com esquema;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-06;CT-CFG-07;AVL;fiware_service vazio (0): limite inferior;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-06;CT-CFG-08;AVL;fiware_service com 1 caractere;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-06;CT-CFG-09;AVL;fiware_service com 50 caracteres: limite superior;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-06;CT-CFG-10;AVL;fiware_service com 51 caracteres: limite superior +;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-06;CT-CFG-11;CE;fiware_service com hífen;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-06;CT-CFG-12;CE;fiware_service com acento;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-06;CT-CFG-13;CE;fiware_service com underscore e dígitos;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-06;CT-CFG-14;CE;service_path raiz '/';tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-06;CT-CFG-15;CE;service_path com 2 níveis;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-06;CT-CFG-16;CE;service_path sem barra inicial;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-06;CT-CFG-17;CE;service_path terminando em '/';tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-06;CT-CFG-18;CE;service_path com '//';tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-06;CT-CFG-19;CE;Sem chave de criptografia configurada;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-07;CT-AUT-01;CE;Credenciais corretas;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-07;CT-AUT-02;CE;E-mail correto, senha errada;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-07;CT-AUT-03;CE;E-mail inexistente;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-07;CT-AUT-04;AVL;Senha vazia;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-07;CT-AUT-05;CE;E-mail em maiúsculas (insensível a caixa);tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-07;CT-AUT-06;CE;Campo password ausente;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-07;CT-AUT-07;CE;Corpo vazio;tests/qualidade/test_bb_04_api_inputs.py;PASSOU;
+RF-08;CT-WB-01;CB;worker_handler: caminho C1 — Evento sem Records;tests/qualidade/test_wb_01_handlers_lambda.py;PASSOU;
+RF-08;CT-WB-02;CB;worker_handler: caminho C2 — Um registro processado com êxito;tests/qualidade/test_wb_01_handlers_lambda.py;PASSOU;
+RF-08;CT-WB-03;CB;worker_handler: caminho C3 — Um registro cujo processamento falha;tests/qualidade/test_wb_01_handlers_lambda.py;PASSOU;
+RF-08;CT-WB-04;CB;worker_handler: caminho C4 — Lote misto (ok, falha, ok): laço continua após a falha;tests/qualidade/test_wb_01_handlers_lambda.py;PASSOU;
+RF-08;CT-WB-05;CB;worker_dlq_handler: caminho C1 — Evento sem Records;tests/qualidade/test_wb_01_handlers_lambda.py;PASSOU;
+RF-08;CT-WB-06;CB;worker_dlq_handler: caminho C2 — Um registro processado com êxito;tests/qualidade/test_wb_01_handlers_lambda.py;PASSOU;
+RF-08;CT-WB-07;CB;worker_dlq_handler: caminho C3 — Um registro cujo processamento falha;tests/qualidade/test_wb_01_handlers_lambda.py;PASSOU;
+RF-08;CT-WB-08;CB;worker_dlq_handler: caminho C4 — Lote misto (ok, falha, ok): laço continua após a falha;tests/qualidade/test_wb_01_handlers_lambda.py;PASSOU;
+RF-08;CT-WB-21;CB;API Lambda: evento do ALB chega à app FastAPI (Mangum);tests/qualidade/test_wb_01_handlers_lambda.py;PASSOU;
+RF-08;CT-WB-09;CB;Worker repassa run_id/tenant/tipo/id ao use case;tests/qualidade/test_wb_01_handlers_lambda.py;PASSOU;
+RF-08;CT-WB-10;CB;DLQ marca o run como FAILED com o motivo padrão;tests/qualidade/test_wb_01_handlers_lambda.py;PASSOU;
+RF-08;CT-WB-11;CB;Entrada síncrona do worker (handler);tests/qualidade/test_wb_01_handlers_lambda.py;PASSOU;
+RF-08;CT-WB-12;CB;Entrada síncrona da DLQ (handler);tests/qualidade/test_wb_01_handlers_lambda.py;PASSOU;
+RF-01;CT-WB-13;CB;Obrigatório que também está no anyOf não é reportado em duplicidade;tests/qualidade/test_wb_02_validador_ramos.py;PASSOU;
+RF-01;CT-WB-14;CB;Tipo esperado desconhecido no schema é ignorado;tests/qualidade/test_wb_02_validador_ramos.py;PASSOU;
+RF-01;CT-WB-15;CB;Valor dict onde se espera string → found='object';tests/qualidade/test_wb_02_validador_ramos.py;PASSOU;
+RF-01;CT-WB-16;CB;Valor lista onde se espera string → found='array';tests/qualidade/test_wb_02_validador_ramos.py;PASSOU;
+RF-01;CT-WB-17;CB;Valor de tipo exótico → found = nome da classe Python;tests/qualidade/test_wb_02_validador_ramos.py;PASSOU;
+RF-01;CT-WB-18;CB;Booleano onde se espera string → found='boolean';tests/qualidade/test_wb_02_validador_ramos.py;PASSOU;
+RF-01;CT-WB-19;CB;anyOf parcialmente satisfeito: só o campo ausente é reportado;tests/qualidade/test_wb_02_validador_ramos.py;PASSOU;
+RF-01;CT-WB-20;CB;anyOf satisfeito pela 2ª alternativa;tests/qualidade/test_wb_02_validador_ramos.py;PASSOU;
+RNF-01;CT-CAR-01;CARGA;Smoke de concorrência no pytest;tests/carga/test_carga_smoke.py;PASSOU;
+RNF-01;CT-CAR-02;CARGA;Carga nominal: 100 usuários por 45 s;tests/carga/locustfile.py;PASSOU;
+RNF-02;CT-CAR-03;CARGA;Estresse: 500 usuários por 45 s;tests/carga/locustfile.py;PASSOU;

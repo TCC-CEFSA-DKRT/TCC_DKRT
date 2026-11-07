@@ -1,7 +1,6 @@
 variable "region" {
-  description = "Regiao AWS -- conta real (ADR-0018), sem restricao de regiao imposta pelo Academy Learner Lab (que este ambiente nao usa mais)."
-  type        = string
-  default     = "us-east-1"
+  type    = string
+  default = "us-east-1"
 }
 
 variable "name_prefix" {
@@ -9,16 +8,46 @@ variable "name_prefix" {
   default = "auditor-homolog"
 }
 
-variable "key_name" {
-  description = "Key pair EC2 já existente na conta Academy para SSH (opcional)."
+variable "api_domain_name" {
+  description = "Domínio da API, delegado a var.route53_zone_id."
   type        = string
-  default     = null
 }
 
-variable "ollama_model" {
-  description = "Deve espelhar OLLAMA_MODEL em .env / Settings.ollama_model. Decisão do usuário: um SLM pequeno (Qwen 2.5 3B/4B ou equivalente) -- ver docs/decisions/0001-ollama-ec2-vs-bedrock.md."
+variable "frontend_domain_name" {
+  description = "Domínio do frontend, delegado a var.route53_zone_id."
   type        = string
-  default     = "qwen2.5:3b-instruct"
+}
+
+variable "route53_zone_id" {
+  type = string
+}
+
+variable "deployment_mode" {
+  description = "\"saas\" ou \"selfhosted\" (ADR-0019)."
+  type        = string
+  default     = "selfhosted"
+}
+
+variable "fiware_broker_url" {
+  description = "URL do Orion auditado por este ambiente."
+  type        = string
+  default     = "http://localhost:1026"
+}
+
+variable "lambda_image_tag" {
+  description = "Tag usada só na criação das funções; depois o pipeline de deploy troca a imagem."
+  type        = string
+  default     = "bootstrap"
+}
+
+variable "database_name" {
+  type    = string
+  default = "auditor"
+}
+
+variable "db_instance_class" {
+  type    = string
+  default = "db.t3.micro"
 }
 
 variable "provision_ollama" {
@@ -26,7 +55,26 @@ variable "provision_ollama" {
   default = true
 }
 
+variable "ollama_instance_type" {
+  type    = string
+  default = "g4dn.xlarge"
+}
+
+variable "ollama_model" {
+  type    = string
+  default = "qwen2.5:3b-instruct"
+}
+
+variable "key_name" {
+  type    = string
+  default = null
+}
+
 variable "tags" {
-  type    = map(string)
-  default = { Project = "auditor-tcc", Environment = "homolog" }
+  type = map(string)
+  default = {
+    Project     = "auditor-tcc"
+    Environment = "homolog"
+    ManagedBy   = "terraform"
+  }
 }
