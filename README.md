@@ -123,7 +123,7 @@ cifradas gravadas no segundo. `docker compose down -v` apaga os dois.
 | Arquivo | Modo | O que sobe |
 |---|---|---|
 | `docker-compose.yml` (raiz) | Dev local | Só infraestrutura (Orion, Mongo, Postgres) — a aplicação roda como processo Python direto (`uvicorn`, passo 3 acima) |
-| `Dockerfile` (raiz) | SaaS/produção | Handler Lambda (ADR-0017) — nunca roda com `docker run`/`docker compose`, só via Terraform + ECR |
+| `Dockerfile` (raiz) | Homologação e produção | Handler Lambda (ADR-0017) — nunca roda com `docker run`/`docker compose`, só via pipeline + ECR |
 | `selfhosted/docker-compose.yml` | Self-hosted | Stack completa (infra + app + SLM) para o produtor instalar na própria infraestrutura |
 | `selfhosted/Dockerfile` | Self-hosted | Mesmo código do `Dockerfile` da raiz, mas roda `uvicorn` normal em vez de handler Lambda |
 
@@ -162,9 +162,9 @@ pytest tests/ -v -m integration                # exige Postgres/Orion reais (doc
 pytest tests/ -v -m golden                     # exige Ollama real — detecta regressão de prompt
 ```
 
-Markers definidos em `pyproject.toml` (`[tool.pytest.ini_options]`). **Nenhum destes roda em
-CI hoje** — o único workflow (`.github/workflows/terraform-and-audit.yml`) faz `terraform plan`
-+ `pip-audit`, não `pytest`; a suíte é validada manualmente antes de cada commit.
+Markers definidos em `pyproject.toml` (`[tool.pytest.ini_options]`). O CI
+(`.github/workflows/ci-backend.yml`, ver `docs/devops/pipeline-e-ambientes.md`) roda a suíte em
+todo PR (unitários, `integration` com Postgres/Orion em serviço e `golden` com Ollama).
 
 ## Experimento (Fase 10 — métricas do TCC)
 
@@ -180,36 +180,25 @@ Requer o mesmo ambiente do passo 1-3 de pé, com um SLM real acessível — nunc
 mocks. Ver `.cursor/specs/fase10.spec.md` e `dataset/experiment/README.md` (formato do
 dataset — curadoria humana, não gerada por ferramenta).
 
-## Infraestrutura AWS (Terraform) — Fase 9 / ADR-0018
+## Infraestrutura AWS (Terraform) e pipeline — ADR-0021
 
-Três ambientes de destino: **local** (dev/testes, seções acima, não é Terraform),
-**homologação** (`environments/homolog/`, nuvem, antes da apresentação) e **produção**
-(`environments/production/`, o que é mostrado como produto final). Módulos em
-`infra/terraform/modules/{network,database,queue,compute,secrets,lambda_compute,edge_alb,
-frontend_delivery,parameter_store,vpc_endpoints}`.
+Três ambientes na AWS, numa única conta, com prefixo por ambiente (detalhes e passo a passo em
+`docs/devops/pipeline-e-ambientes.md`):
 
-**`environments/homolog`** (ex-`environments/academy` — a AWS Academy Learner Lab foi
-descontinuada, `docs/adr/adr-0018.md`): EC2 (API/worker/Ollama-GPU), mesma arquitetura das
-decisões `docs/adr/adr-0013.md`/`adr-0015.md`, agora apontada para uma conta AWS real (ainda
-não provisionada) em vez da Academy — `create_role=true`, sem trava de região.
-`environments/academy/` continua no repositório só como arquivos-stub apontando para cá (não
-pôde ser excluído nesta sessão — ver `environments/academy/MOVED.md`).
+| Ambiente | Pasta Terraform | Arquitetura |
+|---|---|---|
+| dev | `infra/terraform/environments/dev` | EC2 (contêiner `selfhosted`) + RDS + S3 website |
+| homologação | `infra/terraform/environments/homolog` | Lambda + ALB + CloudFront/S3 + RDS (`modules/stack_lambda`) |
+| produção | `infra/terraform/environments/production` | mesma stack Lambda, Multi-AZ |
 
-**`environments/production`**: Lambda (imagem de contêiner) atrás de ALB + CloudFront,
-`docs/adr/adr-0017.md`.
+`infra/terraform/bootstrap` cria o state remoto, o bucket de artefatos, o provedor OIDC do GitHub
+e os papéis IAM (aplicado uma vez, à mão). Os workflows entram na AWS por OIDC, sem chaves de
+acesso. Pipeline (manual de gestão de código v1.3): DEV por `workflow_dispatch` da branch
+escolhida; HOMOLOGAÇÃO pela tag `vX.Y.Z-rc.N` em `release/X.Y.Z`; PRODUÇÃO pela tag `vX.Y.Z` na
+`main`, com aprovação manual, promovendo a mesma imagem e o mesmo frontend já homologados.
 
-**Estado real:** todo o código Terraform foi escrito e validado só localmente (sintaxe HCL via
-`python-hcl2` + inspeção estrutural) — **nenhum `terraform apply` foi executado contra uma
-conta AWS real** em nenhum dos dois ambientes; a conta de homologação ainda não existe.
-O gap do worker EC2 (`interfaces/worker/main.py` ausente, referenciado por
-`worker.sh.tftpl`) foi corrigido — ver "Débito conhecido" abaixo pro que resta de fato.
-
-CI (`.github/workflows/terraform-and-audit.yml`): `terraform plan` em PRs que tocam
-`infra/terraform/`, `terraform apply` manual (aprovação obrigatória) via `workflow_dispatch`,
-e `pip-audit` sobre `requirements.txt` — **o arquivo do workflow ainda referencia o ambiente
-`academy` antigo**; a versão corrigida (`homolog`) foi entregue à parte porque arquivos de
-workflow do GitHub Actions não podem ser escritos por ferramenta remota (bloqueio de
-segurança da própria plataforma) — precisa ser aplicada manualmente.
+**Estado real:** o Terraform foi formatado (`fmt`) e conferido estruturalmente, mas **nenhum
+`validate`/`plan`/`apply` foi executado contra uma conta AWS real**.
 
 ## Servidor MCP (ADR-0016)
 
@@ -222,9 +211,6 @@ sistema multiagente descartado e está em `docs/legacy/`, não é reaproveitáve
 
 - Lint/type-check completos (`mypy`/`ruff` em 100% do código) fora de escopo — só código novo
   é obrigado a não introduzir violação nova.
-- CI não roda a suíte de testes (só Terraform + `pip-audit`, ver seção Testes).
-- `.github/workflows/terraform-and-audit.yml` ainda referencia o ambiente `academy`
-  descontinuado — correção pronta, precisa ser aplicada manualmente (ver seção Terraform).
 - `docs/plano_refatoracao_v3.md` (Parte I, 1.1) ainda descreve as restrições da AWS Academy
   Learner Lab como vigentes — não atualizado pela ADR-0018 (reescrita grande, follow-up
   separado); `.cursor/specs/fase9.spec.md` já tem uma nota apontando para a ADR-0018.

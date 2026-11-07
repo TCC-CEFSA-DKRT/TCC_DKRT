@@ -1,4 +1,4 @@
-"""PdfAuditReportRenderer — issue #23, decisao registrada na ADR-0021.
+"""PdfAuditReportRenderer — issue #23, decisao registrada na ADR-0022.
 
 Gera o PDF do relatorio de uma auditoria com ReportLab (Python puro, sem
 navegador nem bibliotecas de sistema), pronto para impressao em A4. A

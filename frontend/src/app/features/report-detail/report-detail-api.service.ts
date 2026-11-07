@@ -13,7 +13,7 @@ export const EXPORT_PDF_TIMEOUT_MS = 120_000;
 /** Fase 8, seção 5 — Report Detail. Reaproveita `GET /audits/{run_id}`
  * (Fase 4), que já traz `reports[]` completo (violações + recomendações,
  * Fase 7) — sem endpoint novo. Issue #23: `exportPdf()` baixa o mesmo
- * relatório em PDF, gerado no backend (ADR-0021). */
+ * relatório em PDF, gerado no backend (ADR-0022). */
 @Injectable({ providedIn: 'root' })
 export class ReportDetailApiService {
   private readonly http = inject(HttpClient);

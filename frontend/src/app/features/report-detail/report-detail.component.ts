@@ -173,7 +173,7 @@ export class ReportDetailComponent {
     this.statusFilter.set(filter);
   }
 
-  /** Issue #23 — baixa o relatório em PDF, gerado no backend (ADR-0021).
+  /** Issue #23 — baixa o relatório em PDF, gerado no backend (ADR-0022).
    * Exporta sempre a auditoria inteira, independentemente do filtro de
    * status aplicado na tela. */
   protected onExportPdf(): void {

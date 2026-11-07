@@ -2,7 +2,7 @@
 
 A Application layer so' conhece este contrato: "transforme um AuditRun ja'
 carregado em um documento". Qual biblioteca gera o arquivo (ReportLab hoje,
-ver ADR-0021) e' detalhe de infraestrutura e pode ser trocado sem tocar no
+ver ADR-0022) e' detalhe de infraestrutura e pode ser trocado sem tocar no
 use case nem no router.
 
 `render()` e' sincrono de proposito: gerar um PDF e' trabalho de CPU, nao

@@ -1,4 +1,4 @@
-"""Issue #23 — PDF do relatorio de auditoria (ADR-0021).
+"""Issue #23 — PDF do relatorio de auditoria (ADR-0022).
 
 Le o PDF gerado de volta com pypdf para verificar o que o criterio de aceite
 pede: A4, acentos preservados, severidades distinguiveis em escala de cinza,

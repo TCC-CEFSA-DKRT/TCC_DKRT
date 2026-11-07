@@ -1,0 +1,186 @@
+name: CI Backend
+
+# Seção 3 do Manual de Gestão de Código e Entrega. Roda em todo PR para a
+# main, em todo push em release/*, antes do deploy no DEV (workflow_call) e
+# semanalmente (testes golden do SLM, que são pesados demais para cada PR).
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "migrations/**"
+      - "alembic.ini"
+      - "requirements.txt"
+      - "pyproject.toml"
+      - ".github/workflows/ci-backend.yml"
+  push:
+    branches: ["release/**"]
+  schedule:
+    - cron: "0 6 * * 1" # segunda, 06:00 UTC
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  unit:
+    name: Testes unitários, ruff e mypy
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Instalar dependências
+        run: |
+          # torch em versão CPU: a padrão baixa ~2,5 GB de bibliotecas CUDA que o CI não usa.
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+          pip install -e . --no-deps
+          # Dependências que o pysmartdatamodels importa mas não declara.
+          pip install jsonref faker rstr ruamel.yaml pytz validator-collection python-Levenshtein fuzzywuzzy
+          pip install ruff mypy
+
+      - name: Arquivos Python alterados em src/ (contra a main)
+        id: changed
+        run: |
+          git fetch --no-tags origin main
+          FILES="$(git diff --name-only --diff-filter=ACMR origin/main...HEAD -- 'src/**/*.py' | tr '\n' ' ')"
+          echo "files=$FILES" >> "$GITHUB_OUTPUT"
+          echo "Alterados: ${FILES:-nenhum}"
+
+      # Qualidade gradual: só o código alterado precisa estar limpo; o débito
+      # antigo não bloqueia ninguém, mas ninguém piora o que tocar.
+      - name: ruff (código alterado)
+        if: steps.changed.outputs.files != ''
+        run: ruff check --select E4,E7,E9,F ${{ steps.changed.outputs.files }}
+
+      - name: mypy (código alterado)
+        if: steps.changed.outputs.files != ''
+        run: mypy --ignore-missing-imports --follow-imports=silent ${{ steps.changed.outputs.files }}
+
+      - name: pytest (unitários) com cobertura
+        run: pytest tests/unit -q --cov=src/auditor --cov-report=term-missing --cov-report=xml
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cobertura-backend
+          path: coverage.xml
+          retention-days: 14
+
+  integration:
+    name: Integração (PostgreSQL, Orion e migrações)
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule'
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: auditor
+          POSTGRES_PASSWORD: auditor
+          POSTGRES_DB: auditor
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U auditor -d auditor"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      mongo:
+        image: mongo:4.4
+      orion:
+        image: fiware/orion:3.10.1
+        ports: ["1026:1026"]
+        env:
+          ORION_MONGO_HOST: mongo
+          ORION_MULTI_SERVICE: "TRUE"
+    env:
+      DATABASE_URL: postgresql+asyncpg://auditor:auditor@localhost:5433/auditor
+      FIWARE_BROKER_URL: http://localhost:1026
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Instalar dependências
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+          pip install -e . --no-deps
+          pip install jsonref faker rstr ruamel.yaml pytz validator-collection python-Levenshtein fuzzywuzzy
+
+      # O container de serviço do Actions não aceita `command`; o Orion lê o
+      # host do Mongo da variável ORION_MONGO_HOST (equivale a -dbhost).
+      - name: Aguardar o Orion
+        run: curl -fsS --retry 30 --retry-delay 3 --retry-connrefused http://localhost:1026/version
+
+      - name: Uma única head do Alembic
+        run: |
+          HEADS="$(alembic heads | wc -l)"
+          echo "heads: $HEADS"
+          test "$HEADS" -eq 1 || { alembic heads; echo "Mais de uma head: a branch que for liberada depois precisa reapontar a migração" >&2; exit 1; }
+
+      - name: Migrações aplicam em banco vazio
+        run: alembic upgrade head
+
+      # ponytail: 2 testes ficam de fora do CI até alguém rodá-los e confirmar o motivo
+      # (ver docs/devops/workflows-explicados.md, "Testes de integração excluídos").
+      # Falharam na primeira execução no GitHub; nunca tinham rodado no CI.
+      - name: pytest -m integration
+        run: |
+          pytest tests/ -q -m integration \
+            --deselect tests/integration/rag/test_pgvector_retriever.py::TestRealCorpusRetrieval::test_missing_timezone_query_surfaces_case_and_convention \
+            --deselect tests/integration/test_run_audit_e2e.py::TestPostThenGet::test_post_audits_then_get_shows_persisted_result
+
+  golden:
+    name: Testes golden do SLM (agendado, não bloqueia)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    continue-on-error: true
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Instalar dependências
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+          pip install -e . --no-deps
+          pip install jsonref faker rstr ruamel.yaml pytz validator-collection python-Levenshtein fuzzywuzzy
+
+      # Ollama em contêiner (em vez de "curl | sh", que também é um risco de supply chain).
+      - name: Ollama com o modelo do projeto
+        run: |
+          docker run -d --name ollama -p 11434:11434 ollama/ollama
+          for _ in $(seq 1 30); do curl -fs http://localhost:11434/api/tags > /dev/null && break; sleep 2; done
+          docker exec ollama ollama pull qwen2.5:3b-instruct
+
+      - name: pytest -m golden
+        env:
+          OLLAMA_BASE_URL: http://localhost:11434
+          OLLAMA_MODEL: qwen2.5:3b-instruct
+        run: pytest tests/golden -q -m golden

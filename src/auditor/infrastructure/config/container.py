@@ -230,7 +230,7 @@ def get_interpret_audit_command_use_case() -> InterpretAuditCommandUseCase:
 
 @lru_cache
 def get_audit_report_renderer() -> PdfAuditReportRenderer:
-    # Issue #23 / ADR-0021: sem estado entre chamadas, uma instancia basta.
+    # Issue #23 / ADR-0022: sem estado entre chamadas, uma instancia basta.
     return PdfAuditReportRenderer()
 
 

@@ -19,7 +19,7 @@ variable "domain_name" {
     Lab) -- fornecer via tfvars/-var so' no dia em que houver um dominio
     real para apontar aqui. Ver comentario no topo de main.tf.
   DESC
-  type = string
+  type        = string
 }
 
 variable "route53_zone_id" {

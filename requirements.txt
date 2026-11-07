@@ -23,7 +23,7 @@ cryptography>=42.0.0
 bcrypt>=4.1.0
 pyjwt>=2.8.0
 
-# Issue #23 / ADR-0021: PDF do relatorio (ReportLab) e fusos horarios.
+# Issue #23 / ADR-0022: PDF do relatorio (ReportLab) e fusos horarios.
 reportlab>=4.2
 tzdata>=2024.1
 

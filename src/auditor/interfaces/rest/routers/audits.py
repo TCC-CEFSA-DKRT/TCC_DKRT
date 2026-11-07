@@ -179,7 +179,7 @@ async def export_audit_report(
     uow: SqlAlchemyUnitOfWork = Depends(get_unit_of_work),
     use_case: ExportAuditReportUseCase = Depends(get_export_audit_report_use_case),
 ) -> Response:
-    """Issue #23 — exporta o relatorio da auditoria em PDF (ADR-0021). Mesmo
+    """Issue #23 — exporta o relatorio da auditoria em PDF (ADR-0022). Mesmo
     isolamento de tenant de GET /audits/{run_id}: run de outro tenant e run
     inexistente respondem 404 do mesmo jeito. `tz` e' o fuso do navegador
     (ex.: "America/Sao_Paulo"), usado so' para exibir as datas no documento;
