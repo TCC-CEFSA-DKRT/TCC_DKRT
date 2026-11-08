@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -u
+cd "$(git rev-parse --show-toplevel)" || exit 0
+status=0
+if command -v python3 >/dev/null 2>&1; then
+  PY=python3
+elif command -v python >/dev/null 2>&1; then
+  PY=python
+else
+  PY=""
+fi
+if [ -n "$PY" ]; then
+  "$PY" scripts/ci/check_no_comments.py --staged || status=1
+else
+  echo "aviso: python não encontrado; verificação de comentários (Python) ignorada" >&2
+fi
+if git diff --cached --name-only -- frontend/src | grep -q .; then
+  if command -v node >/dev/null 2>&1 && [ -f frontend/node_modules/typescript/package.json ]; then
+    node scripts/ci/check_no_comments_frontend.js --staged || status=1
+  else
+    echo "aviso: node ou frontend/node_modules ausente; verificação de comentários (frontend) ignorada" >&2
+  fi
+fi
+exit "$status"
