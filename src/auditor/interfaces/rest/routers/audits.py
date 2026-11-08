@@ -1,6 +1,6 @@
 """POST /audits, GET /audits, GET /audits/summary-over-time,
 POST /audits/interpret, GET /audits/{run_id}, GET /audits/{run_id}/progress
-e GET /audits/{run_id}/stream. Ver .cursor/specs/fase4.spec.md, secao
+GET /audits/{run_id}/stream e GET /audits/{run_id}/report.pdf (issue #23). Ver .cursor/specs/fase4.spec.md, secao
 4.1/4.3, .cursor/specs/fase5.spec.md, secao 5 (POST /audits chama start(),
 nao mais execute()/create_run()+BackgroundTasks) e secao 4 (progress/
 stream), e .cursor/specs/fase8.spec.md, secao 0 (os tres endpoints novos
@@ -21,10 +21,13 @@ import asyncio
 import json
 from uuid import UUID
 
-from datetime import datetime
+from datetime import datetime, timezone, tzinfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
+
+from auditor.application.use_cases.export_audit_report import ExportAuditReportUseCase
 
 from auditor.application.use_cases.interpret_audit_command import InterpretAuditCommandUseCase
 from auditor.application.use_cases.run_audit import RunAuditUseCase
@@ -33,6 +36,7 @@ from auditor.domain.ports.audit_repository_port import RunFilters
 from auditor.domain.value_objects.entity_type import EntityType
 from auditor.domain.value_objects.tenant import Tenant
 from auditor.infrastructure.config.container import (
+    get_export_audit_report_use_case,
     get_interpret_audit_command_use_case,
     get_run_audit_use_case,
     get_unit_of_work,
@@ -161,6 +165,48 @@ async def get_audit(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Audit run not found")
 
     return AuditRunResponse.from_domain(run)
+
+
+@router.get(
+    "/{run_id}/report.pdf",
+    response_class=Response,
+    responses={200: {"content": {"application/pdf": {}}, "description": "Relatorio em PDF (A4)."}},
+)
+async def export_audit_report(
+    run_id: UUID,
+    tz: str | None = Query(default=None, max_length=64),
+    tenant: Tenant = Depends(get_tenant),
+    uow: SqlAlchemyUnitOfWork = Depends(get_unit_of_work),
+    use_case: ExportAuditReportUseCase = Depends(get_export_audit_report_use_case),
+) -> Response:
+    """Issue #23 — exporta o relatorio da auditoria em PDF (ADR-0022). Mesmo
+    isolamento de tenant de GET /audits/{run_id}: run de outro tenant e run
+    inexistente respondem 404 do mesmo jeito. `tz` e' o fuso do navegador
+    (ex.: "America/Sao_Paulo"), usado so' para exibir as datas no documento;
+    ausente ou invalido, as datas saem em UTC."""
+    async with uow:
+        run = await uow.audits.get_by_id(run_id, tenant)
+    if run is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Audit run not found")
+
+    report = await use_case.execute(run, _display_timezone(tz))
+    return Response(
+        content=report.content,
+        media_type=report.media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{report.filename}"',
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+def _display_timezone(name: str | None) -> tzinfo:
+    if not name:
+        return timezone.utc
+    try:
+        return ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError):
+        return timezone.utc
 
 
 @router.get("/{run_id}/progress", response_model=AuditProgressResponse)

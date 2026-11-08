@@ -87,7 +87,9 @@ def _make_lifespan(*, start_background_workers: bool):
     return _lifespan
 
 
-async def _tenant_account_gone(request: Request, exc: TenantBrokerNotConfiguredError) -> JSONResponse:
+async def _tenant_account_gone(request: Request, exc: Exception) -> JSONResponse:
+    # Registrado so' para TenantBrokerNotConfiguredError (ver create_app); o tipo
+    # amplo e' o que o Starlette espera de um exception handler.
     return JSONResponse(
         status_code=401,
         content={"detail": "Conta nao encontrada; faca login novamente."},
@@ -114,6 +116,9 @@ def create_app(*, start_background_workers: bool = True) -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        # Issue #23: o frontend le o nome do arquivo do PDF exportado neste
+        # header — sem expor, o navegador esconde o header numa resposta CORS.
+        expose_headers=["Content-Disposition"],
     )
     app.add_exception_handler(TenantBrokerNotConfiguredError, _tenant_account_gone)
     app.include_router(audits.router)

@@ -25,8 +25,8 @@ variable "engine_version" {
     docs/plano_refatoracao_v3.md, que ainda cita VECTOR(768) como
     placeholder desatualizado da fase de planejamento).
   DESC
-  type    = string
-  default = "15.7"
+  type        = string
+  default     = "15.7"
 }
 
 variable "instance_class" {
@@ -59,8 +59,8 @@ variable "manage_master_user_password" {
     permissão aqui, ajuste para false e forneça `master_password` via
     variável sensível/tfvars fora do controle de versão.
   DESC
-  type    = bool
-  default = true
+  type        = bool
+  default     = true
 }
 
 variable "master_password" {
@@ -76,7 +76,7 @@ variable "backup_retention_days" {
 }
 
 variable "skip_final_snapshot" {
-  description = "true na Academy (sessões são efêmeras, sem necessidade de snapshot final); false em produção."
+  description = "true em ambientes descartáveis (dev, homologação), sem snapshot final; false em produção."
   type        = bool
   default     = true
 }

@@ -122,12 +122,17 @@ resource "aws_security_group" "api" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  ingress {
-    description = "SSH administrativo"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+  # SSH só existe quando var.ssh_cidr_blocks for informado. O acesso padrão às
+  # instâncias é por SSM Session Manager, sem porta aberta.
+  dynamic "ingress" {
+    for_each = length(var.ssh_cidr_blocks) > 0 ? [1] : []
+    content {
+      description = "SSH administrativo"
+      from_port   = 22
+      to_port     = 22
+      protocol    = "tcp"
+      cidr_blocks = var.ssh_cidr_blocks
+    }
   }
 
   egress {
@@ -145,12 +150,17 @@ resource "aws_security_group" "worker" {
   description = "Worker (consome SQS) + SSH de administracao"
   vpc_id      = aws_vpc.this.id
 
-  ingress {
-    description = "SSH administrativo"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+  # SSH só existe quando var.ssh_cidr_blocks for informado. O acesso padrão às
+  # instâncias é por SSM Session Manager, sem porta aberta.
+  dynamic "ingress" {
+    for_each = length(var.ssh_cidr_blocks) > 0 ? [1] : []
+    content {
+      description = "SSH administrativo"
+      from_port   = 22
+      to_port     = 22
+      protocol    = "tcp"
+      cidr_blocks = var.ssh_cidr_blocks
+    }
   }
 
   egress {
@@ -176,12 +186,17 @@ resource "aws_security_group" "ollama" {
     cidr_blocks = [var.vpc_cidr]
   }
 
-  ingress {
-    description = "SSH administrativo"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+  # SSH só existe quando var.ssh_cidr_blocks for informado. O acesso padrão às
+  # instâncias é por SSM Session Manager, sem porta aberta.
+  dynamic "ingress" {
+    for_each = length(var.ssh_cidr_blocks) > 0 ? [1] : []
+    content {
+      description = "SSH administrativo"
+      from_port   = 22
+      to_port     = 22
+      protocol    = "tcp"
+      cidr_blocks = var.ssh_cidr_blocks
+    }
   }
 
   egress {

@@ -1,0 +1,174 @@
+name: Deploy PRODUÇÃO
+
+# Seção 4 do manual: depois que o Q.A aprova a homologação, o Tech Lead faz o
+# merge da release/X.Y.Z na main e publica a tag vX.Y.Z NA main. A produção NÃO
+# reconstrói nada: promove a imagem e o build do frontend que já passaram pela
+# homologação (build único). O job que mexe na conta exige a aprovação do
+# GitHub Environment "producao" (revisores obrigatórios, sem autoaprovação).
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-producao
+  cancel-in-progress: false
+
+jobs:
+  validar-tag:
+    name: Validar a tag e achar a -rc homologada
+    runs-on: ubuntu-latest
+    outputs:
+      rc: ${{ steps.rc.outputs.rc }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: A tag está na main
+        run: |
+          git fetch --no-tags origin "+refs/heads/main:refs/remotes/origin/main"
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "A tag $GITHUB_REF_NAME precisa estar na main (merge da release feito antes da tag)" >&2
+            exit 1
+          fi
+
+      # A produção só recebe o que foi homologado: a -rc mais recente da mesma
+      # versão precisa ter exatamente o mesmo conteúdo (árvore) da tag.
+      - name: Achar a -rc homologada
+        id: rc
+        run: |
+          RC="$(git tag --list "${GITHUB_REF_NAME}-rc.*" --sort=-version:refname | head -n 1)"
+          if [ -z "$RC" ]; then
+            echo "Nenhuma tag ${GITHUB_REF_NAME}-rc.N encontrada: a versão não passou pela homologação" >&2
+            exit 1
+          fi
+          if ! git diff --quiet "$RC" "$GITHUB_SHA"; then
+            echo "O conteúdo de $GITHUB_REF_NAME difere de $RC: há mudança não homologada. Publique uma nova -rc e homologue de novo." >&2
+            git diff --stat "$RC" "$GITHUB_SHA" >&2
+            exit 1
+          fi
+          echo "rc=$RC" >> "$GITHUB_OUTPUT"
+          echo "Promovendo $RC como $GITHUB_REF_NAME"
+
+  ci-backend:
+    needs: validar-tag
+    uses: ./.github/workflows/ci-backend.yml
+
+  ci-frontend:
+    needs: validar-tag
+    uses: ./.github/workflows/ci-frontend.yml
+
+  ci-infra:
+    needs: validar-tag
+    uses: ./.github/workflows/ci-infra.yml
+
+  security:
+    needs: validar-tag
+    uses: ./.github/workflows/security.yml
+
+  promover:
+    name: Promover imagem e frontend (aprovação manual)
+    needs: [validar-tag, ci-backend, ci-frontend, ci-infra, security]
+    runs-on: ubuntu-latest
+    environment: producao
+    timeout-minutes: 45
+    outputs:
+      image: ${{ steps.promote.outputs.image }}
+    env:
+      RC: ${{ needs.validar-tag.outputs.rc }}
+      HOMOLOG_PREFIX: ${{ vars.HOMOLOG_NAME_PREFIX }}
+      PROD_PREFIX: ${{ vars.NAME_PREFIX }}
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # A imagem não é refeita: é a mesma, com o mesmo digest, copiada do
+      # repositório de homologação para o de produção.
+      - name: Promover a imagem (mesmo digest)
+        id: promote
+        run: |
+          REG="${{ steps.ecr.outputs.registry }}"
+          SRC="$REG/$HOMOLOG_PREFIX-auditor:$RC"
+          DST="$REG/$PROD_PREFIX-auditor:$GITHUB_REF_NAME"
+
+          docker pull "$SRC"
+          docker tag "$SRC" "$DST"
+          docker push "$DST"
+
+          SRC_DIGEST="$(aws ecr describe-images --repository-name "$HOMOLOG_PREFIX-auditor" --image-ids imageTag="$RC" --query 'imageDetails[0].imageDigest' --output text)"
+          DST_DIGEST="$(aws ecr describe-images --repository-name "$PROD_PREFIX-auditor" --image-ids imageTag="$GITHUB_REF_NAME" --query 'imageDetails[0].imageDigest' --output text)"
+          if [ "$SRC_DIGEST" != "$DST_DIGEST" ]; then
+            echo "Digest diferente após a promoção ($SRC_DIGEST x $DST_DIGEST)" >&2
+            exit 1
+          fi
+          echo "Digest promovido: $DST_DIGEST"
+          echo "image=$DST" >> "$GITHUB_OUTPUT"
+
+      # Guarda o build do frontend também sob a tag final: é dele que o
+      # rollback de produção parte.
+      - name: Copiar o build do frontend para a versão final
+        run: |
+          B="s3://${{ vars.ARTIFACTS_BUCKET }}/frontend"
+          aws s3 cp "$B/$RC/dist.tgz" "$B/$GITHUB_REF_NAME/dist.tgz"
+
+  deploy:
+    name: Migrações e deploy (produção)
+    needs: promover
+    runs-on: ubuntu-latest
+    environment: producao
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: ./.github/actions/deploy-lambda
+        with:
+          name-prefix: ${{ vars.NAME_PREFIX }}
+          image-uri: ${{ needs.promover.outputs.image }}
+
+      - uses: ./.github/actions/deploy-frontend
+        with:
+          artifact: s3://${{ vars.ARTIFACTS_BUCKET }}/frontend/${{ github.ref_name }}/dist.tgz
+          api-url: ${{ vars.API_URL }}
+          bucket: ${{ vars.NAME_PREFIX }}-frontend
+          domain: ${{ vars.FRONTEND_DOMAIN }}
+
+      - name: Teste de fumaça
+        run: bash scripts/ci/smoke.sh "${{ vars.API_URL }}" "${{ vars.FRONTEND_URL }}"
+
+      - name: Resumo
+        run: |
+          {
+            echo "### Produção atualizada: ${GITHUB_REF_NAME}"
+            echo "- API: ${{ vars.API_URL }}"
+            echo "- Frontend: ${{ vars.FRONTEND_URL }}"
+            echo ""
+            echo "Problema? Rode o workflow \"Rollback PRODUÇÃO\" com a versão anterior."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  release-notes:
+    name: Release notes
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Criar a release no GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes --title "$GITHUB_REF_NAME"
