@@ -396,7 +396,13 @@ data "aws_iam_policy_document" "deploy" {
   statement {
     sid       = "FrontendBucket"
     actions   = ["s3:ListBucket", "s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
-    resources = ["arn:aws:s3:::${each.value.prefix}-frontend", "arn:aws:s3:::${each.value.prefix}-frontend/*"]
+    # O modulo frontend_static_site nomeia o bucket "<prefix>-frontend-<id da conta>".
+    resources = [
+      "arn:aws:s3:::${each.value.prefix}-frontend",
+      "arn:aws:s3:::${each.value.prefix}-frontend/*",
+      "arn:aws:s3:::${each.value.prefix}-frontend-${local.account_id}",
+      "arn:aws:s3:::${each.value.prefix}-frontend-${local.account_id}/*",
+    ]
   }
 
   statement {

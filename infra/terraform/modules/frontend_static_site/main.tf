@@ -2,8 +2,12 @@
 # público, em HTTP. Sem CloudFront nem domínio, de propósito: o dev é uma stack
 # enxuta (ADR-0021). Homologação e produção usam modules/frontend_delivery.
 
+# Nomes de bucket S3 sao globais (valem para todas as contas AWS). O sufixo com
+# o ID da conta evita colisao com um bucket de outra conta.
+data "aws_caller_identity" "current" {}
+
 resource "aws_s3_bucket" "site" {
-  bucket        = "${var.name_prefix}-frontend"
+  bucket        = "${var.name_prefix}-frontend-${data.aws_caller_identity.current.account_id}"
   force_destroy = true # ambiente de desenvolvimento, descartável
 
   tags = var.tags

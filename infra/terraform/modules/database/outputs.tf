@@ -27,5 +27,5 @@ output "database_url_template" {
     ser resolvida a partir do Secrets Manager (master_user_secret_arn) em
     tempo de deploy (user_data / CI), nunca hardcoded aqui.
   DESC
-  value       = "postgresql+asyncpg://${var.master_username}:<SENHA_DO_SECRETS_MANAGER>@${aws_db_instance.this.address}:${aws_db_instance.this.port}/${var.database_name}?sslmode=require"
+  value       = "postgresql+asyncpg://${var.master_username}:<SENHA_DO_SECRETS_MANAGER>@${aws_db_instance.this.address}:${aws_db_instance.this.port}/${var.database_name}?ssl=require"
 }

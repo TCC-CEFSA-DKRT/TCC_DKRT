@@ -131,6 +131,12 @@ resource "aws_instance" "api" {
   iam_instance_profile   = local.instance_profile_name
   key_name               = var.key_name
 
+  root_block_device {
+    volume_size = var.api_root_volume_size
+    # Sem repetir as tags aqui, o terraform apagaria as que o disco ja tem.
+    tags = var.tags
+  }
+
   user_data = templatefile("${path.module}/user_data/api.sh.tftpl", local.common_env)
 
   tags = merge(var.tags, { Name = "${var.name_prefix}-api" })

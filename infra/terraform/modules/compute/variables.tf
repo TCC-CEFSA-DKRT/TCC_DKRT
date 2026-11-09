@@ -59,6 +59,12 @@ variable "api_instance_type" {
   default = "t3.micro"
 }
 
+variable "api_root_volume_size" {
+  description = "Disco raiz (GB) do host da API. A imagem Docker (torch/sentence-transformers) passa de 3 GB comprimida; os 8 GB padrao da AMI nao comportam o pull."
+  type        = number
+  default     = 30
+}
+
 variable "worker_instance_type" {
   type    = string
   default = "t3.micro"

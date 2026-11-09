@@ -39,7 +39,7 @@ def load_database_url_from_rds_managed_secret(
     port: int,
     database_name: str,
     driver: str = "postgresql+asyncpg",
-    sslmode: str = "require",
+    ssl: str = "require",
     secretsmanager_client: object | None = None,
 ) -> None:
     """Monta `DATABASE_URL` a partir do segredo gerenciado do RDS
@@ -57,7 +57,7 @@ def load_database_url_from_rds_managed_secret(
 
     os.environ["DATABASE_URL"] = (
         f"{driver}://{credentials['username']}:{credentials['password']}"
-        f"@{host}:{port}/{database_name}?sslmode={sslmode}"
+        f"@{host}:{port}/{database_name}?ssl={ssl}"
     )
 
 

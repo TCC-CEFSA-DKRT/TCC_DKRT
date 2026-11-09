@@ -100,7 +100,9 @@ jobs:
       - name: Publicar o frontend
         run: |
           bash scripts/ci/set_api_url.sh frontend/dist/frontend/browser "$API_URL"
-          aws s3 sync frontend/dist/frontend/browser "s3://$NAME_PREFIX-frontend" --delete
+          # Nomes de bucket S3 sao globais: o modulo frontend_static_site acrescenta o ID da conta.
+          ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+          aws s3 sync frontend/dist/frontend/browser "s3://$NAME_PREFIX-frontend-$ACCOUNT_ID" --delete
 
       - name: Teste de fumaça
         run: bash scripts/ci/smoke.sh "$API_URL" "$FRONTEND_URL"

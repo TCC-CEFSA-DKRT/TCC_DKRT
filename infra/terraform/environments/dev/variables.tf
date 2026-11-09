@@ -19,9 +19,9 @@ variable "db_instance_class" {
 }
 
 variable "api_instance_type" {
-  description = "Host Docker da API. A imagem carrega sentence-transformers/torch; t3.small é o mínimo razoável."
+  description = "Host Docker da API (e do Orion de teste). A imagem carrega sentence-transformers/torch; t3.medium (4 GB) dá folga para API + Orion + Mongo."
   type        = string
-  default     = "t3.small"
+  default     = "t3.medium"
 }
 
 variable "ollama_instance_type" {

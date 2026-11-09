@@ -33,8 +33,11 @@ chmod 700 /opt/auditor/secrets
 # Manager a cada deploy e escrita só em runtime.env (0600). Os valores não
 # têm espaços nem aspas, porque o mesmo arquivo é lido por `docker --env-file`
 # e por `source`.
+# AWS_DEFAULT_REGION: o boto3 nao le AWS_REGION; sem ela a API cai ao iniciar
+# (NoRegionError ao criar o cliente do SQS).
 cat > /opt/auditor/static.env <<ENV
 AWS_REGION=${aws_region}
+AWS_DEFAULT_REGION=${aws_region}
 DEPLOYMENT_MODE=${deployment_mode}
 DB_HOST=${database_host}
 DB_PORT=${database_port}
@@ -73,15 +76,19 @@ docker pull "$IMAGE"
 SECRET="$(aws secretsmanager get-secret-value --region "$AWS_REGION" --secret-id "$DB_MASTER_USER_SECRET_ARN" --query SecretString --output text)"
 DB_USER="$(echo "$SECRET" | jq -r .username)"
 DB_PASS="$(echo "$SECRET" | jq -r .password | python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.stdin.read().rstrip("\n"), safe=""))')"
+# asyncpg nao entende `sslmode` (parametro do psycopg2): o equivalente e `ssl=require`.
 umask 077
 {
   cat /opt/auditor/static.env
-  echo "DATABASE_URL=postgresql+asyncpg://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=require"
+  echo "DATABASE_URL=postgresql+asyncpg://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_NAME?ssl=require"
 } > /opt/auditor/runtime.env
 
 case "$ACTION" in
   migrate)
-    docker run --rm --env-file /opt/auditor/runtime.env "$IMAGE" alembic upgrade head
+    # A pasta de segredos precisa existir: o entrypoint (fernet-keys.sh) grava as chaves nela.
+    docker run --rm --env-file /opt/auditor/runtime.env \
+      -v /opt/auditor/secrets:/var/lib/auditor-secrets \
+      "$IMAGE" alembic upgrade head
     ;;
   start)
     docker rm -f auditor-api > /dev/null 2>&1 || true

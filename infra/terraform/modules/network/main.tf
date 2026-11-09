@@ -175,7 +175,7 @@ resource "aws_security_group" "worker" {
 
 resource "aws_security_group" "ollama" {
   name        = "${var.name_prefix}-ollama-sg"
-  description = "Ollama (porta 11434, só de dentro da VPC) + SSH de administracao"
+  description = "Ollama (porta 11434, so de dentro da VPC) + SSH de administracao"
   vpc_id      = aws_vpc.this.id
 
   ingress {
