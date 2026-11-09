@@ -1,3 +1,5 @@
+<a class="back-link" routerLink="/audit-runs">← Auditorias</a>
+
 @switch (state()) {
   @case ('loading') {
     <app-loading-skeleton [rows]="8" />
@@ -15,73 +17,137 @@
     <header class="run-header">
       <h1 class="page-title">Relatório — {{ run()?.entity_type ?? 'Todos os tipos' }}</h1>
       <app-status-badge [status]="run()!.status" />
-      <span class="run-header__meta">{{ totalReports() }} entidade(s)</span>
+      <span class="run-header__meta">
+        {{ totalReports() }} entidade(s) · iniciada em {{ run()!.started_at | date: 'dd/MM/yyyy HH:mm' }}
+      </span>
     </header>
 
-    @for (report of run()!.reports; track report.entity_id) {
-      <section class="entity-report">
+    <div class="status-filter" role="group" aria-label="Filtrar entidades por status">
+      @for (option of filterOptions(); track option.value) {
+        <button
+          type="button"
+          class="status-filter__option"
+          [class.status-filter__option--active]="statusFilter() === option.value"
+          [attr.aria-pressed]="statusFilter() === option.value"
+          [attr.data-filter]="option.value"
+          (click)="onSelectFilter(option.value)"
+        >
+          {{ option.label }} <span class="status-filter__count">{{ option.count }}</span>
+        </button>
+      }
+    </div>
+
+    @for (view of visibleReports(); track view.report.entity_id) {
+      <section class="entity-report" [attr.data-status]="view.report.status">
         <div class="entity-report__header">
-          <h2 class="entity-report__id">{{ report.entity_id }}</h2>
-          <app-status-badge [status]="report.status" />
+          <h2 class="entity-report__id">{{ view.report.entity_id }}</h2>
+          <app-status-badge [status]="view.report.status" />
         </div>
 
-        @if (report.semantic_analysis_skipped) {
+        <p class="schema-origin" [class.schema-origin--cache]="view.report.schema_origin?.source === 'cache'">
+          @if (view.report.schema_origin; as origin) {
+            Schema
+            @if (view.report.data_model; as model) {
+              <a [href]="model.schema_url" target="_blank" rel="noopener">{{ model.model_name }} v{{ model.version }}</a>
+            }
+            @if (origin.source === 'live') {
+              obtido ao vivo em {{ origin.fetched_at | date: 'dd/MM/yyyy HH:mm' }}.
+            } @else {
+              obtido do cache em {{ origin.fetched_at | date: 'dd/MM/yyyy HH:mm' }} — o catálogo não respondeu
+              durante a auditoria, por isso foi usada a última cópia salva.
+            }
+          } @else if (view.report.status === 'no_model_found') {
+            Nenhum Smart Data Model corresponde a este tipo de entidade; a validação não foi executada.
+          } @else if (view.report.status === 'schema_unavailable') {
+            O schema{{ view.report.data_model ? ' ' + view.report.data_model.model_name : '' }} não pôde ser
+            obtido (nem ao vivo, nem do cache); a validação não foi executada. Execute a auditoria novamente
+            mais tarde.
+          } @else {
+            Origem do schema não registrada neste relatório.
+          }
+        </p>
+
+        @if (view.report.semantic_analysis_skipped && view.validated) {
           <p class="semantic-skipped-note">
             Análise semântica (Nível 2) não executada para esta entidade — o diagnóstico
             reflete apenas a validação estrutural (Nível 1).
           </p>
         }
 
-        @for (group of violationsBySeverity(report.violations); track group.severity) {
-          <div class="violation-group">
-            <h3 class="violation-group__title">{{ group.severity }}</h3>
-            @for (violation of group.items; track violation.attribute_path) {
+        @if (view.validated && view.groups.length === 0) {
+          <p class="no-violations">Nenhuma violação encontrada.</p>
+        }
+
+        @for (group of view.groups; track group.severity) {
+          <div class="violation-group" [attr.data-severity]="group.severity">
+            <h3 class="violation-group__title">{{ group.title }} ({{ group.items.length }})</h3>
+            @for (item of group.items; track $index) {
               <article class="violation">
                 <div class="violation__meta">
-                  <span class="violation__path">{{ violation.attribute_path }}</span>
+                  <span class="violation__path">{{ item.violation.attribute_path }}</span>
+                  <span class="violation__rule" [title]="item.violation.rule">{{ item.ruleLabel }}</span>
                   <span
                     class="violation__source"
-                    [class.violation__source--structural]="violation.detected_by === 'structural'"
-                    [class.violation__source--semantic]="violation.detected_by === 'semantic'"
+                    [class.violation__source--structural]="item.violation.detected_by === 'structural'"
+                    [class.violation__source--semantic]="item.violation.detected_by === 'semantic'"
                   >
-                    {{ violation.detected_by === 'structural' ? 'Nível 1' : 'Nível 2' }}
+                    {{ item.violation.detected_by === 'structural' ? 'Nível 1' : 'Nível 2' }}
                   </span>
                 </div>
-                <p class="violation__message">{{ violation.message }}</p>
+                <p class="violation__message">{{ item.violation.message }}</p>
                 <app-diff-view
                   currentLabel="Encontrado"
                   proposedLabel="Esperado"
-                  [currentValue]="violation.found"
-                  [proposedValue]="violation.expected"
+                  [currentValue]="item.violation.found"
+                  [proposedValue]="item.violation.expected"
                 />
+                @for (rec of item.recommendations; track $index) {
+                  <ng-container
+                    *ngTemplateOutlet="recommendation; context: { $implicit: rec }"
+                  ></ng-container>
+                }
               </article>
             }
           </div>
         }
 
-        @if (report.recommendations.length > 0) {
-          <div class="recommendations">
-            <h3 class="recommendations__title">Recomendações</h3>
-            @for (rec of report.recommendations; track rec.attribute_path + rec.action) {
-              <article class="recommendation">
-                <div class="recommendation__meta">
-                  <span class="recommendation__action">{{ rec.action }}</span>
-                  <span class="recommendation__confidence">
-                    confiança {{ rec.confidence | number: '1.0-2' }}
-                  </span>
-                </div>
-                <p class="recommendation__rationale">{{ rec.rationale }}</p>
-                <app-diff-view
-                  currentLabel="Atual"
-                  proposedLabel="Patch proposto"
-                  [currentValue]="rec.attribute_path"
-                  [proposedValue]="rec.proposed_patch"
-                />
-              </article>
+        @if (view.otherRecommendations.length > 0) {
+          <div class="violation-group">
+            <h3 class="violation-group__title">Outras recomendações ({{ view.otherRecommendations.length }})</h3>
+            @for (rec of view.otherRecommendations; track $index) {
+              <ng-container *ngTemplateOutlet="recommendation; context: { $implicit: rec }"></ng-container>
             }
           </div>
         }
       </section>
+    } @empty {
+      <app-empty-state
+        [message]="'Nenhuma entidade com o status ' + selectedFilterLabel() + ' nesta auditoria.'"
+        hint="Selecione outro status no filtro acima."
+      />
     }
   }
 }
+
+<ng-template #recommendation let-rec>
+  <div class="recommendation">
+    <div class="recommendation__meta">
+      <span class="recommendation__action">Como corrigir: {{ rec.actionLabel }}</span>
+      <span class="recommendation__confidence">Recomendação do SLM · confiança {{ rec.confidencePercent }}%</span>
+    </div>
+    <p class="recommendation__rationale"><strong>Justificativa:</strong> {{ rec.rationale }}</p>
+    @if (rec.attachedToViolation) {
+      <div class="recommendation__patch">
+        <span class="recommendation__patch-label">Correção proposta</span>
+        <code>{{ rec.proposedPatchText }}</code>
+      </div>
+    } @else {
+      <app-diff-view
+        currentLabel="Atributo"
+        proposedLabel="Correção proposta"
+        [currentValue]="rec.attributePath"
+        [proposedValue]="rec.proposedPatch"
+      />
+    }
+  </div>
+</ng-template>
