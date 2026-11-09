@@ -42,7 +42,8 @@ locals {
   repo       = var.github_repository
 
   state_bucket     = "${var.project}-tfstate-${local.account_id}"
-  lock_table       = "${var.project}-tflock"
+  # O script homolog/scripts/bootstrap_backend.sh (usado na conta atual) criou "auditor-tf-lock".
+  lock_table       = "${var.project}-tf-lock"
   artifacts_bucket = "${var.project}-artifacts-${local.account_id}"
 
   # Nome do GitHub Environment de cada ambiente (aprovações e variáveis ficam
