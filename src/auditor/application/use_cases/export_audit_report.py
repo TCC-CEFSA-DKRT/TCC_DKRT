@@ -1,39 +1,33 @@
-"""ExportAuditReportUseCase — issue #23 (exportar o relatorio em PDF).
-
-Recebe um AuditRun ja' carregado (o router faz a leitura com o mesmo
-isolamento de tenant de GET /audits/{run_id}) e devolve o documento pronto
-para download. A geracao roda em uma thread separada (`asyncio.to_thread`):
-um relatorio com 500+ entidades leva alguns segundos de CPU, e rodar isso no
-event loop travaria todas as outras requisicoes da API nesse intervalo —
-exatamente o que o criterio de aceite da #23 pede para evitar.
-"""
-
 from __future__ import annotations
 
 import asyncio
 import re
-from dataclasses import dataclass
 from datetime import tzinfo
 
+from auditor.application.errors import AuditReportTooLargeError
+from auditor.application.report_export import ExportedReport, ReportExportLimits
 from auditor.domain.entities.audit_run import AuditRun
 from auditor.domain.ports.audit_report_renderer_port import AuditReportRendererPort
 
 
-@dataclass(frozen=True)
-class ExportedReport:
-    content: bytes
-    media_type: str
-    filename: str
-
-
 class ExportAuditReportUseCase:
-    def __init__(self, renderer: AuditReportRendererPort) -> None:
+    def __init__(self, renderer: AuditReportRendererPort, limits: ReportExportLimits) -> None:
         self._renderer = renderer
+        self._limits = limits
 
     async def execute(self, run: AuditRun, display_timezone: tzinfo) -> ExportedReport:
+        entities = len(run.reports)
+        if entities > self._limits.max_entities:
+            raise AuditReportTooLargeError.too_many_entities(
+                limit=self._limits.max_entities, actual=entities
+            )
         content = await asyncio.to_thread(
             self._renderer.render, run, display_timezone=display_timezone
         )
+        if len(content) > self._limits.max_bytes:
+            raise AuditReportTooLargeError.document_too_big(
+                limit=self._limits.max_bytes, actual=len(content)
+            )
         return ExportedReport(
             content=content,
             media_type=self._renderer.media_type,
@@ -42,8 +36,6 @@ class ExportAuditReportUseCase:
 
 
 def _filename_for(run: AuditRun, display_timezone: tzinfo, extension: str) -> str:
-    """Ex.: relatorio-streetlight-2026-10-24-1405.pdf — so' ASCII, para o
-    nome sair igual em qualquer navegador/sistema operacional."""
     entity_type = run.entity_type.value if run.entity_type else "todos-os-tipos"
     slug = re.sub(r"[^a-z0-9]+", "-", entity_type.lower()).strip("-") or "relatorio"
     started = run.started_at.astimezone(display_timezone).strftime("%Y-%m-%d-%H%M")

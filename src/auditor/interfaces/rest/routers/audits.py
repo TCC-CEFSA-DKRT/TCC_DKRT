@@ -1,6 +1,6 @@
 """POST /audits, GET /audits, GET /audits/summary-over-time,
 POST /audits/interpret, GET /audits/{run_id}, GET /audits/{run_id}/progress
-GET /audits/{run_id}/stream e GET /audits/{run_id}/report.pdf (issue #23). Ver .cursor/specs/fase4.spec.md, secao
+e GET /audits/{run_id}/stream. Ver .cursor/specs/fase4.spec.md, secao
 4.1/4.3, .cursor/specs/fase5.spec.md, secao 5 (POST /audits chama start(),
 nao mais execute()/create_run()+BackgroundTasks) e secao 4 (progress/
 stream), e .cursor/specs/fase8.spec.md, secao 0 (os tres endpoints novos
@@ -27,6 +27,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response, StreamingResponse
 
+from auditor.application.errors import AuditReportTooLargeError
 from auditor.application.use_cases.export_audit_report import ExportAuditReportUseCase
 
 from auditor.application.use_cases.interpret_audit_command import InterpretAuditCommandUseCase
@@ -170,7 +171,10 @@ async def get_audit(
 @router.get(
     "/{run_id}/report.pdf",
     response_class=Response,
-    responses={200: {"content": {"application/pdf": {}}, "description": "Relatorio em PDF (A4)."}},
+    responses={
+        200: {"content": {"application/pdf": {}}, "description": "Relatorio em PDF (A4)."},
+        413: {"description": "Relatorio grande demais para exportar em PDF."},
+    },
 )
 async def export_audit_report(
     run_id: UUID,
@@ -179,17 +183,17 @@ async def export_audit_report(
     uow: SqlAlchemyUnitOfWork = Depends(get_unit_of_work),
     use_case: ExportAuditReportUseCase = Depends(get_export_audit_report_use_case),
 ) -> Response:
-    """Issue #23 — exporta o relatorio da auditoria em PDF (ADR-0022). Mesmo
-    isolamento de tenant de GET /audits/{run_id}: run de outro tenant e run
-    inexistente respondem 404 do mesmo jeito. `tz` e' o fuso do navegador
-    (ex.: "America/Sao_Paulo"), usado so' para exibir as datas no documento;
-    ausente ou invalido, as datas saem em UTC."""
     async with uow:
         run = await uow.audits.get_by_id(run_id, tenant)
     if run is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Audit run not found")
 
-    report = await use_case.execute(run, _display_timezone(tz))
+    try:
+        report = await use_case.execute(run, _display_timezone(tz))
+    except AuditReportTooLargeError as error:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=str(error)
+        ) from error
     return Response(
         content=report.content,
         media_type=report.media_type,
@@ -205,7 +209,7 @@ def _display_timezone(name: str | None) -> tzinfo:
         return timezone.utc
     try:
         return ZoneInfo(name)
-    except (ZoneInfoNotFoundError, ValueError):
+    except (ZoneInfoNotFoundError, ValueError, OSError):
         return timezone.utc
 
 

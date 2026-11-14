@@ -10,9 +10,7 @@ from auditor.domain.ports.audit_repository_port import AuditRepositoryPort
 
 class UnitOfWork(Protocol):
     @property
-    def audits(self) -> AuditRepositoryPort:
-        """Repositorio da transacao aberta; so existe dentro do `async with`."""
-        ...
+    def audits(self) -> AuditRepositoryPort: ...
 
     async def __aenter__(self) -> "UnitOfWork": ...
 

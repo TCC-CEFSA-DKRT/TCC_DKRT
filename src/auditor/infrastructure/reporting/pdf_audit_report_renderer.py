@@ -1,45 +1,18 @@
-"""PdfAuditReportRenderer — issue #23, decisao registrada na ADR-0022.
-
-Gera o PDF do relatorio de uma auditoria com ReportLab (Python puro, sem
-navegador nem bibliotecas de sistema), pronto para impressao em A4. A
-organizacao segue a ordem em que o leitor procura a informacao:
-
-1. Pagina de abertura: dados da auditoria (tenant, tipo, broker, datas,
-   status), resumo agregado em quadros (status de conformidade e
-   severidades) e a legenda.
-2. Visao geral: uma tabela com uma linha por entidade (status e quantidade
-   de erros, avisos, informacoes e recomendacoes) — para achar rapidamente
-   o que precisa de atencao antes de ler o detalhe.
-3. Detalhe por entidade (comeca em pagina nova): cada entidade tem uma
-   faixa de titulo (repetida quando continua na pagina seguinte); cada
-   violacao e' um cartao com selo de severidade, atributo, regra, mensagem,
-   "Encontrado | Esperado" lado a lado e, quando existe, um quadro "Como
-   corrigir" com acao, justificativa e correcao proposta do SLM.
-
-Paginacao: quebra automatica, cabecalho e rodape em todas as paginas com
-"Pagina X de Y". Escala de cinza: cada severidade tem o nome escrito no selo
-(ERRO/AVISO/INFO) e um preenchimento com luminosidade bem diferente (quase
-preto, cinza medio, branco com borda). Acentos: as fontes padrao do PDF
-(Helvetica/Courier, codificacao WinAnsi) cobrem todo o portugues;
-caracteres fora dessa tabela (ex.: emoji vindo do SLM) viram "?".
-"""
-
 from __future__ import annotations
 
 import json
+import logging
 from collections import Counter
+from collections.abc import Callable
+from functools import partial
 from datetime import datetime, timezone, tzinfo
 from io import BytesIO
 from typing import Any
-from xml.sax.saxutils import escape
 
-from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
-from reportlab.pdfgen import canvas
 from reportlab.platypus import (
+    Flowable,
     KeepTogether,
     PageBreak,
     Paragraph,
@@ -62,95 +35,38 @@ from auditor.infrastructure.reporting.labels import (
     SEVERITY_BADGES,
     SEVERITY_ORDER,
     SEVERITY_PLURALS,
-    rule_label,
 )
+from auditor.infrastructure.reporting.pdf_page_chrome import PageChrome
+from auditor.infrastructure.reporting.pdf_text import (
+    normalized_attribute_path,
+    rule_label,
+    safe_text,
+)
+from auditor.infrastructure.reporting.pdf_theme import (
+    BADGE_COLUMN_WIDTH,
+    BORDER,
+    CARD_BODY_WIDTH,
+    COMPACT_FIELD_MAX_CHARS,
+    CONTENT_WIDTH,
+    ENTITY_BAND,
+    FIELD_MAX_CHARS,
+    FIX_LABEL_WIDTH,
+    FRAME_HEIGHT,
+    IDENTIFIER_MAX_CHARS,
+    MARGIN,
+    MUTED,
+    RECOMMENDATION_STYLE,
+    SEVERITY_STYLES,
+    STYLES,
+    SURFACE,
+    VERTICAL_MARGIN,
+    ZEBRA,
+)
+from auditor.infrastructure.reporting.severity_style import SeverityStyle
 
-PAGE_WIDTH, PAGE_HEIGHT = A4
-MARGIN = 16 * mm
-# O Frame do SimpleDocTemplate tem 6 pt de respiro de cada lado: as tabelas
-# usam a mesma largura util dos paragrafos para ficarem alinhadas com eles.
-FRAME_PADDING = 6
-CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN - 2 * FRAME_PADDING
-BADGE_COLUMN_WIDTH = 18 * mm
-CARD_BODY_WIDTH = CONTENT_WIDTH - BADGE_COLUMN_WIDTH
-FIX_LABEL_WIDTH = 30 * mm
+logger = logging.getLogger(__name__)
 
-TEXT = colors.HexColor("#1A1D24")
-MUTED = colors.HexColor("#5B6270")
-BORDER = colors.HexColor("#C9CED6")
-SURFACE = colors.HexColor("#F3F4F6")
-ZEBRA = colors.HexColor("#F7F8FA")
-ENTITY_BAND = colors.HexColor("#E4E7EC")
-
-
-class SeverityStyle:
-    def __init__(self, fill: str, text: str, border: str) -> None:
-        self.fill = colors.HexColor(fill)
-        self.text_hex = text
-        self.border = colors.HexColor(border)
-
-
-# Luminosidades bem separadas (ver test_severity_fills_stay_distinct_in_grayscale):
-# ERRO quase preto, AVISO cinza medio, INFO branco com borda. Em cor, seguem
-# a mesma familia da tela (vermelho / ambar / azul).
-SEVERITY_STYLES: dict[ViolationSeverity, SeverityStyle] = {
-    ViolationSeverity.ERROR: SeverityStyle(fill="#7A1F1F", text="#FFFFFF", border="#7A1F1F"),
-    ViolationSeverity.WARNING: SeverityStyle(fill="#E0A21F", text="#1A1D24", border="#B57A0A"),
-    ViolationSeverity.INFO: SeverityStyle(fill="#FFFFFF", text="#2F5D8A", border="#2F5D8A"),
-}
-RECOMMENDATION_STYLE = SeverityStyle(fill="#E6EFEC", text="#0F6E5C", border="#0F6E5C")
-
-
-def _style(name: str, **overrides) -> ParagraphStyle:
-    base = {
-        "fontName": "Helvetica",
-        "fontSize": 9,
-        "leading": 12,
-        "textColor": TEXT,
-        "splitLongWords": True,
-    }
-    base.update(overrides)
-    return ParagraphStyle(name, **base)
-
-
-STYLES = {
-    "title": _style("title", fontName="Helvetica-Bold", fontSize=17, leading=21, spaceAfter=1.5 * mm),
-    "subtitle": _style("subtitle", textColor=MUTED, spaceAfter=5 * mm),
-    "h2": _style("h2", fontName="Helvetica-Bold", fontSize=12, leading=15, spaceBefore=6 * mm, spaceAfter=2.5 * mm),
-    "body": _style("body"),
-    "muted": _style("muted", textColor=MUTED, fontSize=8.5, leading=11.5),
-    "label": _style("label", textColor=MUTED, fontSize=7.5, leading=9.5),
-    "value": _style("value", fontName="Helvetica-Bold", fontSize=9.5, leading=12),
-    "tile_value": _style("tile_value", fontName="Helvetica-Bold", fontSize=13, leading=16, alignment=TA_CENTER),
-    "tile_label": _style("tile_label", textColor=MUTED, fontSize=7.5, leading=9.5, alignment=TA_CENTER),
-    "table_head": _style("table_head", fontName="Helvetica-Bold", fontSize=8, leading=10, textColor=MUTED),
-    "table_head_num": _style(
-        "table_head_num", fontName="Helvetica-Bold", fontSize=8, leading=10, textColor=MUTED, alignment=TA_RIGHT
-    ),
-    "table_cell": _style("table_cell", fontSize=8.5, leading=11),
-    "table_num": _style("table_num", fontSize=8.5, leading=11, alignment=TA_RIGHT),
-    "entity_id": _style("entity_id", fontName="Helvetica-Bold", fontSize=10.5, leading=13),
-    "entity_status": _style("entity_status", fontName="Helvetica-Bold", fontSize=9.5, leading=13, alignment=TA_RIGHT),
-    "group": _style("group", fontName="Helvetica-Bold", fontSize=8, leading=10, textColor=MUTED),
-    "badge": _style("badge", fontName="Helvetica-Bold", fontSize=8, leading=10, alignment=TA_CENTER),
-    "badge_level": _style("badge_level", fontSize=7, leading=9, alignment=TA_CENTER),
-    "card_title": _style("card_title", fontSize=10, leading=13),
-    "diff_label": _style("diff_label", textColor=MUTED, fontSize=7, leading=9),
-    "diff_value": _style("diff_value", fontName="Courier", fontSize=8.5, leading=11),
-    "fix_head": _style("fix_head", fontName="Helvetica-Bold", fontSize=8.5, leading=11, textColor=colors.HexColor("#0F6E5C")),
-    "fix_label": _style("fix_label", fontName="Helvetica-Bold", fontSize=8, leading=11, textColor=MUTED),
-    "fix_value": _style("fix_value", fontSize=8.5, leading=11),
-    "fix_code": _style("fix_code", fontName="Courier", fontSize=8, leading=10.5),
-}
-
-
-def safe_text(value: object) -> str:
-    """Texto pronto para um Paragraph: so' caracteres que as fontes padrao
-    do PDF sabem desenhar (WinAnsi cobre todo o portugues) e com &, < e >
-    escapados (Paragraph interpreta uma marcacao parecida com HTML)."""
-    text = "" if value is None else str(value)
-    text = text.encode("cp1252", errors="replace").decode("cp1252")
-    return escape(text)
+CardBuilder = Callable[[int], Table]
 
 
 class PdfAuditReportRenderer:
@@ -165,14 +81,14 @@ class PdfAuditReportRenderer:
             pagesize=A4,
             leftMargin=MARGIN,
             rightMargin=MARGIN,
-            topMargin=MARGIN + 6 * mm,
-            bottomMargin=MARGIN + 6 * mm,
+            topMargin=VERTICAL_MARGIN,
+            bottomMargin=VERTICAL_MARGIN,
             title=f"Relatório de auditoria — {_entity_type_label(run)}",
             author="DKRT — Auditoria de Data Spaces",
             subject=f"Auditoria {run.id}",
             creator="DKRT",
         )
-        chrome = _PageChrome(
+        chrome = PageChrome(
             header_left="DKRT · Relatório de auditoria de conformidade",
             header_right=f"{_entity_type_label(run)} · tenant {_tenant_label(run)}",
             footer_left=(
@@ -191,9 +107,7 @@ class PdfAuditReportRenderer:
         document.build(story, canvasmaker=chrome.canvas_class())
         return buffer.getvalue()
 
-    # -- pagina de abertura -----------------------------------------------------
-
-    def _header(self, run: AuditRun, tz: tzinfo) -> list:
+    def _header(self, run: AuditRun, tz: tzinfo) -> list[Flowable]:
         fields = [
             ("Tenant (Fiware-Service)", _tenant_label(run)),
             ("Service path", run.tenant.fiware_service_path or "/"),
@@ -206,7 +120,10 @@ class PdfAuditReportRenderer:
         ]
         cells = [
             [
-                [Paragraph(safe_text(label), STYLES["label"]), Paragraph(safe_text(value), STYLES["value"])]
+                [
+                    Paragraph(safe_text(label), STYLES["label"]),
+                    Paragraph(safe_text(value, IDENTIFIER_MAX_CHARS), STYLES["value"]),
+                ]
                 for label, value in fields[row : row + 2]
             ]
             for row in range(0, len(fields), 2)
@@ -224,7 +141,7 @@ class PdfAuditReportRenderer:
                 ]
             )
         )
-        story: list = [
+        story: list[Flowable] = [
             Paragraph("Relatório de auditoria de conformidade", STYLES["title"]),
             Paragraph(
                 "Validação de entidades FIWARE (NGSI-v2) contra Smart Data Models — "
@@ -236,11 +153,13 @@ class PdfAuditReportRenderer:
         if run.failure_reason:
             story += [
                 Spacer(1, 2 * mm),
-                Paragraph(f"<b>Motivo da falha:</b> {safe_text(run.failure_reason)}", STYLES["body"]),
+                Paragraph(
+                    f"<b>Motivo da falha:</b> {safe_text(run.failure_reason)}", STYLES["body"]
+                ),
             ]
         return story
 
-    def _summary(self, run: AuditRun) -> list:
+    def _summary(self, run: AuditRun) -> list[Flowable]:
         reports = run.reports
         total = len(reports)
         by_status = Counter(report.status for report in reports)
@@ -266,17 +185,17 @@ class PdfAuditReportRenderer:
             Spacer(1, 3 * mm),
             Paragraph("Violações encontradas e recomendações", STYLES["label"]),
             Spacer(1, 1 * mm),
-            _tiles(severity_tiles, severities=list(SEVERITY_ORDER) + [None]),
+            _tiles(severity_tiles, severities=[*SEVERITY_ORDER, None]),
         ]
 
-    def _legend(self) -> list:
+    def _legend(self) -> list[Flowable]:
         items = [
             (ViolationSeverity.ERROR, "torna a entidade não conforme"),
             (ViolationSeverity.WARNING, "a entidade fica parcialmente conforme"),
             (ViolationSeverity.INFO, "observação sem impacto no status"),
         ]
-        row = []
-        widths = []
+        row: list[Any] = []
+        widths: list[float] = []
         for severity, description in items:
             row += [_badge_cell(severity), Paragraph(safe_text(description), STYLES["muted"])]
             widths += [BADGE_COLUMN_WIDTH, CONTENT_WIDTH / 3 - BADGE_COLUMN_WIDTH]
@@ -303,9 +222,7 @@ class PdfAuditReportRenderer:
             ),
         ]
 
-    # -- visao geral -------------------------------------------------------------
-
-    def _overview(self, reports: list[EntityReport]) -> list:
+    def _overview(self, reports: list[EntityReport]) -> list[Flowable]:
         if not reports:
             return []
         head = [
@@ -316,13 +233,15 @@ class PdfAuditReportRenderer:
             Paragraph("Info.", STYLES["table_head_num"]),
             Paragraph("Recom.", STYLES["table_head_num"]),
         ]
-        rows = [head]
+        rows: list[list[Any]] = [head]
         for report in reports:
             counts = Counter(v.severity for v in report.violations)
             rows.append(
                 [
-                    Paragraph(safe_text(report.entity_id), STYLES["table_cell"]),
-                    Paragraph(safe_text(CONFORMANCE_LABELS.get(report.status, report.status.value)), STYLES["table_cell"]),
+                    Paragraph(
+                        safe_text(report.entity_id, IDENTIFIER_MAX_CHARS), STYLES["table_cell"]
+                    ),
+                    Paragraph(safe_text(_status_label(report)), STYLES["table_cell"]),
                     *(
                         Paragraph(_count_or_dash(counts[s]), STYLES["table_num"])
                         for s in SEVERITY_ORDER
@@ -334,10 +253,11 @@ class PdfAuditReportRenderer:
         status_width = 30 * mm
         table = Table(
             rows,
-            colWidths=[CONTENT_WIDTH - status_width - 4 * number_width, status_width] + [number_width] * 4,
+            colWidths=[CONTENT_WIDTH - status_width - 4 * number_width, status_width]
+            + [number_width] * 4,
             repeatRows=1,
         )
-        commands = [
+        commands: list[tuple[Any, ...]] = [
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("LINEBELOW", (0, 0), (-1, 0), 0.8, MUTED),
             ("LINEBELOW", (0, 1), (-1, -1), 0.3, BORDER),
@@ -358,137 +278,165 @@ class PdfAuditReportRenderer:
             table,
         ]
 
-    # -- detalhe por entidade ---------------------------------------------------
-
-    def _details(self, reports: list[EntityReport], tz: tzinfo) -> list:
+    def _details(self, reports: list[EntityReport], tz: tzinfo) -> list[Flowable]:
         if not reports:
             return [
                 Paragraph("Detalhe por entidade", STYLES["h2"]),
                 Paragraph("Esta auditoria não encontrou nenhuma entidade.", STYLES["body"]),
             ]
-        story: list = [PageBreak(), Paragraph("Detalhe por entidade", STYLES["h2"])]
+        story: list[Flowable] = [PageBreak(), Paragraph("Detalhe por entidade", STYLES["h2"])]
         for report in reports:
-            story.extend(self._entity(report, tz))
+            story.extend(self._entity_or_fallback(report, tz))
             story.append(Spacer(1, 6 * mm))
         return story
 
-    def _entity(self, report: EntityReport, tz: tzinfo) -> list:
-        band = _entity_band(report)
-        notes = [_schema_origin_text(report, tz)]
-        validated = report.status not in (
-            ConformanceStatus.NO_MODEL_FOUND,
-            ConformanceStatus.SCHEMA_UNAVAILABLE,
-        )
-        if report.semantic_analysis_skipped and validated:
-            notes.append(
-                "Análise semântica (Nível 2) não executada para esta entidade — o diagnóstico "
-                "reflete apenas a validação estrutural (Nível 1)."
+    def _entity_or_fallback(self, report: EntityReport, tz: tzinfo) -> list[Flowable]:
+        try:
+            return self._entity(report, tz)
+        except Exception:
+            logger.exception(
+                "Falha ao montar o detalhe da entidade %s no PDF; usando o aviso no lugar",
+                report.entity_id,
             )
-        if validated and not report.violations:
-            notes.append('<font color="#1A1D24"><b>Nenhuma violação encontrada.</b></font>')
-        intro = Paragraph("<br/>".join(notes), STYLES["muted"])
+            return [
+                KeepTogether(
+                    [
+                        _entity_band(report),
+                        Spacer(1, 1.5 * mm),
+                        Paragraph(
+                            "Não foi possível montar o detalhe desta entidade no PDF. "
+                            "Consulte a tela de relatório para ver as violações e as "
+                            "recomendações.",
+                            STYLES["muted"],
+                        ),
+                    ]
+                )
+            ]
 
-        rows: list = [[band], [intro]]
+    def _entity(self, report: EntityReport, tz: tzinfo) -> list[Flowable]:
+        band = _entity_band(report)
+        _, band_height = band.wrap(CONTENT_WIDTH, FRAME_HEIGHT)
+        max_card_height = FRAME_HEIGHT - band_height - 8
+        intro = Paragraph("<br/>".join(_entity_notes(report, tz)), STYLES["muted"])
+
+        rows: list[list[Any]] = [[band], [intro]]
         row_kinds: list[str] = ["band", "intro"]
         pending = list(report.recommendations)
         for severity in SEVERITY_ORDER:
             violations = [v for v in report.violations if v.severity == severity]
             if not violations:
                 continue
-            rows.append([Paragraph(f"{SEVERITY_PLURALS[severity].upper()} ({len(violations)})", STYLES["group"])])
+            rows.append(
+                [
+                    Paragraph(
+                        f"{SEVERITY_PLURALS[severity].upper()} ({len(violations)})",
+                        STYLES["group"],
+                    )
+                ]
+            )
             row_kinds.append("group")
             for violation in violations:
-                matched = [rec for rec in pending if rec.attribute_path == violation.attribute_path]
-                for rec in matched:
-                    pending.remove(rec)
-                rows.append([_violation_card(violation, matched)])
+                matched = _take_recommendations_for(violation, pending)
+                rows.append(
+                    [
+                        _fitting_card(
+                            partial(_violation_card, violation, matched),
+                            max_card_height,
+                            fallback=partial(_oversized_violation_card, violation),
+                        )
+                    ]
+                )
                 row_kinds.append("card")
         if pending:
-            rows.append([Paragraph(f"OUTRAS RECOMENDAÇÕES ({len(pending)})", STYLES["group"])])
+            rows.append(
+                [Paragraph(f"OUTRAS RECOMENDAÇÕES ({len(pending)})", STYLES["group"])]
+            )
             row_kinds.append("group")
-            rows += [[_recommendation_card(rec)] for rec in pending]
-            row_kinds += ["card"] * len(pending)
+            for rec in pending:
+                rows.append(
+                    [
+                        _fitting_card(
+                            partial(_recommendation_card, rec),
+                            max_card_height,
+                            fallback=partial(_oversized_recommendation_card, rec),
+                        )
+                    ]
+                )
+                row_kinds.append("card")
 
-        # A faixa com o nome da entidade e' a primeira linha da tabela e se
-        # repete (repeatRows=1) quando os cartoes continuam na pagina
-        # seguinte — no papel, toda pagina diz de qual entidade se trata.
         table = Table(rows, colWidths=[CONTENT_WIDTH], repeatRows=1)
-        commands = [
-            ("LEFTPADDING", (0, 0), (-1, -1), 0),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-            ("TOPPADDING", (0, 0), (-1, -1), 0),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-        ]
-        for index, kind in enumerate(row_kinds):
-            if kind == "intro":
-                commands += [("TOPPADDING", (0, index), (0, index), 4), ("BOTTOMPADDING", (0, index), (0, index), 2)]
-            elif kind == "group":
-                commands += [("TOPPADDING", (0, index), (0, index), 6), ("BOTTOMPADDING", (0, index), (0, index), 3)]
-            elif kind == "card":
-                commands.append(("BOTTOMPADDING", (0, index), (0, index), 4))
-        table.setStyle(TableStyle(commands))
+        table.setStyle(TableStyle(_entity_table_commands(row_kinds)))
         if len(rows) <= 4:
             return [KeepTogether([table])]
         return [table]
 
 
-class _PageChrome:
-    """Cabecalho e rodape repetidos em todas as paginas, com "Pagina X de Y".
-    O total de paginas so' e' conhecido no fim, entao cada pagina e' guardada
-    e desenhada quando o documento termina (padrao "NumberedCanvas" do
-    ReportLab)."""
-
-    def __init__(self, header_left: str, header_right: str, footer_left: str) -> None:
-        self.header_left = _pdf_safe(header_left)
-        self.header_right = _pdf_safe(header_right)
-        self.footer_left = _pdf_safe(footer_left)
-
-    def canvas_class(self):
-        chrome = self
-
-        class _NumberedCanvas(canvas.Canvas):
-            def __init__(self, *args, **kwargs) -> None:
-                super().__init__(*args, **kwargs)
-                self._pages: list[dict] = []
-
-            def showPage(self) -> None:  # noqa: N802 (nome da API do ReportLab)
-                self._pages.append(dict(self.__dict__))
-                self._startPage()
-
-            def save(self) -> None:
-                total = len(self._pages)
-                for page in self._pages:
-                    self.__dict__.update(page)
-                    chrome.draw(self, total)
-                    super().showPage()
-                super().save()
-
-        return _NumberedCanvas
-
-    def draw(self, pdf: canvas.Canvas, total_pages: int) -> None:
-        pdf.saveState()
-        left, right = MARGIN + FRAME_PADDING, PAGE_WIDTH - MARGIN - FRAME_PADDING
-        top = PAGE_HEIGHT - MARGIN
-        pdf.setStrokeColor(BORDER)
-        pdf.setLineWidth(0.5)
-        pdf.line(left, top - 2 * mm, right, top - 2 * mm)
-        pdf.line(left, MARGIN + 2 * mm, right, MARGIN + 2 * mm)
-        pdf.setFillColor(MUTED)
-        pdf.setFont("Helvetica-Bold", 7.5)
-        pdf.drawString(left, top, self.header_left)
-        pdf.setFont("Helvetica", 7.5)
-        pdf.drawRightString(right, top, self.header_right)
-        pdf.drawString(left, MARGIN - 1 * mm, self.footer_left)
-        pdf.drawRightString(right, MARGIN - 1 * mm, f"Página {pdf.getPageNumber()} de {total_pages}")
-        pdf.restoreState()
+def _entity_notes(report: EntityReport, tz: tzinfo) -> list[str]:
+    notes = [_schema_origin_text(report, tz)]
+    validated = report.status not in (
+        ConformanceStatus.NO_MODEL_FOUND,
+        ConformanceStatus.SCHEMA_UNAVAILABLE,
+    )
+    if report.semantic_analysis_skipped and validated:
+        notes.append(
+            "Análise semântica (Nível 2) não executada para esta entidade — o diagnóstico "
+            "reflete apenas a validação estrutural (Nível 1)."
+        )
+    if validated and not report.violations:
+        notes.append('<font color="#1A1D24"><b>Nenhuma violação encontrada.</b></font>')
+    return notes
 
 
-# -- blocos reutilizados -------------------------------------------------------
+def _take_recommendations_for(
+    violation: Violation, pending: list[Recommendation]
+) -> list[Recommendation]:
+    target = normalized_attribute_path(violation.attribute_path)
+    matched = [rec for rec in pending if normalized_attribute_path(rec.attribute_path) == target]
+    for rec in matched:
+        pending.remove(rec)
+    return matched
 
 
-def _tiles(tiles: list[tuple[str, str]], *, highlight_first: bool = False, severities=None) -> Table:
-    """Quadros "numero grande + rotulo". Com `severities`, cada quadro ganha
-    uma barra superior na cor/tom da severidade correspondente."""
+def _entity_table_commands(row_kinds: list[str]) -> list[tuple[Any, ...]]:
+    commands: list[tuple[Any, ...]] = [
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]
+    for index, kind in enumerate(row_kinds):
+        if kind == "intro":
+            commands += [
+                ("TOPPADDING", (0, index), (0, index), 4),
+                ("BOTTOMPADDING", (0, index), (0, index), 2),
+            ]
+        elif kind == "group":
+            commands += [
+                ("TOPPADDING", (0, index), (0, index), 6),
+                ("BOTTOMPADDING", (0, index), (0, index), 3),
+            ]
+        elif kind == "card":
+            commands.append(("BOTTOMPADDING", (0, index), (0, index), 4))
+    return commands
+
+
+def _fitting_card(
+    build: CardBuilder, max_height: float, *, fallback: Callable[[], Table]
+) -> Table:
+    for limit in (FIELD_MAX_CHARS, COMPACT_FIELD_MAX_CHARS):
+        card = build(limit)
+        _, height = card.wrap(CONTENT_WIDTH, max_height)
+        if height <= max_height:
+            return card
+    return fallback()
+
+
+def _tiles(
+    tiles: list[tuple[str, str]],
+    *,
+    highlight_first: bool = False,
+    severities: list[ViolationSeverity | None] | None = None,
+) -> Table:
     width = CONTENT_WIDTH / len(tiles)
     table = Table(
         [
@@ -497,7 +445,7 @@ def _tiles(tiles: list[tuple[str, str]], *, highlight_first: bool = False, sever
         ],
         colWidths=[width] * len(tiles),
     )
-    commands = [
+    commands: list[tuple[Any, ...]] = [
         ("BOX", (0, 0), (-1, -1), 0.6, BORDER),
         ("LINEAFTER", (0, 0), (-2, -1), 0.4, BORDER),
         ("TOPPADDING", (0, 0), (-1, 0), 7),
@@ -512,22 +460,27 @@ def _tiles(tiles: list[tuple[str, str]], *, highlight_first: bool = False, sever
     return table
 
 
-def _badge_cell(severity: ViolationSeverity | None, level: str | None = None) -> list:
+def _badge_cell(severity: ViolationSeverity | None, level: str | None = None) -> list[Paragraph]:
     style = SEVERITY_STYLES[severity] if severity is not None else RECOMMENDATION_STYLE
     label = SEVERITY_BADGES[severity] if severity is not None else "SLM"
     cell = [Paragraph(f'<font color="{style.text_hex}">{label}</font>', STYLES["badge"])]
     if level:
-        cell.append(Paragraph(f'<font color="{style.text_hex}">{level}</font>', STYLES["badge_level"]))
+        cell.append(
+            Paragraph(f'<font color="{style.text_hex}">{level}</font>', STYLES["badge_level"])
+        )
     return cell
 
 
 def _entity_band(report: EntityReport) -> Table:
-    status = CONFORMANCE_LABELS.get(report.status, report.status.value)
     band = Table(
         [
             [
-                Paragraph(safe_text(report.entity_id), STYLES["entity_id"]),
-                Paragraph(f'<font color="#5B6270" name="Helvetica">Status:</font> {safe_text(status)}', STYLES["entity_status"]),
+                Paragraph(safe_text(report.entity_id, IDENTIFIER_MAX_CHARS), STYLES["entity_id"]),
+                Paragraph(
+                    f'<font color="#5B6270" name="Helvetica">Status:</font> '
+                    f"{safe_text(_status_label(report))}",
+                    STYLES["entity_status"],
+                ),
             ]
         ],
         colWidths=[CONTENT_WIDTH - 50 * mm, 50 * mm],
@@ -547,36 +500,75 @@ def _entity_band(report: EntityReport) -> Table:
     return band
 
 
-def _violation_card(violation: Violation, recommendations: list[Recommendation]) -> Table:
-    level = "Nível 1" if violation.detected_by == DetectionSource.STRUCTURAL else "Nível 2"
-    body = [
-        Paragraph(
-            f"<b>{safe_text(violation.attribute_path)}</b> &nbsp;·&nbsp; {safe_text(rule_label(violation.rule))}",
-            STYLES["card_title"],
-        ),
+def _violation_title(violation: Violation) -> Paragraph:
+    return Paragraph(
+        f"<b>{safe_text(violation.attribute_path, IDENTIFIER_MAX_CHARS)}</b> &nbsp;·&nbsp; "
+        f"{safe_text(rule_label(violation.rule), IDENTIFIER_MAX_CHARS)}",
+        STYLES["card_title"],
+    )
+
+
+def _violation_level(violation: Violation) -> str:
+    return "Nível 1" if violation.detected_by == DetectionSource.STRUCTURAL else "Nível 2"
+
+
+def _violation_card(
+    violation: Violation, recommendations: list[Recommendation], limit: int
+) -> Table:
+    body: list[Flowable] = [
+        _violation_title(violation),
         Spacer(1, 1 * mm),
-        Paragraph(safe_text(violation.message), STYLES["body"]),
+        Paragraph(safe_text(violation.message, limit), STYLES["body"]),
         Spacer(1, 2 * mm),
-        _found_expected(violation),
+        _found_expected(violation, limit),
     ]
     for rec in recommendations:
-        body += [Spacer(1, 2 * mm), _fix_panel(rec)]
-    return _card(_badge_cell(violation.severity, level), body, SEVERITY_STYLES[violation.severity])
+        body += [Spacer(1, 2 * mm), _fix_panel(rec, limit)]
+    return _card(
+        _badge_cell(violation.severity, _violation_level(violation)),
+        body,
+        SEVERITY_STYLES[violation.severity],
+    )
 
 
-def _recommendation_card(rec: Recommendation) -> Table:
-    body = [
-        Paragraph(
-            f"<b>{safe_text(rec.attribute_path)}</b> &nbsp;·&nbsp; recomendação sem violação correspondente",
-            STYLES["card_title"],
-        ),
-        Spacer(1, 2 * mm),
-        _fix_panel(rec),
-    ]
+def _oversized_violation_card(violation: Violation) -> Table:
+    return _card(
+        _badge_cell(violation.severity, _violation_level(violation)),
+        [_violation_title(violation), Spacer(1, 1 * mm), _oversized_notice()],
+        SEVERITY_STYLES[violation.severity],
+    )
+
+
+def _recommendation_title(rec: Recommendation) -> Paragraph:
+    return Paragraph(
+        f"<b>{safe_text(rec.attribute_path, IDENTIFIER_MAX_CHARS)}</b> &nbsp;·&nbsp; "
+        "recomendação sem violação correspondente",
+        STYLES["card_title"],
+    )
+
+
+def _recommendation_card(rec: Recommendation, limit: int) -> Table:
+    body: list[Flowable] = [_recommendation_title(rec), Spacer(1, 2 * mm), _fix_panel(rec, limit)]
     return _card(_badge_cell(None, "Nível 2"), body, RECOMMENDATION_STYLE)
 
 
-def _card(badge: list, body: list, style: SeverityStyle) -> Table:
+def _oversized_recommendation_card(rec: Recommendation) -> Table:
+    return _card(
+        _badge_cell(None, "Nível 2"),
+        [_recommendation_title(rec), Spacer(1, 1 * mm), _oversized_notice()],
+        RECOMMENDATION_STYLE,
+    )
+
+
+def _oversized_notice() -> Paragraph:
+    return Paragraph(
+        "O conteúdo deste item é grande demais para caber em uma página do PDF. "
+        "Consulte o detalhe completo na tela de relatório.",
+        STYLES["muted"],
+    )
+
+
+def _card(badge: list[Paragraph], body: list[Flowable], style: SeverityStyle) -> Table:
     card = Table([[badge, body]], colWidths=[BADGE_COLUMN_WIDTH, CARD_BODY_WIDTH])
     card.setStyle(
         TableStyle(
@@ -597,14 +589,19 @@ def _card(badge: list, body: list, style: SeverityStyle) -> Table:
     return card
 
 
-def _found_expected(violation: Violation) -> Table:
+def _found_expected(violation: Violation, limit: int) -> Table:
     inner = CARD_BODY_WIDTH - 16
     table = Table(
         [
-            [Paragraph("ENCONTRADO", STYLES["diff_label"]), Paragraph("ESPERADO", STYLES["diff_label"])],
             [
-                Paragraph(safe_text(_missing_if_none(violation.found)), STYLES["diff_value"]),
-                Paragraph(safe_text(_missing_if_none(violation.expected)), STYLES["diff_value"]),
+                Paragraph("ENCONTRADO", STYLES["diff_label"]),
+                Paragraph("ESPERADO", STYLES["diff_label"]),
+            ],
+            [
+                Paragraph(safe_text(_missing_if_none(violation.found), limit), STYLES["diff_value"]),
+                Paragraph(
+                    safe_text(_missing_if_none(violation.expected), limit), STYLES["diff_value"]
+                ),
             ],
         ],
         colWidths=[inner / 2, inner / 2],
@@ -625,7 +622,7 @@ def _found_expected(violation: Violation) -> Table:
     return table
 
 
-def _fix_panel(rec: Recommendation) -> Table:
+def _fix_panel(rec: Recommendation, limit: int) -> Table:
     inner = CARD_BODY_WIDTH - 16
     action = ACTION_LABELS.get(rec.action, rec.action.value)
     patch = json.dumps(rec.proposed_patch, ensure_ascii=False)
@@ -640,8 +637,14 @@ def _fix_panel(rec: Recommendation) -> Table:
                 ),
                 "",
             ],
-            [Paragraph("Justificativa", STYLES["fix_label"]), Paragraph(safe_text(rec.rationale), STYLES["fix_value"])],
-            [Paragraph("Correção proposta", STYLES["fix_label"]), Paragraph(safe_text(patch), STYLES["fix_code"])],
+            [
+                Paragraph("Justificativa", STYLES["fix_label"]),
+                Paragraph(safe_text(rec.rationale, limit), STYLES["fix_value"]),
+            ],
+            [
+                Paragraph("Correção proposta", STYLES["fix_label"]),
+                Paragraph(safe_text(patch, limit), STYLES["fix_code"]),
+            ],
         ],
         colWidths=[FIX_LABEL_WIDTH, inner - FIX_LABEL_WIDTH],
     )
@@ -663,17 +666,23 @@ def _fix_panel(rec: Recommendation) -> Table:
     return table
 
 
-# -- helpers ----------------------------------------------------------------------
-
-
 def _sorted_reports(run: AuditRun) -> list[EntityReport]:
     order = {status: index for index, status in enumerate(CONFORMANCE_PRINT_ORDER)}
     return sorted(run.reports, key=lambda r: (order.get(r.status, len(order)), r.entity_id))
 
 
+def _status_label(report: EntityReport) -> str:
+    return CONFORMANCE_LABELS.get(report.status, report.status.value)
+
+
 def _schema_origin_text(report: EntityReport, tz: tzinfo) -> str:
     model = report.data_model
-    model_text = f"{safe_text(model.model_name)} v{safe_text(model.version)}" if model else ""
+    model_text = (
+        f"{safe_text(model.model_name, IDENTIFIER_MAX_CHARS)} "
+        f"v{safe_text(model.version, IDENTIFIER_MAX_CHARS)}"
+        if model
+        else ""
+    )
     if report.schema_origin is not None:
         when = _format_datetime(report.schema_origin.fetched_at, tz)
         if report.schema_origin.source == SchemaSource.LIVE:
@@ -683,17 +692,16 @@ def _schema_origin_text(report: EntityReport, tz: tzinfo) -> str:
             "durante a auditoria, por isso foi usada a última cópia salva."
         )
     if report.status == ConformanceStatus.NO_MODEL_FOUND:
-        return "Nenhum Smart Data Model corresponde a este tipo de entidade; a validação não foi executada."
+        return (
+            "Nenhum Smart Data Model corresponde a este tipo de entidade; "
+            "a validação não foi executada."
+        )
     if report.status == ConformanceStatus.SCHEMA_UNAVAILABLE:
         return (
             f"O schema {model_text} não pôde ser obtido (nem ao vivo, nem do cache); "
             "a validação não foi executada."
         )
     return "Origem do schema não registrada neste relatório."
-
-
-def _pdf_safe(text: str) -> str:
-    return text.encode("cp1252", errors="replace").decode("cp1252")
 
 
 def _missing_if_none(value: str | None) -> str:

@@ -7,6 +7,8 @@ import {
 
 export type ReportViewState = 'loading' | 'loaded' | 'empty' | 'error';
 
+export type ExportState = 'idle' | 'exporting' | 'error';
+
 export type StatusFilter = 'all' | ConformanceStatus;
 
 export interface RecommendationView {

@@ -1,10 +1,3 @@
-"""Textos em portugues do relatorio exportado (issue #23).
-
-Mesmos rotulos da tela de relatorio (frontend/src/app/features/report-detail/
-report-labels.ts, issue #22) — o PDF e a tela precisam falar a mesma lingua
-para o usuario reconhecer no papel o que viu no navegador.
-"""
-
 from __future__ import annotations
 
 from auditor.domain.entities.audit_run import RunStatus
@@ -38,7 +31,6 @@ CONFORMANCE_LABELS: dict[ConformanceStatus, str] = {
     ConformanceStatus.SCHEMA_UNAVAILABLE: "Schema indisponível",
 }
 
-# Ordem do detalhe por entidade no PDF: o que precisa de correcao primeiro.
 CONFORMANCE_PRINT_ORDER: tuple[ConformanceStatus, ...] = (
     ConformanceStatus.NON_CONFORMANT,
     ConformanceStatus.PARTIAL,
@@ -56,7 +48,7 @@ RUN_STATUS_LABELS: dict[RunStatus, str] = {
     RunStatus.NO_ENTITIES_FOUND: "Nenhuma entidade encontrada",
 }
 
-_RULE_LABELS: dict[str, str] = {
+RULE_LABELS: dict[str, str] = {
     "required_property_missing": "Atributo obrigatório ausente",
     "type_mismatch": "Tipo de dado incorreto",
     "format_invalid": "Formato inválido",
@@ -74,12 +66,3 @@ ACTION_LABELS: dict[RecommendationAction, str] = {
     RecommendationAction.FIX_FORMAT: "Corrigir o formato",
 }
 
-
-def rule_label(rule: str) -> str:
-    """Regras do Nivel 1 tem rotulo fixo; as do Nivel 2 sao texto livre do
-    SLM e saem apenas legiveis (sem "_")."""
-    known = _RULE_LABELS.get(rule)
-    if known:
-        return known
-    readable = " ".join(rule.replace("-", " ").replace("_", " ").split())
-    return readable[:1].upper() + readable[1:] if readable else rule

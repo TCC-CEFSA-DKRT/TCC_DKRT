@@ -36,6 +36,17 @@ export const STATUS_FILTER_LABELS: Record<StatusFilter, string> = {
   schema_unavailable: 'Schema indisponível',
 };
 
+export const EXPORT_PDF_TIMEOUT_MS = 120_000;
+
+export const EXPORT_PDF_ERROR_MESSAGES = {
+  timeout: 'A geração do PDF demorou mais do que o esperado. Tente novamente em instantes.',
+  offline: 'Não foi possível conectar ao servidor do auditor. Verifique se a API está em execução.',
+  notFound: 'Esta auditoria não foi encontrada. Atualize a página e tente novamente.',
+  tooLarge:
+    'Este relatório é grande demais para exportar em PDF. Audite menos entidades por vez (por exemplo, um tipo de entidade por auditoria) e exporte novamente.',
+  generic: 'Não foi possível gerar o PDF. Tente novamente.',
+} as const;
+
 export const ALWAYS_VISIBLE_FILTERS: readonly StatusFilter[] = [
   'all',
   'conformant',

@@ -1,11 +1,3 @@
-"""Issue #23 — PDF do relatorio de auditoria (ADR-0022).
-
-Le o PDF gerado de volta com pypdf para verificar o que o criterio de aceite
-pede: A4, acentos preservados, severidades distinguiveis em escala de cinza,
-paginacao com cabecalho/rodape e um relatorio com 500+ entidades gerado sem
-travar.
-"""
-
 from __future__ import annotations
 
 import time
@@ -24,10 +16,9 @@ from auditor.domain.value_objects.conformance_status import ConformanceStatus
 from auditor.domain.value_objects.data_model_ref import DataModelRef
 from auditor.domain.value_objects.entity_type import EntityType
 from auditor.domain.value_objects.tenant import Tenant
-from auditor.infrastructure.reporting.pdf_audit_report_renderer import (
-    SEVERITY_STYLES,
-    PdfAuditReportRenderer,
-)
+from auditor.infrastructure.reporting import pdf_audit_report_renderer
+from auditor.infrastructure.reporting.pdf_audit_report_renderer import PdfAuditReportRenderer
+from auditor.infrastructure.reporting.pdf_theme import SEVERITY_STYLES
 
 _NOW = datetime(2026, 10, 24, 17, 5, tzinfo=timezone.utc)
 _STREETLIGHT = EntityType("Streetlight")
@@ -135,7 +126,6 @@ class TestDocumentLayout:
         assert "Relatório de auditoria de conformidade" in first_page
         assert "openiot" in first_page
         assert "Streetlight" in first_page
-        # 17:05 UTC exibido no fuso de quem exportou (UTC-3)
         assert "24/10/2026 14:05" in first_page
         assert "Resumo" in first_page
         assert "1 (50%)" in first_page
@@ -232,6 +222,91 @@ class TestLargeReports:
         assert f"Página {total} de {total}" in last_page
         assert "DKRT · Relatório de auditoria de conformidade" in last_page
         assert "urn:ngsi-ld:Streetlight:0519" in last_page
-        # Limite folgado (a geracao leva alguns segundos numa maquina comum): serve so'
-        # para pegar uma regressao grosseira, nunca para medir desempenho.
         assert elapsed < 60
+
+
+class TestOversizedContent:
+    def test_huge_values_are_truncated_instead_of_breaking_the_document(self):
+        huge = "x" * 5000
+        report = _non_conformant("urn:grande")
+        report.violations[0] = Violation(
+            attribute_path="status",
+            severity=ViolationSeverity.ERROR,
+            rule="enum_violation",
+            expected=huge,
+            found=huge,
+            message="m" * 5000,
+            detected_by=DetectionSource.STRUCTURAL,
+        )
+        report.recommendations[0] = Recommendation(
+            attribute_path="status",
+            action=RecommendationAction.FIX_FORMAT,
+            proposed_patch={"attribute": "status", "value": huge},
+            rationale="r" * 5000,
+            confidence=0.5,
+        )
+
+        text = _text(_render(_run([report, _non_conformant("urn:normal")])))
+
+        assert "truncado: 5000 caracteres no original" in text
+        assert "urn:normal" in text
+
+    def test_a_card_too_tall_even_when_compact_becomes_a_notice(self):
+        report = _non_conformant("urn:muitas-recomendacoes")
+        report.recommendations.extend(
+            Recommendation(
+                attribute_path="status",
+                action=RecommendationAction.FIX_FORMAT,
+                proposed_patch={"attribute": "status", "value": "v" * 400},
+                rationale="justificativa " * 40,
+                confidence=0.5,
+            )
+            for _ in range(12)
+        )
+
+        text = _text(_render(_run([report])))
+
+        assert "grande demais para caber em uma página do PDF" in text
+        assert "Valor fora da lista permitida" in text
+
+    def test_one_broken_entity_does_not_prevent_exporting_the_others(self, monkeypatch):
+        real_card = pdf_audit_report_renderer._violation_card
+
+        def failing_card(violation, recommendations, limit):
+            if violation.attribute_path == "lampHeight":
+                raise ValueError("dado inesperado")
+            return real_card(violation, recommendations, limit)
+
+        monkeypatch.setattr(pdf_audit_report_renderer, "_violation_card", failing_card)
+        broken = _non_conformant("urn:quebrada")
+        healthy = EntityReport(
+            entity_id="urn:saudavel",
+            entity_type=_STREETLIGHT,
+            data_model=_MODEL,
+            status=ConformanceStatus.CONFORMANT,
+            violations=[],
+            schema_origin=SchemaOrigin(source=SchemaSource.LIVE, fetched_at=_NOW),
+        )
+
+        text = _text(_render(_run([broken, healthy])))
+
+        assert "Não foi possível montar o detalhe desta entidade no PDF" in text
+        assert "urn:quebrada" in text
+        assert "urn:saudavel" in text
+
+
+class TestRecommendationMatching:
+    def test_recommendation_attribute_is_compared_ignoring_case_and_spaces(self):
+        report = _non_conformant("urn:1")
+        report.recommendations[0] = Recommendation(
+            attribute_path=" STATUS ",
+            action=RecommendationAction.FIX_FORMAT,
+            proposed_patch={"attribute": "status", "value": "brokenLantern"},
+            rationale="corresponde a uma luminária danificada.",
+            confidence=0.82,
+        )
+
+        text = _text(_render(_run([report])))
+
+        assert "OUTRAS RECOMENDAÇÕES" not in text
+        assert "Como corrigir: Corrigir o formato" in text

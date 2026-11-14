@@ -19,6 +19,7 @@ import httpx
 from cryptography.fernet import Fernet, MultiFernet
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
+from auditor.application.report_export import ReportExportLimits
 from auditor.application.use_cases.export_audit_report import ExportAuditReportUseCase
 from auditor.application.use_cases.interpret_audit_command import InterpretAuditCommandUseCase
 from auditor.application.use_cases.run_audit import RunAuditUseCase
@@ -230,12 +231,18 @@ def get_interpret_audit_command_use_case() -> InterpretAuditCommandUseCase:
 
 @lru_cache
 def get_audit_report_renderer() -> PdfAuditReportRenderer:
-    # Issue #23 / ADR-0022: sem estado entre chamadas, uma instancia basta.
     return PdfAuditReportRenderer()
 
 
 def get_export_audit_report_use_case() -> ExportAuditReportUseCase:
-    return ExportAuditReportUseCase(renderer=get_audit_report_renderer())
+    settings = get_settings()
+    return ExportAuditReportUseCase(
+        renderer=get_audit_report_renderer(),
+        limits=ReportExportLimits(
+            max_entities=settings.report_pdf_max_entities,
+            max_bytes=settings.report_pdf_max_bytes,
+        ),
+    )
 
 
 def get_run_audit_use_case() -> RunAuditUseCase:

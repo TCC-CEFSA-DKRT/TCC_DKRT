@@ -1,9 +1,8 @@
 import { DOCUMENT } from '@angular/common';
 import { Injectable, inject } from '@angular/core';
 
-/** Issue #23 — entrega um arquivo gerado pela API (ex.: o PDF do
- * relatório) como download do navegador. Isolado num serviço para que os
- * testes dos componentes não disparem downloads de verdade. */
+import { OBJECT_URL_RELEASE_DELAY_MS } from './file-download.constants';
+
 @Injectable({ providedIn: 'root' })
 export class FileDownloadService {
   private readonly document = inject(DOCUMENT);
@@ -17,13 +16,10 @@ export class FileDownloadService {
     this.document.body.appendChild(link);
     link.click();
     link.remove();
-    // Dá tempo ao navegador de iniciar o download antes de liberar a memória.
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setTimeout(() => URL.revokeObjectURL(url), OBJECT_URL_RELEASE_DELAY_MS);
   }
 }
 
-/** Lê o nome do arquivo de um header `Content-Disposition` (ex.:
- * `attachment; filename="relatorio.pdf"`). */
 export function filenameFromContentDisposition(header: string | null): string | null {
   const match = header?.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
   return match ? decodeURIComponent(match[1].trim()) : null;

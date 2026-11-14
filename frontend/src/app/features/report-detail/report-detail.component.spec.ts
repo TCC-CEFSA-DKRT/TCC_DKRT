@@ -41,7 +41,6 @@ function setUpWithRoute(runId: string | null) {
       provideHttpClient(),
       provideHttpClientTesting(),
       { provide: API_CONFIG, useValue: DEFAULT_API_CONFIG },
-      // Issue #23: nenhum teste dispara um download de verdade.
       { provide: FileDownloadService, useValue: jasmine.createSpyObj('FileDownloadService', ['save']) },
       {
         provide: ActivatedRoute,
@@ -492,6 +491,21 @@ describe('ReportDetailComponent', () => {
       expect(alert?.textContent).not.toContain('500');
       expect(downloads.save).not.toHaveBeenCalled();
       expect(exportButton(view.element).disabled).toBeFalse();
+    });
+
+    it('explains that the report is too large when the API answers 413', async () => {
+      const view = await renderReports([makeReport()]);
+      httpMock = view.httpMock;
+
+      exportButton(view.element).click();
+      httpMock
+        .expectOne((r) => r.url === PDF_URL)
+        .flush(new Blob(['{}']), { status: 413, statusText: 'Payload Too Large' });
+      view.fixture.detectChanges();
+
+      const alert = view.element.querySelector('[role="alert"]');
+      expect(alert?.textContent).toContain('grande demais para exportar em PDF');
+      expect(alert?.textContent).toContain('Audite menos entidades por vez');
     });
   });
 });
