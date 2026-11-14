@@ -231,9 +231,14 @@ frontend/                # Angular (Fase 8)
 docs/
 ├── plano_refatoracao_v3.md   # plano mestre — fonte de verdade sobre decisões e fases
 ├── adr/                       # decisões arquiteturais (ver o próprio índice: histórico vs. vigente)
+├── historico/                 # histórico de desenvolvimento: um arquivo por issue (no lugar de comentários no código)
 └── legacy/                    # documentação da iteração multiagente descartada
 .cursor/specs/faseN.spec.md   # spec de comportamento por fase — a mais próxima do código
 ```
+
+## Sem comentários no código
+
+O código não recebe comentários novos: o contexto (por quê, armadilhas, pendências) vai para `docs/historico/<issue>-<slug>.md`. Regra, exceções e verificação estão em [`AGENTS.md`](AGENTS.md); o CI reprova PRs que adicionam comentários. Para ativar o hook local: `git config core.hooksPath .githooks`.
 
 ## Segurança
 
