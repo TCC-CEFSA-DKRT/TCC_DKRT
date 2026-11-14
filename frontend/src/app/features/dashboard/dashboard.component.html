@@ -1,4 +1,5 @@
 <h1 class="page-title">Painel</h1>
+<p class="page-subtitle">Conformidade das entidades auditadas neste tenant, por tipo de entidade e ao longo do tempo.</p>
 
 @switch (state()) {
   @case ('loading') {
@@ -14,61 +15,103 @@
     />
   }
   @case ('loaded') {
-    <section class="grid">
-      @for (category of categoryAggregates(); track category.entityType) {
-        <div class="card">
-          <h2 class="card__title">{{ category.entityType }}</h2>
-          <p class="card__meta">{{ category.runCount }} run(s)</p>
-          <dl class="card__stats">
-            <div class="stat stat--conformant">
-              <dt>Conformes</dt>
-              <dd>{{ category.summary.conformant_count }}</dd>
-            </div>
-            <div class="stat stat--partial">
-              <dt>Parciais</dt>
-              <dd>{{ category.summary.partial_count }}</dd>
-            </div>
-            <div class="stat stat--non-conformant">
-              <dt>Não conformes</dt>
-              <dd>{{ category.summary.non_conformant_count }}</dd>
-            </div>
-            <div class="stat">
-              <dt>Total de entidades</dt>
-              <dd>{{ category.summary.total_entities }}</dd>
-            </div>
-          </dl>
+    <section class="tiles" aria-label="Resumo das auditorias">
+      @for (tile of tiles(); track tile.label) {
+        <div class="tile glass" [attr.data-tone]="tile.tone">
+          <span class="tile__label">{{ tile.label }}</span>
+          <strong class="tile__value">{{ tile.value }}</strong>
+          <span class="tile__hint">{{ tile.hint }}</span>
         </div>
       }
     </section>
 
-    <section class="panel">
-      <h2 class="panel__title">Tipos com mais violações</h2>
+    <section class="panel glass">
+      <div class="panel__head">
+        <h2 class="panel__title">Conformidade por tipo de entidade</h2>
+        <ul class="legend">
+          @for (item of statusLegend; track item.key) {
+            <li><span class="swatch swatch--{{ item.cssModifier }}"></span>{{ item.label }}</li>
+          }
+        </ul>
+      </div>
+      <div class="grid">
+        @for (category of categoryAggregates(); track category.entityType) {
+          <div class="card">
+            <h3 class="card__title">{{ category.entityType }}</h3>
+            <p class="card__meta">
+              {{ category.runCount }} auditoria(s) · {{ category.summary.total_entities }} entidade(s)
+            </p>
+            <div
+              class="stack"
+              role="img"
+              [attr.aria-label]="'Entidades por status: ' + (describeSegments(statusSegments(category.summary)) || 'nenhuma')"
+            >
+              @for (segment of statusSegments(category.summary); track segment.label) {
+                @if (segment.count > 0) {
+                  <span
+                    class="stack__segment swatch--{{ segment.cssModifier }}"
+                    [style.flex-grow]="segment.count"
+                    [title]="segment.label + ': ' + segment.count"
+                  ></span>
+                }
+              }
+            </div>
+            <dl class="card__stats">
+              <div class="stat stat--conformant">
+                <dt>Conformes</dt>
+                <dd>{{ category.summary.conformant_count }}</dd>
+              </div>
+              <div class="stat stat--partial">
+                <dt>Parciais</dt>
+                <dd>{{ category.summary.partial_count }}</dd>
+              </div>
+              <div class="stat stat--non-conformant">
+                <dt>Não conformes</dt>
+                <dd>{{ category.summary.non_conformant_count }}</dd>
+              </div>
+            </dl>
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="panel glass">
+      <h2 class="panel__title">Entidades com violação por tipo</h2>
+      <p class="panel__hint">Entidades não conformes ou parciais, somando todas as auditorias de cada tipo.</p>
       <ol class="ranking">
-        @for (category of typesRankedByViolations(); track category.entityType) {
-          <li>
-            <span class="ranking__type">{{ category.entityType }}</span>
-            <span class="ranking__count">
-              {{ category.summary.non_conformant_count + category.summary.partial_count }}
-              violações
+        @for (bar of ranking(); track bar.entityType) {
+          <li class="ranking__row">
+            <span class="ranking__type">{{ bar.entityType }}</span>
+            <span class="ranking__track">
+              <span class="ranking__bar" [style.width.%]="bar.percentOfMax"></span>
             </span>
+            <span class="ranking__count">{{ bar.count }}</span>
           </li>
         }
       </ol>
     </section>
 
-    <section class="panel">
-      <h2 class="panel__title">
-        Evolução no tempo
-        @if (selectedEntityType()) {
-          — {{ selectedEntityType() }}
-        }
-      </h2>
+    <section class="panel glass">
+      <div class="panel__head">
+        <h2 class="panel__title">
+          Evolução no tempo
+          @if (selectedEntityType()) {
+            — {{ selectedEntityType() }}
+          }
+        </h2>
+        <ul class="legend">
+          @for (item of timelineLegend; track item.key) {
+            <li><span class="swatch swatch--{{ item.cssModifier }}"></span>{{ item.label }}</li>
+          }
+        </ul>
+      </div>
       <div class="type-switch">
         @for (category of categoryAggregates(); track category.entityType) {
           <button
             type="button"
             class="type-switch__button"
             [class.type-switch__button--active]="category.entityType === selectedEntityType()"
+            [attr.aria-pressed]="category.entityType === selectedEntityType()"
             (click)="selectEntityType(category.entityType)"
           >
             {{ category.entityType }}
@@ -76,20 +119,40 @@
         }
       </div>
       @if (timeSeries().length === 0) {
-        <p class="panel__empty">Sem histórico suficiente para este tipo ainda.</p>
+        <p class="panel__hint">Sem histórico suficiente para este tipo ainda.</p>
       } @else {
-        <ol class="timeline">
-          @for (point of timeSeries(); track point.id) {
-            <li>
-              <span class="timeline__date">{{ point.started_at | date: 'dd/MM/yyyy HH:mm' }}</span>
-              <span class="timeline__stats">
-                {{ point.summary.conformant_count }} conformes ·
-                {{ point.summary.non_conformant_count }} não conformes ·
-                {{ point.summary.partial_count }} parciais
-              </span>
-            </li>
+        <div class="timeline-chart" role="img" [attr.aria-label]="'Entidades por status em cada auditoria de ' + selectedEntityType()">
+          @for (column of timeline(); track column.id) {
+            <div class="timeline-chart__column" [title]="describeColumn(column)">
+              <div class="timeline-chart__plot">
+                <span class="timeline-chart__total">{{ column.total }}</span>
+                <div class="timeline-chart__bar" [style.height.%]="column.heightPercent">
+                  @for (segment of column.segments; track segment.label) {
+                    @if (segment.count > 0) {
+                      <span class="swatch--{{ segment.cssModifier }}" [style.flex-grow]="segment.count"></span>
+                    }
+                  }
+                </div>
+              </div>
+              <span class="timeline-chart__date">{{ column.startedAt | date: 'dd/MM HH:mm' }}</span>
+            </div>
           }
-        </ol>
+        </div>
+        <details class="timeline-table">
+          <summary>Ver os números em tabela</summary>
+          <ol class="timeline">
+            @for (point of timeSeries(); track point.id) {
+              <li>
+                <span class="timeline__date">{{ point.started_at | date: 'dd/MM/yyyy HH:mm' }}</span>
+                <span class="timeline__stats">
+                  {{ point.summary.conformant_count }} conformes ·
+                  {{ point.summary.partial_count }} parciais ·
+                  {{ point.summary.non_conformant_count }} não conformes
+                </span>
+              </li>
+            }
+          </ol>
+        </details>
       }
     </section>
   }

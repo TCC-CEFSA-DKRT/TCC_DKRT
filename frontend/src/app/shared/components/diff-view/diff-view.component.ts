@@ -27,32 +27,35 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
       .diff-view {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: var(--space-3, 12px);
+        gap: var(--space-3);
       }
       .diff-view__side {
         display: flex;
         flex-direction: column;
-        gap: var(--space-1, 4px);
-        padding: var(--space-2, 8px) var(--space-3, 12px);
-        border-radius: 6px;
-        border: 1px solid var(--color-border, #e2e5ea);
+        gap: var(--space-1);
+        padding: var(--space-2) var(--space-3);
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--color-border);
+        background: rgba(5, 11, 17, 0.55);
       }
       .diff-view__label {
         font-size: 0.75rem;
         font-weight: 500;
-        color: var(--color-text-secondary, #5b6270);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--color-text-muted);
       }
       .diff-view__value {
-        font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+        font-family: var(--font-mono);
         font-size: 0.875rem;
         word-break: break-all;
         white-space: pre-wrap;
       }
       .diff-view__value--current {
-        color: var(--color-non-conformant, #b23a3a);
+        color: var(--color-non-conformant);
       }
       .diff-view__value--proposed {
-        color: var(--color-conformant, #1a7f4b);
+        color: var(--color-conformant);
       }
     `,
   ],

@@ -22,7 +22,7 @@
       </span>
       <button
         type="button"
-        class="export-button"
+        class="export-button btn-primary"
         [disabled]="exportState() === 'exporting'"
         (click)="onExportPdf()"
       >
@@ -54,7 +54,7 @@
     </div>
 
     @for (view of visibleReports(); track entityTrackKey(view.report)) {
-      <section class="entity-report" [attr.data-status]="view.report.status">
+      <section class="entity-report glass" [attr.data-status]="view.report.status">
         <div class="entity-report__header">
           <h2 class="entity-report__id">{{ view.report.entity_id }}</h2>
           <app-status-badge [status]="view.report.status" />

@@ -1,4 +1,5 @@
 <h1 class="page-title">Auditorias</h1>
+<p class="page-subtitle">Histórico das auditorias deste tenant. Abra o relatório de cada uma para ver as violações encontradas.</p>
 
 <form
   class="filters"
@@ -17,7 +18,7 @@
       <option [value]="option">{{ option }}</option>
     }
   </select>
-  <button type="submit" class="filters__submit">Filtrar</button>
+  <button type="submit" class="filters__submit btn-primary">Filtrar</button>
 </form>
 
 @switch (state()) {
@@ -34,7 +35,8 @@
     />
   }
   @case ('loaded') {
-    <table class="runs-table">
+    <div class="runs-panel glass">
+    <table class="runs-table data-table">
       <thead>
         <tr>
           <th>Tipo</th>
@@ -47,7 +49,7 @@
       <tbody>
         @for (run of runs(); track run.id) {
           <tr>
-            <td>{{ run.entity_type ?? '—' }}</td>
+            <td class="runs-table__type">{{ run.entity_type ?? '—' }}</td>
             <td><app-status-badge [status]="run.status" /></td>
             <td>
               @if (run.status === 'running') {
@@ -73,6 +75,7 @@
         }
       </tbody>
     </table>
+    </div>
     <p class="runs-table__total">{{ total() }} run(s) no total</p>
   }
 }

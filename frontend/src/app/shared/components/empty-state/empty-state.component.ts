@@ -24,15 +24,18 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: var(--space-2, 8px);
-        padding: var(--space-8, 32px) var(--space-4, 16px);
+        gap: var(--space-2);
+        padding: var(--space-8) var(--space-4);
         text-align: center;
-        color: var(--color-text-secondary, #5b6270);
+        color: var(--color-text-secondary);
+        border: 1px dashed var(--color-border-accent);
+        border-radius: var(--radius-lg);
+        background: rgba(14, 25, 36, 0.5);
       }
       .empty-state__message {
         font-size: 1rem;
         font-weight: 500;
-        color: var(--color-text-primary, #1a1d24);
+        color: var(--color-text-primary);
         margin: 0;
       }
       .empty-state__hint {
