@@ -45,7 +45,6 @@ export interface RecommendationResponse {
 
 export type SchemaSource = 'live' | 'cache';
 
-/** Issue #22 — Smart Data Model usado na validação da entidade. */
 export interface DataModelResponse {
   subject: string;
   model_name: string;
@@ -53,7 +52,6 @@ export interface DataModelResponse {
   schema_url: string;
 }
 
-/** Issue #22 — de onde veio o schema (ao vivo ou cache) e quando foi obtido. */
 export interface SchemaOriginResponse {
   source: SchemaSource;
   fetched_at: string;
@@ -66,11 +64,7 @@ export interface EntityReportResponse {
   violations: ViolationResponse[];
   recommendations: RecommendationResponse[];
   semantic_analysis_skipped: boolean;
-  /** `null` quando nenhum Smart Data Model corresponde ao tipo. Opcional
-   * para continuar aceitando respostas de um backend anterior à issue #22. */
   data_model?: DataModelResponse | null;
-  /** `null` quando o schema não foi obtido (sem modelo, schema
-   * indisponível ou relatório antigo). */
   schema_origin?: SchemaOriginResponse | null;
 }
 

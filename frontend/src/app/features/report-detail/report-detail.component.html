@@ -37,7 +37,7 @@
       }
     </div>
 
-    @for (view of visibleReports(); track view.report.entity_id) {
+    @for (view of visibleReports(); track entityTrackKey(view.report)) {
       <section class="entity-report" [attr.data-status]="view.report.status">
         <div class="entity-report__header">
           <h2 class="entity-report__id">{{ view.report.entity_id }}</h2>
@@ -48,7 +48,7 @@
           @if (view.report.schema_origin; as origin) {
             Schema
             @if (view.report.data_model; as model) {
-              <a [href]="model.schema_url" target="_blank" rel="noopener">{{ model.model_name }} v{{ model.version }}</a>
+              <a [href]="model.schema_url" target="_blank" rel="noopener noreferrer">{{ model.model_name }} v{{ model.version }}</a>
             }
             @if (origin.source === 'live') {
               obtido ao vivo em {{ origin.fetched_at | date: 'dd/MM/yyyy HH:mm' }}.
@@ -102,9 +102,7 @@
                   [proposedValue]="item.violation.expected"
                 />
                 @for (rec of item.recommendations; track $index) {
-                  <ng-container
-                    *ngTemplateOutlet="recommendation; context: { $implicit: rec }"
-                  ></ng-container>
+                  <app-recommendation-card [view]="rec" />
                 }
               </article>
             }
@@ -115,7 +113,7 @@
           <div class="violation-group">
             <h3 class="violation-group__title">Outras recomendações ({{ view.otherRecommendations.length }})</h3>
             @for (rec of view.otherRecommendations; track $index) {
-              <ng-container *ngTemplateOutlet="recommendation; context: { $implicit: rec }"></ng-container>
+              <app-recommendation-card [view]="rec" />
             }
           </div>
         }
@@ -128,26 +126,3 @@
     }
   }
 }
-
-<ng-template #recommendation let-rec>
-  <div class="recommendation">
-    <div class="recommendation__meta">
-      <span class="recommendation__action">Como corrigir: {{ rec.actionLabel }}</span>
-      <span class="recommendation__confidence">Recomendação do SLM · confiança {{ rec.confidencePercent }}%</span>
-    </div>
-    <p class="recommendation__rationale"><strong>Justificativa:</strong> {{ rec.rationale }}</p>
-    @if (rec.attachedToViolation) {
-      <div class="recommendation__patch">
-        <span class="recommendation__patch-label">Correção proposta</span>
-        <code>{{ rec.proposedPatchText }}</code>
-      </div>
-    } @else {
-      <app-diff-view
-        currentLabel="Atributo"
-        proposedLabel="Correção proposta"
-        [currentValue]="rec.attributePath"
-        [proposedValue]="rec.proposedPatch"
-      />
-    }
-  </div>
-</ng-template>
