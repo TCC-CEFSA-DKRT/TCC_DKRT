@@ -1,0 +1,20 @@
+<div class="recommendation">
+  <div class="recommendation__meta">
+    <span class="recommendation__action">Como corrigir: {{ view().actionLabel }}</span>
+    <span class="recommendation__confidence">Recomendação do SLM · confiança {{ view().confidencePercent }}%</span>
+  </div>
+  <p class="recommendation__rationale"><strong>Justificativa:</strong> {{ view().rationale }}</p>
+  @if (view().attachedToViolation) {
+    <div class="recommendation__patch">
+      <span class="recommendation__patch-label">Correção proposta</span>
+      <code>{{ view().proposedPatchText }}</code>
+    </div>
+  } @else {
+    <app-diff-view
+      currentLabel="Atributo"
+      proposedLabel="Correção proposta"
+      [currentValue]="view().attributePath"
+      [proposedValue]="view().proposedPatch"
+    />
+  }
+</div>

@@ -70,7 +70,6 @@ function makeReport(overrides: Partial<EntityReportResponse> = {}): EntityReport
   };
 }
 
-/** Monta a tela com um run contendo `reports` e devolve o elemento raiz. */
 async function renderReports(reports: EntityReportResponse[]) {
   await setUpWithRoute('run-1');
   const httpMock = TestBed.inject(HttpTestingController);
@@ -256,7 +255,6 @@ describe('ReportDetailComponent', () => {
       expect(violation.querySelector('.violation__rule')?.textContent).toContain('Tipo de dado incorreto');
       expect(text).toContain('Encontrado');
       expect(text).toContain('Esperado');
-      // A recomendação fica dentro do bloco da violação que ela corrige.
       const fix = violation.querySelector('.recommendation');
       expect(fix).not.toBeNull();
       expect(fix?.textContent).toContain('Corrigir o tipo de dado');
@@ -345,6 +343,93 @@ describe('ReportDetailComponent', () => {
       httpMock = view.httpMock;
 
       expect(view.element.textContent).toContain('Nenhuma violação encontrada.');
+    });
+
+    it('explains when the schema could not be obtained, naming the model', async () => {
+      const view = await renderReports([
+        makeReport({ status: 'schema_unavailable', schema_origin: null }),
+      ]);
+      httpMock = view.httpMock;
+
+      const origin = view.element.querySelector('.schema-origin')?.textContent ?? '';
+      expect(origin).toContain('O schema Streetlight não pôde ser obtido');
+      expect(origin).toContain('Execute a auditoria novamente mais tarde.');
+      expect(view.element.textContent).not.toContain('Nenhuma violação encontrada');
+      expect(view.element.querySelector('[data-filter="schema_unavailable"]')?.textContent).toContain('1');
+    });
+
+    it('says the schema origin was not recorded for reports saved before the field existed', async () => {
+      const view = await renderReports([makeReport({ data_model: undefined, schema_origin: undefined })]);
+      httpMock = view.httpMock;
+
+      expect(view.element.querySelector('.schema-origin')?.textContent).toContain(
+        'Origem do schema não registrada neste relatório.'
+      );
+    });
+
+    it('attaches the recommendation to the most severe finding when two point to the same attribute', async () => {
+      const view = await renderReports([
+        makeReport({
+          status: 'non_conformant',
+          violations: [
+            { attribute_path: 'status', severity: 'warning', rule: 'attribute_name_synonym', expected: null, found: null, message: 'aviso', detected_by: 'semantic' },
+            { attribute_path: 'status', severity: 'error', rule: 'enum_violation', expected: 'ok', found: 'quebrado', message: 'erro', detected_by: 'structural' },
+          ],
+          recommendations: [
+            {
+              attribute_path: ' Status ',
+              action: 'fix_format',
+              proposed_patch: { attribute: 'status', value: 'ok' },
+              rationale: 'valor fora da lista',
+              confidence: 0.8,
+            },
+          ],
+        }),
+      ]);
+      httpMock = view.httpMock;
+
+      const violations = Array.from(view.element.querySelectorAll('.violation'));
+      expect(violations.length).toBe(2);
+      expect(violations[0].querySelector('.violation__rule')?.textContent).toContain('Valor fora da lista permitida');
+      expect(violations[0].querySelector('.recommendation')).not.toBeNull();
+      expect(violations[1].querySelector('.violation__rule')?.textContent).toContain(
+        'Nome de atributo diferente do definido no modelo'
+      );
+      expect(violations[1].querySelector('.recommendation')).toBeNull();
+      expect(view.element.textContent).not.toContain('Outras recomendações');
+    });
+
+    it('renders entities that share the id but have different types', async () => {
+      await setUpWithRoute('run-1');
+      httpMock = TestBed.inject(HttpTestingController);
+      const fixture = TestBed.createComponent(ReportDetailComponent);
+      fixture.detectChanges();
+      httpMock.expectOne(`${BASE_URL}/audits/run-1`).flush(
+        makeRun({
+          entity_type: null,
+          reports: [
+            makeReport({ entity_id: 'urn:x:1', entity_type: 'Streetlight' }),
+            makeReport({ entity_id: 'urn:x:1', entity_type: 'WeatherObserved', status: 'partial' }),
+          ],
+        })
+      );
+      fixture.detectChanges();
+      const element = fixture.nativeElement as HTMLElement;
+
+      expect(element.querySelectorAll('.entity-report').length).toBe(2);
+      (element.querySelector('[data-filter="partial"]') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      expect(element.querySelectorAll('.entity-report').length).toBe(1);
+      expect(element.querySelector('.entity-report')?.getAttribute('data-status')).toBe('partial');
+    });
+
+    it('opens the schema link without sending the referrer', async () => {
+      const view = await renderReports([makeReport()]);
+      httpMock = view.httpMock;
+
+      const link = view.element.querySelector('.schema-origin a');
+      expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
+      expect(link?.getAttribute('target')).toBe('_blank');
     });
   });
 

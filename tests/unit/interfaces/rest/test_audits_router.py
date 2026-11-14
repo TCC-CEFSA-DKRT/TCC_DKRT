@@ -253,9 +253,6 @@ class TestGetAudit:
 
 
 class TestGetAuditReportSchemaInfo:
-    """Issue #22 -- o relatorio informa qual Smart Data Model foi usado e de
-    onde veio o schema (ao vivo ou cache, com data)."""
-
     _DATA_MODEL = DataModelRef(
         subject="dataModel.Streetlighting",
         model_name="Streetlight",
