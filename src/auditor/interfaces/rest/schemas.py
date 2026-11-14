@@ -11,11 +11,16 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from auditor.domain.entities.audit_run import AuditRun
-from auditor.domain.entities.entity_report import EntityReport, SemanticAnalysisUsage
+from auditor.domain.entities.entity_report import (
+    EntityReport,
+    SchemaOrigin,
+    SemanticAnalysisUsage,
+)
 from auditor.domain.entities.recommendation import Recommendation
 from auditor.domain.entities.violation import Violation
 from auditor.domain.ports.audit_repository_port import AuditRunSummaryView, Page
 from auditor.domain.ports.command_interpreter_port import AuditCommandInterpretation
+from auditor.domain.value_objects.data_model_ref import DataModelRef
 
 T = TypeVar("T")
 
@@ -136,6 +141,40 @@ class SemanticAnalysisUsageResponse(BaseModel):
         )
 
 
+class DataModelResponse(BaseModel):
+    """Issue #22 -- qual Smart Data Model foi usado para validar a entidade.
+    Ja' existia no dominio (EntityReport.data_model) e era persistido, mas
+    nunca tinha sido exposto na API."""
+
+    subject: str
+    model_name: str
+    version: str
+    schema_url: str
+
+    @classmethod
+    def from_domain(cls, data_model: DataModelRef) -> "DataModelResponse":
+        return cls(
+            subject=data_model.subject,
+            model_name=data_model.model_name,
+            version=data_model.version,
+            schema_url=data_model.schema_url,
+        )
+
+
+class SchemaOriginResponse(BaseModel):
+    """Issue #22 -- de onde veio o schema usado na analise ("live" ou
+    "cache") e quando foi obtido. A tela de relatorio precisa mostrar isso
+    para que um resultado baseado em cache nunca fique indistinguivel de um
+    confirmado ao vivo (ver SchemaOrigin no dominio)."""
+
+    source: Literal["live", "cache"]
+    fetched_at: datetime
+
+    @classmethod
+    def from_domain(cls, origin: SchemaOrigin) -> "SchemaOriginResponse":
+        return cls(source=origin.source.value, fetched_at=origin.fetched_at)
+
+
 class EntityReportResponse(BaseModel):
     entity_id: str
     entity_type: str
@@ -151,6 +190,11 @@ class EntityReportResponse(BaseModel):
     # rodou (semantic_analysis_usage) — nunca um valor inventado.
     processing_duration_seconds: float | None
     semantic_analysis_usage: SemanticAnalysisUsageResponse | None
+    # Issue #22: None quando nenhum Smart Data Model corresponde ao tipo
+    # (no_model_found) -- e, no caso de schema_origin, tambem quando o schema
+    # nao foi obtido (schema_unavailable) ou em relatorios antigos.
+    data_model: DataModelResponse | None = None
+    schema_origin: SchemaOriginResponse | None = None
 
     @classmethod
     def from_domain(cls, report: EntityReport) -> "EntityReportResponse":
@@ -167,6 +211,14 @@ class EntityReportResponse(BaseModel):
             semantic_analysis_usage=(
                 SemanticAnalysisUsageResponse.from_domain(report.semantic_analysis_usage)
                 if report.semantic_analysis_usage
+                else None
+            ),
+            data_model=(
+                DataModelResponse.from_domain(report.data_model) if report.data_model else None
+            ),
+            schema_origin=(
+                SchemaOriginResponse.from_domain(report.schema_origin)
+                if report.schema_origin
                 else None
             ),
         )

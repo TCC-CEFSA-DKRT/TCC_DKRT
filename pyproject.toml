@@ -31,6 +31,11 @@ dependencies = [
     "cryptography>=42.0.0",
     "bcrypt>=4.1.0",
     "pyjwt>=2.8.0",
+    # Issue #23 / ADR-0022: PDF do relatorio gerado no backend; tzdata
+    # garante os fusos horarios (datas do PDF) mesmo sem base de fusos do
+    # sistema operacional (Windows, imagem do Lambda).
+    "reportlab>=4.2",
+    "tzdata>=2024.1",
 ]
 
 [project.scripts]
@@ -45,6 +50,8 @@ dev = [
     "moto[sqs]>=5.0.0",
     "boto3>=1.34.0",
     "jsonschema>=4.21.0",
+    # Issue #23: os testes leem o texto do PDF gerado.
+    "pypdf>=4.0",
     "locust>=2.29.0",
 ]
 aws = [

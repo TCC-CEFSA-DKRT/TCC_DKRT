@@ -1,3 +1,16 @@
+.back-link {
+  display: inline-block;
+  margin-bottom: var(--space-3);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: 0.8125rem;
+}
+
+.back-link:hover,
+.schema-origin a {
+  color: var(--color-accent);
+}
+
 .page-title {
   font-size: 1.5rem;
   font-weight: 700;
@@ -5,14 +18,71 @@
 
 .run-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-4);
 }
 
-.run-header__meta {
+.export-button {
+  margin-left: auto;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  background: var(--color-accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.export-button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.export-status {
+  margin: calc(-1 * var(--space-2)) 0 var(--space-3);
+}
+
+.export-status.export-status--error {
+  color: var(--color-non-conformant);
+}
+
+.run-header__meta,
+.export-status,
+.schema-origin,
+.recommendation__confidence {
   color: var(--color-text-secondary);
   font-size: 0.8125rem;
+}
+
+.status-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.status-filter__option {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  border-radius: 999px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+.status-filter__option--active {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.status-filter__count {
+  margin-left: var(--space-1);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
 }
 
 .entity-report {
@@ -24,26 +94,49 @@
   max-width: 1280px;
 }
 
-.entity-report__header {
+.entity-report__header,
+.violation__meta,
+.recommendation__meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-1);
+}
+
+.entity-report__id,
+.violation__path {
+  font-family: ui-monospace, monospace;
+  font-weight: 600;
 }
 
 .entity-report__id {
   font-size: 1rem;
-  font-weight: 600;
-  font-family: ui-monospace, monospace;
 }
 
-.semantic-skipped-note {
+.schema-origin {
+  margin-bottom: var(--space-3);
+}
+
+.schema-origin--cache {
+  color: var(--color-warning);
+}
+
+.semantic-skipped-note,
+.no-violations {
   font-size: 0.8125rem;
-  color: var(--color-text-secondary);
   background: var(--color-bg);
   border-radius: 6px;
   padding: var(--space-2) var(--space-3);
   margin-bottom: var(--space-3);
+}
+
+.semantic-skipped-note {
+  color: var(--color-text-secondary);
+}
+
+.no-violations {
+  color: var(--color-conformant);
 }
 
 .violation-group__title {
@@ -61,18 +154,12 @@
   margin-bottom: var(--space-2);
 }
 
-.violation__meta {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: var(--space-1);
-}
-
-.violation__path {
-  font-family: ui-monospace, monospace;
+.violation__rule {
   font-weight: 500;
 }
 
 .violation__source {
+  margin-left: auto;
   font-size: 0.6875rem;
   font-weight: 600;
   padding: 1px 6px;
@@ -89,30 +176,18 @@
   color: var(--color-accent);
 }
 
-.violation__message {
+.violation__message,
+.recommendation__rationale {
   font-size: 0.8125rem;
   margin-bottom: var(--space-2);
 }
 
-.recommendations__title {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-secondary);
-  margin: var(--space-3) 0 var(--space-2);
-}
-
 .recommendation {
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-bg);
+  border-radius: 0 6px 6px 0;
   padding: var(--space-3);
-  margin-bottom: var(--space-2);
-}
-
-.recommendation__meta {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: var(--space-1);
+  margin-top: var(--space-2);
 }
 
 .recommendation__action {
@@ -121,11 +196,27 @@
 }
 
 .recommendation__confidence {
+  margin-left: auto;
+}
+
+.recommendation__patch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+}
+
+.recommendation__patch-label {
   font-size: 0.75rem;
   color: var(--color-text-secondary);
 }
 
-.recommendation__rationale {
-  font-size: 0.8125rem;
-  margin-bottom: var(--space-2);
+.recommendation__patch code {
+  font-family: ui-monospace, monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--color-conformant);
 }
