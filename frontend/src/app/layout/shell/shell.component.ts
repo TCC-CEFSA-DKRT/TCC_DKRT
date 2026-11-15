@@ -2,10 +2,6 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { SessionService } from '../../core/session.service';
 
-/** Casca de navegação — as cinco telas (fase8.spec.md, seções 3-7) vivem
- * atrás do `<router-outlet>`, carregadas lazy por feature (seção 1).
- * Issue #21: menu em português, identidade DKRT e ícones (SVG inline,
- * `currentColor`, sem dependência externa). */
 @Component({
   selector: 'app-shell',
   standalone: true,
@@ -14,6 +10,7 @@ import { SessionService } from '../../core/session.service';
   template: `
     <div class="shell">
       <nav class="shell__nav" aria-label="Menu principal">
+        <div class="shell__nav-inner">
         <div class="shell__brand">
           <span class="shell__logo" aria-hidden="true">DK</span>
           <span class="shell__brand-text">
@@ -73,6 +70,7 @@ import { SessionService } from '../../core/session.service';
           }
           <span class="shell__project">TCC · FESA</span>
         </div>
+        </div>
       </nav>
       <main class="shell__content">
         <router-outlet />
@@ -84,38 +82,41 @@ import { SessionService } from '../../core/session.service';
       .shell {
         display: flex;
         min-height: 100vh;
-        background: var(--color-bg);
       }
       .shell__nav {
+        width: 250px;
+        flex-shrink: 0;
+        background: linear-gradient(180deg, rgba(14, 25, 36, 0.92), rgba(8, 15, 22, 0.9));
+        border-right: 1px solid var(--color-border-accent);
+      }
+      .shell__nav-inner {
+        position: sticky;
+        top: 0;
         display: flex;
         flex-direction: column;
-        gap: var(--space-1, 4px);
-        width: 240px;
-        flex-shrink: 0;
-        padding: var(--space-4, 16px);
-        background: var(--color-surface);
-        border-right: 1px solid var(--color-border);
+        gap: var(--space-2);
+        height: 100vh;
+        padding: var(--space-6) var(--space-4);
       }
       .shell__brand {
         display: flex;
         align-items: center;
-        gap: var(--space-3, 12px);
-        padding: var(--space-1, 4px) var(--space-1, 4px) var(--space-4, 16px);
-        margin-bottom: var(--space-3, 12px);
-        border-bottom: 1px solid var(--color-border);
+        gap: var(--space-3);
+        padding: 0 var(--space-2) var(--space-6);
       }
       .shell__logo {
         display: grid;
         place-items: center;
-        width: 36px;
-        height: 36px;
+        width: 46px;
+        height: 46px;
         flex-shrink: 0;
-        border-radius: 8px;
-        background: var(--color-accent);
-        color: #fff;
+        border-radius: 12px;
+        background: var(--gradient-accent);
+        color: var(--color-on-accent);
+        font-family: var(--font-display);
         font-weight: 700;
-        font-size: 0.875rem;
-        letter-spacing: 0.02em;
+        font-size: 1.0625rem;
+        box-shadow: var(--glow-accent);
       }
       .shell__brand-text {
         display: flex;
@@ -123,84 +124,82 @@ import { SessionService } from '../../core/session.service';
         line-height: 1.2;
       }
       .shell__brand-name {
+        font-family: var(--font-display);
         font-weight: 700;
-        font-size: 1.125rem;
-        color: var(--color-text-primary);
+        font-size: 1.375rem;
+        letter-spacing: 0.04em;
       }
       .shell__brand-subtitle {
-        font-size: 0.6875rem;
+        margin-top: 2px;
+        font-size: 0.71875rem;
         white-space: nowrap;
-        color: var(--color-text-secondary);
+        color: var(--color-text-muted);
       }
       .shell__link {
         display: flex;
         align-items: center;
-        gap: var(--space-3, 12px);
-        padding: var(--space-2, 8px) var(--space-3, 12px);
-        border-radius: 6px;
+        gap: var(--space-3);
+        min-height: 46px;
+        padding: 0 var(--space-3);
+        border-radius: var(--radius-md);
         color: var(--color-text-secondary);
         text-decoration: none;
-        font-size: 0.875rem;
-        font-weight: 500;
+        font-size: 0.96875rem;
         transition: background-color 150ms ease-out, color 150ms ease-out;
       }
       .shell__icon {
-        width: 18px;
-        height: 18px;
+        width: 20px;
+        height: 20px;
         flex-shrink: 0;
         fill: none;
         stroke: currentColor;
-        stroke-width: 1.75;
+        stroke-width: 1.6;
         stroke-linecap: round;
         stroke-linejoin: round;
       }
       .shell__link:hover {
-        background: var(--color-bg);
+        background: rgba(53, 240, 224, 0.06);
         color: var(--color-text-primary);
       }
       .shell__link--active {
-        background: color-mix(in srgb, var(--color-accent) 10%, transparent);
-        color: var(--color-accent);
-        font-weight: 600;
+        background: linear-gradient(90deg, rgba(53, 240, 224, 0.18), rgba(53, 240, 224, 0.03));
+        box-shadow: inset 3px 0 0 var(--color-accent), 0 0 22px rgba(53, 240, 224, 0.12);
+        color: #eafffb;
       }
       .shell__content {
         flex: 1;
         min-width: 0;
-        padding: var(--space-6, 24px) var(--space-8, 32px);
+        padding: var(--space-8) var(--space-8) var(--space-8) 48px;
       }
       .shell__footer {
         margin-top: auto;
-        padding-top: var(--space-4, 16px);
-        border-top: 1px solid var(--color-border);
+        padding: var(--space-4) var(--space-2) 0;
         display: flex;
         flex-direction: column;
-        gap: var(--space-2, 8px);
+        gap: var(--space-2);
       }
       .shell__tenant {
-        padding: 0 var(--space-3, 12px);
+        font-family: var(--font-mono);
         font-size: 0.75rem;
-        font-weight: 500;
         color: var(--color-text-secondary);
       }
       .shell__project {
-        padding: 0 var(--space-3, 12px);
         font-size: 0.75rem;
-        color: var(--color-text-secondary);
+        letter-spacing: 0.04em;
+        color: var(--color-text-muted);
       }
       .shell__logout {
         border: none;
         background: none;
         text-align: left;
-        padding: var(--space-2, 8px) var(--space-3, 12px);
-        border-radius: 6px;
+        padding: var(--space-2) 0;
         color: var(--color-text-secondary);
         font-size: 0.875rem;
         font-weight: 500;
         cursor: pointer;
       }
       .shell__logout:hover {
-        background: var(--color-bg);
-        color: var(--color-text-primary);
+        color: var(--color-accent);
       }
     `,
   ],

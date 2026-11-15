@@ -1,20 +1,45 @@
 #!/bin/bash
-# Fase 9 (.cursor/specs/fase9.spec.md, secao 2.5) -- bootstrap da instância
-# da API. Escopo deliberadamente limitado a infraestrutura (SO + runtime +
-# configuração via env): o deploy do código da aplicação em si (git
-# clone/artefato) é responsabilidade de um passo de CI/CD separado (ex.:
-# AWS CodeDeploy, `scp` a partir do workflow do GitHub Actions, ou SSM
-# Run Command) -- não do `terraform apply`, para não misturar
-# provisionamento de infra com deploy de aplicação (que muda a cada commit,
-# não a cada mudança de infra).
+# Bootstrap da instância da API no ambiente dev (EC2), ADR-0021. A API roda
+# como contêiner (imagem selfhosted/Dockerfile publicada no ECR do ambiente):
+# esta instância é só o host Docker. O user_data prepara o host e instala o
+# comando `auditor-deploy`; quem troca a versão da aplicação é o pipeline de
+# deploy (GitHub Actions -> SSM Run Command -> auditor-deploy), nunca o
+# terraform apply.
+#
+# Atenção: este arquivo é um template do Terraform. Em shell use $VAR sem
+# chaves; um `$${VAR}` literal precisa ser escapado com dois cifrões.
 set -euo pipefail
+exec > >(tee -a /var/log/auditor-bootstrap.log) 2>&1
 
+export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
-apt-get install -y python3.11 python3.11-venv git
+apt-get install -y docker.io jq curl unzip python3
 
-mkdir -p /opt/auditor
-cat > /opt/auditor/.env <<ENV
-DATABASE_URL=${database_url}
+systemctl enable --now docker
+
+if ! command -v aws > /dev/null 2>&1; then
+  curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
+  unzip -q /tmp/awscliv2.zip -d /tmp
+  /tmp/aws/install
+fi
+
+# A AMI Ubuntu 22.04 da Canonical já traz o SSM Agent (snap); garante que esteja ativo.
+systemctl enable --now snap.amazon-ssm-agent.amazon-ssm-agent.service || true
+
+mkdir -p /opt/auditor/secrets
+chmod 700 /opt/auditor/secrets
+
+# Configuração estática (sem segredos). A senha do banco é lida do Secrets
+# Manager a cada deploy e escrita só em runtime.env (0600). Os valores não
+# têm espaços nem aspas, porque o mesmo arquivo é lido por `docker --env-file`
+# e por `source`.
+cat > /opt/auditor/static.env <<ENV
+AWS_REGION=${aws_region}
+DEPLOYMENT_MODE=${deployment_mode}
+DB_HOST=${database_host}
+DB_PORT=${database_port}
+DB_NAME=${database_name}
+DB_MASTER_USER_SECRET_ARN=${database_secret_arn}
 FIWARE_BROKER_URL=${fiware_broker_url}
 OLLAMA_BASE_URL=${ollama_base_url}
 OLLAMA_MODEL=${ollama_model}
@@ -22,29 +47,65 @@ QUEUE_BACKEND=sqs
 SQS_QUEUE_URL=${queue_url}
 CORS_ALLOWED_ORIGINS=${cors_allowed_origins}
 ENV
-chmod 600 /opt/auditor/.env
+chmod 600 /opt/auditor/static.env
 
-cat > /etc/systemd/system/auditor-api.service <<'UNIT'
-[Unit]
-Description=Auditor API (FastAPI/uvicorn)
-After=network.target
+cat > /usr/local/bin/auditor-deploy <<'SCRIPT'
+#!/bin/bash
+# Uso: auditor-deploy migrate <imagem>   aplica as migrações Alembic com a imagem nova
+#      auditor-deploy start <imagem>     troca o contêiner da API pela imagem nova
+# <imagem> é a referência completa no ECR, ex.:
+#   123456789012.dkr.ecr.us-east-1.amazonaws.com/auditor-dev-auditor:dev-abc1234
+set -euo pipefail
 
-[Service]
-Type=simple
-WorkingDirectory=/opt/auditor
-EnvironmentFile=/opt/auditor/.env
-# Assume que o código já foi entregue em /opt/auditor por um passo de
-# CI/CD separado (ver comentário no topo deste arquivo) e que
-# /opt/auditor/.venv/bin/uvicorn existe.
-ExecStart=/opt/auditor/.venv/bin/uvicorn auditor.interfaces.rest.app:create_app --factory --host 0.0.0.0 --port 8000
-Restart=on-failure
-RestartSec=5
+ACTION="$1"
+IMAGE="$2"
 
-[Install]
-WantedBy=multi-user.target
-UNIT
+set -a
+. /opt/auditor/static.env
+set +a
 
-systemctl daemon-reload
-systemctl enable auditor-api.service
-# Não damos `systemctl start` aqui: o binário só existe depois do deploy de
-# código. O passo de CI/CD que copia o código também faz o start.
+REGISTRY="$(echo "$IMAGE" | cut -d/ -f1)"
+aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$REGISTRY"
+docker pull "$IMAGE"
+
+# DATABASE_URL só existe em runtime.env: usuário e senha do segredo gerenciado
+# pelo RDS (a senha pode ter caracteres especiais, por isso o urlencode).
+SECRET="$(aws secretsmanager get-secret-value --region "$AWS_REGION" --secret-id "$DB_MASTER_USER_SECRET_ARN" --query SecretString --output text)"
+DB_USER="$(echo "$SECRET" | jq -r .username)"
+DB_PASS="$(echo "$SECRET" | jq -r .password | python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.stdin.read().rstrip("\n"), safe=""))')"
+umask 077
+{
+  cat /opt/auditor/static.env
+  echo "DATABASE_URL=postgresql+asyncpg://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=require"
+} > /opt/auditor/runtime.env
+
+case "$ACTION" in
+  migrate)
+    docker run --rm --env-file /opt/auditor/runtime.env "$IMAGE" alembic upgrade head
+    ;;
+  start)
+    docker rm -f auditor-api > /dev/null 2>&1 || true
+    docker run -d --name auditor-api --restart unless-stopped \
+      --env-file /opt/auditor/runtime.env \
+      -p 8000:8000 \
+      -v /opt/auditor/secrets:/var/lib/auditor-secrets \
+      "$IMAGE"
+    echo "$IMAGE" > /opt/auditor/current-image
+    for _ in $(seq 1 30); do
+      if curl -fsS http://localhost:8000/health/ready > /dev/null; then
+        echo "API pronta: $IMAGE"
+        exit 0
+      fi
+      sleep 4
+    done
+    docker logs --tail 80 auditor-api
+    echo "A API não respondeu em /health/ready" >&2
+    exit 1
+    ;;
+  *)
+    echo "ação desconhecida: $ACTION" >&2
+    exit 2
+    ;;
+esac
+SCRIPT
+chmod 755 /usr/local/bin/auditor-deploy

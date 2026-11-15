@@ -1,0 +1,53 @@
+.recommendation {
+  border-left: 3px solid var(--color-accent);
+  background: rgba(53, 240, 224, 0.05);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  padding: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.recommendation__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
+.recommendation__action {
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.recommendation__confidence {
+  margin-left: auto;
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+}
+
+.recommendation__rationale {
+  font-size: 0.8125rem;
+  margin-bottom: var(--space-2);
+}
+
+.recommendation__patch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: rgba(5, 11, 17, 0.6);
+}
+
+.recommendation__patch-label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.recommendation__patch code {
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--color-conformant);
+}

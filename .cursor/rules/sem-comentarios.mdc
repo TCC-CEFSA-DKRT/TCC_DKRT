@@ -1,0 +1,14 @@
+---
+description: Sem comentários no código; contexto vai para docs/historico
+alwaysApply: true
+---
+
+Não escreva comentários novos no código (Python `#`, TypeScript `//` e `/* */`, HTML `<!-- -->`, SCSS).
+
+Todo contexto (por quê, armadilhas, decisões pequenas, pendências) vai para `docs/historico/<issue>-<slug>.md`, apontando o código por `caminho/arquivo.py::funcao`, nunca por número de linha.
+
+Liberadas: diretivas de ferramenta (`# noqa`, `# type:`, `# pragma`, `// eslint-…`, `// @ts-…`) e comentários que já existiam. Não apague comentários antigos que você não tocou.
+
+Verifique com `python scripts/ci/check_no_comments.py --base origin/main` e, no frontend, `node scripts/ci/check_no_comments_frontend.js --base origin/main`. O CI reprova comentário novo.
+
+Regras completas em `AGENTS.md`; modelo do histórico em `docs/historico/README.md`.

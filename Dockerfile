@@ -20,7 +20,10 @@ FROM public.ecr.aws/lambda/python:3.11
 # Dependencias primeiro (cache de camada Docker) -- so' muda quando
 # requirements.txt muda, nao a cada alteracao de codigo em src/.
 COPY requirements.txt ${LAMBDA_TASK_ROOT}/requirements.txt
-RUN pip install --no-cache-dir -r ${LAMBDA_TASK_ROOT}/requirements.txt && \
+# --only-binary: a base do Lambda (Python 3.11) é Amazon Linux 2 (glibc 2.26) e não tem
+# compilador; sem isso o pip pega o código-fonte do numpy mais novo (sem wheel
+# compatível) e falha. Com ele, recua para a última versão com wheel compatível.
+RUN pip install --no-cache-dir --only-binary=:all: -r ${LAMBDA_TASK_ROOT}/requirements.txt && \
     rm ${LAMBDA_TASK_ROOT}/requirements.txt
 
 # Codigo da aplicacao -- copiado por dentro de src/ (nao src/ inteiro) para

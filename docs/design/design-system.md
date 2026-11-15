@@ -1,112 +1,105 @@
-# Design System — FIWARE Conformance Auditor
+# Design System — DKRT
 
-Ver `.cursor/specs/fase8.spec.md`, seção 2. Referência para as cinco telas do frontend
-(`docs/plano_refatoracao_v3.md`, seção 3.10) — "moderno e elegante, sem cara de IA":
-ferramenta profissional de auditoria, não produto de consumo. Toda tela deve usar
-exclusivamente os tokens abaixo; qualquer cor, fonte ou espaçamento "avulso" introduzido
-ad hoc numa tela específica é bug de design, não escolha de implementação.
+Guia visual da interface do DKRT (issue #61). Substitui a versão da Fase 8 (tema claro,
+uma família tipográfica, sem gradiente nem brilho): a identidade passou a ser escura,
+com acento ciano/verde, para que todas as telas tenham a mesma cara e a interface passe
+uma impressão profissional na apresentação. O funcionamento das telas não muda.
+
+Toda tela usa só os tokens de `frontend/src/styles.scss`. Cor, fonte ou espaçamento
+"avulso" numa tela é bug de design.
 
 ## Tipografia
 
-Uma família só: **Inter** (via `@angular/material`-free `@fontsource` local ou CDN do
-Google Fonts, carregada uma vez em `index.html`). Nunca uma segunda família decorativa —
-títulos e corpo de texto usam a mesma família, diferenciados por peso e tamanho.
+Fontes servidas pelo próprio app (pacotes `@fontsource`, registrados em `angular.json`):
+nada é baixado do Google Fonts, então a interface funciona sem internet.
 
-| Peso | Uso |
-|---|---|
-| 400 (Regular) | Corpo de texto, valores de tabela |
-| 500 (Medium) | Labels, cabeçalhos de coluna, botões secundários |
-| 600 (Semibold) | Títulos de seção, botões primários |
-| 700 (Bold) | Título da página, números de destaque (ex.: contagem de violações) |
+| Token | Família | Uso |
+|---|---|---|
+| `--font-display` | Chakra Petch 600/700 | Título da página, títulos de seção, botões primários, números de destaque |
+| `--font-body` | IBM Plex Sans 400/500/600 | Corpo de texto, rótulos, tabelas |
+| `--font-mono` | IBM Plex Mono 400/500 | Ids de entidade, atributos, valores encontrados/esperados, chips, JSON |
 
-Escala de tamanho (`rem`, base 16px): `0.75` (caption/badge) · `0.875` (corpo denso,
-padrão em tabelas) · `1` (corpo padrão) · `1.25` (título de card) · `1.5` (título de
-seção) · `2` (título de página).
+Escala (`rem`, base 16px): `0.75` (rótulo de coluna, badge) · `0.8125` (texto auxiliar)
+· `0.875` (corpo denso) · `0.9375` (título de seção, em maiúsculas com espaçamento
+`0.12em`) · `1.125` (título de cartão) · `2.25` (título da página).
 
 ## Paleta
 
-Identidade própria — nunca o roxo/azul de template de IA genérico. Base neutra fria
-(slate) com um acento único de marca e cores semânticas fixas para status de
-conformidade (reaproveitadas em toda a UI: badges, gráficos, bordas de card).
+Todos os pares de texto foram medidos (WCAG 2.1, contraste mínimo AA 4,5:1 para texto e
+3:1 para bordas de controles).
 
-| Token | Valor (light) | Uso |
-|---|---|---|
-| `--color-bg` | `#F7F8FA` | Fundo da aplicação |
-| `--color-surface` | `#FFFFFF` | Cards, tabelas, painéis |
-| `--color-border` | `#E2E5EA` | Bordas, divisores |
-| `--color-text-primary` | `#1A1D24` | Texto principal (contraste AA ≥ 7:1 sobre `--color-surface`) |
-| `--color-text-secondary` | `#5B6270` | Texto auxiliar, labels (contraste AA ≥ 4.5:1) |
-| `--color-accent` | `#0F6E5C` | Marca — verde petróleo, nunca roxo/azul genérico. Ações primárias, links, foco |
-| `--color-accent-hover` | `#0B5647` | Hover/active de `--color-accent` |
-| `--color-conformant` | `#1A7F4B` | Status `conformant` |
-| `--color-partial` | `#B57A0A` | Status `partial` |
-| `--color-non-conformant` | `#B23A3A` | Status `non_conformant`, severidade `ERROR` |
-| `--color-no-model` | `#6B7280` | Status `no_model_found` |
-| `--color-schema-unavailable` | `#8A6D9C` | Status `schema_unavailable` |
-| `--color-warning` | `#B57A0A` | Severidade `WARNING` (mesmo tom de `partial` — mesma semântica) |
-| `--color-info` | `#3B6FA0` | Severidade `INFO` |
+| Token | Valor | Uso | Contraste |
+|---|---|---|---|
+| `--color-bg` | `#070B10` | Fundo da aplicação | — |
+| `--color-bg-raised` | `#0B141D` | Painel lateral de Login e Configuração | — |
+| `--color-surface` | `#0E1924` | Cartões e painéis (`.glass`) | — |
+| `--color-surface-2` | `#13212E` | Campos, trilhos de gráfico | — |
+| `--color-border` | `#1F3442` | Divisórias de tabela e cartões internos | decorativa |
+| `--color-border-strong` | `#5A7A8C` | Borda de campos e botões secundários | 3,6:1 sobre `surface-2` |
+| `--color-border-accent` | ciano a 28% | Borda dos cartões `.glass` | decorativa |
+| `--color-text-primary` | `#E8F4F2` | Texto principal | 14,5:1 sobre `surface-2` |
+| `--color-text-secondary` | `#9DB2BC` | Texto auxiliar, rótulos | 7,4:1 sobre `surface-2` |
+| `--color-text-muted` | `#8399A5` | Dicas, rodapés | 5,5:1 sobre `surface-2` |
+| `--color-accent` | `#35F0E0` | Marca (ciano): links, foco, títulos de seção, item ativo do menu | 11,4:1 |
+| `--color-accent-2` | `#7DFF9A` | Segundo tom da marca (verde), usado no gradiente | — |
+| `--gradient-accent` | `#2FE6D3 → #8CF36A` | Botão primário, logo, barras do ranking | texto `--color-on-accent` (`#04110F`) 12,3:1 |
 
-Todas as cores de status/severidade têm par claro (fundo de badge, 10% de opacidade sobre
-`--color-surface`) e escuro (texto/ícone do badge) — nunca só uma cor sólida preenchendo
-uma área grande.
+Status e severidade (texto, badges, gráficos):
 
-## Densidade
+| Token | Valor | Uso | Contraste sobre `surface-2` |
+|---|---|---|---|
+| `--color-conformant` | `#4FD88A` | `conformant`, `completed` | 9,0:1 |
+| `--color-partial` / `--color-warning` | `#F2B84B` | `partial`, severidade `WARNING` | 9,1:1 |
+| `--color-non-conformant` | `#FF6B6B` | `non_conformant`, `failed`, severidade `ERROR` | 5,9:1 |
+| `--color-no-model` | `#A3B1BB` | `no_model_found`, `queued` | 7,4:1 |
+| `--color-schema-unavailable` | `#B896F5` | `schema_unavailable` | 6,8:1 |
+| `--color-info` | `#6CB6FF` | severidade `INFO`, Nível 1 | 7,6:1 |
 
-Alta, como ferramenta profissional (referência: Linear, Vercel, Datadog) — nunca
-espaçamento de landing page numa tela de lista de 500 runs.
+Nos gráficos, verde e âmbar ficam próximos para quem tem daltonismo protan: por isso todo
+gráfico tem legenda com o nome de cada status, 2px de separação entre segmentos e os
+números escritos ao lado. A cor nunca é a única forma de identificar um status.
 
-- Escala de espaçamento em múltiplos de 4px: `--space-1: 4px`, `--space-2: 8px`,
-  `--space-3: 12px`, `--space-4: 16px`, `--space-6: 24px`, `--space-8: 32px`.
-- Linha de tabela/lista: altura mínima 40px (`--space-8` + padding vertical `--space-2`),
-  nunca 56px+ de padding "confortável" de app consumidor.
-- Largura máxima de conteúdo: sem limite artificial em telas de tabela/lista (usam a
-  largura disponível) — limite de `1280px` só em telas de formulário/detalhe de leitura
-  longa (Report Detail, Natural Language).
+## Espaçamento, bordas e sombras
 
-## Ícones
+- Espaçamento em múltiplos de 4px: `--space-1` (4) · `--space-2` (8) · `--space-3` (12)
+  · `--space-4` (16) · `--space-5` (20) · `--space-6` (24) · `--space-8` (32).
+- Raios: `--radius-sm` (6px, campos e blocos internos) · `--radius-md` (10px, botões e
+  cartões internos) · `--radius-lg` (14px, cartões `.glass`).
+- Sombras: `--shadow-card` (cartões) e `--glow-accent` (brilho ciano do botão primário e
+  do logo). O brilho é reservado para a marca e para a ação principal da tela.
+- Foco do teclado: `--focus-ring`, anel ciano de 2px em todo elemento focável.
 
-Zero emoji como ícone de interface. Ícones de linha (stroke, não preenchidos), 16px ou
-20px, de um único conjunto consistente (ex.: Lucide) — nunca misturar conjuntos.
+## Componentes globais (`styles.scss`)
 
-## Decoração
+| Classe | O que é |
+|---|---|
+| `.page-title`, `.page-subtitle` | Título e descrição de cada tela |
+| `.section-title` | Título de seção em maiúsculas, ciano |
+| `.glass` | Cartão escuro translúcido com borda ciano |
+| `.btn-primary` | Ação principal (gradiente, texto escuro, maiúsculas) |
+| `.btn-secondary` | Ação secundária (contorno, sem preenchimento) |
+| `.chip` | Valor curto em fonte mono, contorno ciano |
+| `.data-table` | Tabela com cabeçalho em maiúsculas e linha destacada no hover |
+| `.legend`, `.swatch--*` | Legenda e amostras de cor de status dos gráficos |
+| `.visually-hidden` | Texto só para leitor de tela |
 
-Zero gradiente decorativo. Superfícies são sólidas (`--color-surface` sobre
-`--color-bg`); a única variação visual permitida é a borda (`--color-border`) e sombra
-sutil (`0 1px 2px rgba(16, 20, 24, 0.06)`) para elevar cards sobre o fundo — nunca sombra
-colorida ou glow.
+Componentes compartilhados (`shared/components/`): `StatusBadgeComponent` (pílula com
+borda na cor do status), `EmptyStateComponent`, `ErrorStateComponent`,
+`LoadingSkeletonComponent`, `DiffViewComponent` e `SplitPanelComponent` (Login e
+Configuração).
 
 ## Animação
 
-Só onde comunica mudança de estado real — nunca só como enfeite.
+- Transições de interface: 150ms `ease-out`.
+- Com "reduzir movimento", todas as transições e animações do app são desligadas.
 
-- Transição de status (ex.: `running` → `completed` numa linha de Audit Runs): fade +
-  leve highlight de fundo (`--color-accent` a 8% de opacidade, decaindo em 600ms).
-- Progresso indeterminado (`total=null`, Fase 5): barra com animação de "carregando"
-  contínua, nunca uma barra parada com percentual inventado.
-- Toda outra transição de UI (abrir modal, trocar de aba): `150ms ease-out`, nunca mais
-  que isso — instantâneo o suficiente para não parecer "devagar", suave o bastante para
-  não parecer abrupto.
+## Layout
+
+- Menu lateral fixo de 250px; conteúdo com 32px de margem.
+- Sem rolagem horizontal da página em 1366px (notebook) nem em 1920px (monitor grande):
+  tabelas e o gráfico de evolução rolam dentro do próprio cartão quando precisam.
 
 ## Estados obrigatórios por tela
 
-Todas as cinco telas (Dashboard, Audit Runs, Report Detail, Natural Language, Catalog)
-implementam explicitamente:
-
-1. **Vazio** — texto explicando por que não há dado (nunca um gráfico/tabela em branco
-   sem explicação) e, quando aplicável, uma ação (ex.: "nenhum run ainda — inicie uma
-   auditoria pela tela Natural Language").
-2. **Carregando** — skeleton do layout real da tela (não um spinner genérico centralizado
-   sem contexto do que está carregando).
-3. **Erro** — mensagem explícita do que falhou, com botão "tentar novamente" — nunca uma
-   tela em branco ou um carregando infinito.
-
-## Componentes compartilhados (`shared/`)
-
-Construídos uma vez, reusados pelas cinco features — nenhuma tela reimplementa badge de
-status, estado vazio, estado de erro ou skeleton por conta própria:
-
-- `StatusBadgeComponent` — mapeia `ConformanceStatus`/`RunStatus`/`ViolationSeverity` para
-  cor + label, usando exclusivamente os tokens de paleta acima.
-- `EmptyStateComponent`, `ErrorStateComponent`, `LoadingSkeletonComponent`.
-- `DiffViewComponent` — usado no Report Detail para o diff "encontrado" vs. "esperado"/
-  `proposed_patch`.
+Toda tela tem estado **vazio** (explica por que não há dado e o que fazer), **carregando**
+(skeleton) e **erro** (mensagem do que falhou e botão "Tentar novamente").

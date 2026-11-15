@@ -1,0 +1,346 @@
+{
+  "funcoes": [
+    {
+      "tipo": "ILF",
+      "funcao": "Execução de auditoria (runs, relatórios, violações, recomendações)",
+      "ftr": 4,
+      "det": 48,
+      "complexidade": "Média",
+      "pontos": 10,
+      "origem": "tables.py: audit_runs, entity_reports, violations, recommendations"
+    },
+    {
+      "tipo": "ILF",
+      "funcao": "Conta de tenant (broker, credenciais, login)",
+      "ftr": 1,
+      "det": 8,
+      "complexidade": "Baixa",
+      "pontos": 7,
+      "origem": "tables.py: tenant_accounts"
+    },
+    {
+      "tipo": "ILF",
+      "funcao": "Cache de schemas do catálogo",
+      "ftr": 1,
+      "det": 6,
+      "complexidade": "Baixa",
+      "pontos": 7,
+      "origem": "schema_cache"
+    },
+    {
+      "tipo": "ILF",
+      "funcao": "Status de sincronização do catálogo",
+      "ftr": 1,
+      "det": 6,
+      "complexidade": "Baixa",
+      "pontos": 7,
+      "origem": "catalog_sync_status"
+    },
+    {
+      "tipo": "ILF",
+      "funcao": "Base de conhecimento do RAG (chunks e embeddings)",
+      "ftr": 1,
+      "det": 6,
+      "complexidade": "Baixa",
+      "pontos": 7,
+      "origem": "tables.py: knowledge_chunks"
+    },
+    {
+      "tipo": "AIE",
+      "funcao": "Entidades NGSI-v2 do Context Broker (Orion)",
+      "ftr": 1,
+      "det": 8,
+      "complexidade": "Baixa",
+      "pontos": 5,
+      "origem": "orion_adapter.py"
+    },
+    {
+      "tipo": "AIE",
+      "funcao": "Catálogo e schemas Smart Data Models",
+      "ftr": 2,
+      "det": 10,
+      "complexidade": "Baixa",
+      "pontos": 5,
+      "origem": "smart_data_models_adapter.py"
+    },
+    {
+      "tipo": "AIE",
+      "funcao": "Corpus de conhecimento (arquivos .md do RAG)",
+      "ftr": 1,
+      "det": 6,
+      "complexidade": "Baixa",
+      "pontos": 5,
+      "origem": "corpus_loader.py"
+    },
+    {
+      "tipo": "EI",
+      "funcao": "Iniciar auditoria (API POST /audits e CLI run)",
+      "ftr": 1,
+      "det": 3,
+      "complexidade": "Baixa",
+      "pontos": 3,
+      "origem": "routers/audits.py; cli run"
+    },
+    {
+      "tipo": "EI",
+      "funcao": "Autenticar usuário (login)",
+      "ftr": 1,
+      "det": 3,
+      "complexidade": "Baixa",
+      "pontos": 3,
+      "origem": "routers/auth.py"
+    },
+    {
+      "tipo": "EI",
+      "funcao": "Configurar broker (PUT /config)",
+      "ftr": 1,
+      "det": 4,
+      "complexidade": "Baixa",
+      "pontos": 3,
+      "origem": "routers/config.py"
+    },
+    {
+      "tipo": "EI",
+      "funcao": "Sincronizar catálogo de modelos",
+      "ftr": 2,
+      "det": 7,
+      "complexidade": "Média",
+      "pontos": 4,
+      "origem": "cli catalog sync; catalog_sync_scheduler"
+    },
+    {
+      "tipo": "EI",
+      "funcao": "Sincronizar base de conhecimento",
+      "ftr": 1,
+      "det": 5,
+      "complexidade": "Baixa",
+      "pontos": 3,
+      "origem": "cli knowledge sync"
+    },
+    {
+      "tipo": "EI",
+      "funcao": "Registrar tenant (administrativo)",
+      "ftr": 1,
+      "det": 6,
+      "complexidade": "Baixa",
+      "pontos": 3,
+      "origem": "cli tenant register; admin_handler"
+    },
+    {
+      "tipo": "EI",
+      "funcao": "Rotacionar chaves de criptografia",
+      "ftr": 1,
+      "det": 3,
+      "complexidade": "Baixa",
+      "pontos": 3,
+      "origem": "cli tenant rotate-keys"
+    },
+    {
+      "tipo": "EO",
+      "funcao": "Relatório detalhado da auditoria",
+      "ftr": 1,
+      "det": 40,
+      "complexidade": "Média",
+      "pontos": 5,
+      "origem": "GET /audits/{id}; schemas.AuditRunResponse"
+    },
+    {
+      "tipo": "EO",
+      "funcao": "Evolução da conformidade no tempo (dashboard)",
+      "ftr": 1,
+      "det": 12,
+      "complexidade": "Baixa",
+      "pontos": 4,
+      "origem": "GET /audits/summary-over-time"
+    },
+    {
+      "tipo": "EO",
+      "funcao": "Progresso da auditoria (consulta e stream)",
+      "ftr": 1,
+      "det": 6,
+      "complexidade": "Baixa",
+      "pontos": 4,
+      "origem": "GET /audits/{id}/progress|stream"
+    },
+    {
+      "tipo": "EO",
+      "funcao": "Interpretação de comando em linguagem natural",
+      "ftr": 1,
+      "det": 10,
+      "complexidade": "Baixa",
+      "pontos": 4,
+      "origem": "POST /audits/interpret"
+    },
+    {
+      "tipo": "EO",
+      "funcao": "Experimento de avaliação (precisão/recall)",
+      "ftr": 1,
+      "det": 24,
+      "complexidade": "Média",
+      "pontos": 5,
+      "origem": "experiment/run_experiment.py, metrics.py"
+    },
+    {
+      "tipo": "EQ",
+      "funcao": "Listar execuções (filtros e paginação)",
+      "ftr": 1,
+      "det": 12,
+      "complexidade": "Baixa",
+      "pontos": 3,
+      "origem": "GET /audits"
+    },
+    {
+      "tipo": "EQ",
+      "funcao": "Consultar configuração do broker",
+      "ftr": 1,
+      "det": 4,
+      "complexidade": "Baixa",
+      "pontos": 3,
+      "origem": "GET /config"
+    },
+    {
+      "tipo": "EQ",
+      "funcao": "Consultar sessão/tenant",
+      "ftr": 1,
+      "det": 3,
+      "complexidade": "Baixa",
+      "pontos": 3,
+      "origem": "GET /session"
+    },
+    {
+      "tipo": "EQ",
+      "funcao": "Listar tipos de entidade do broker",
+      "ftr": 1,
+      "det": 3,
+      "complexidade": "Baixa",
+      "pontos": 3,
+      "origem": "GET /entity-types"
+    },
+    {
+      "tipo": "EQ",
+      "funcao": "Consultar status do catálogo",
+      "ftr": 1,
+      "det": 5,
+      "complexidade": "Baixa",
+      "pontos": 3,
+      "origem": "GET /catalog"
+    },
+    {
+      "tipo": "EQ",
+      "funcao": "Listar modelos do catálogo",
+      "ftr": 1,
+      "det": 6,
+      "complexidade": "Baixa",
+      "pontos": 3,
+      "origem": "GET /catalog/models"
+    },
+    {
+      "tipo": "EQ",
+      "funcao": "Consultar schema de um modelo",
+      "ftr": 1,
+      "det": 4,
+      "complexidade": "Baixa",
+      "pontos": 3,
+      "origem": "GET /catalog/models/{nome}/schema"
+    }
+  ],
+  "por_tipo": {
+    "ILF": 38,
+    "AIE": 15,
+    "EI": 22,
+    "EO": 22,
+    "EQ": 21
+  },
+  "UFP": 118,
+  "GSC": 49,
+  "VAF": 1.14,
+  "AFP": 134.5,
+  "loc_por_pf": 24,
+  "cocomo_apf": {
+    "ksloc": 2.832,
+    "E": 1.1167,
+    "EAF": 1.3774,
+    "PM": 12.95,
+    "TDEV": 8.36,
+    "equipe_media": 1.55,
+    "PM_QA": 3.24,
+    "horas_QA": 492,
+    "prazo_teste_meses": 3.34,
+    "equipe_QA": 0.97
+  },
+  "cocomo_sloc_real": {
+    "ksloc": 3.05,
+    "E": 1.1167,
+    "EAF": 1.3774,
+    "PM": 14.07,
+    "TDEV": 8.58,
+    "equipe_media": 1.64,
+    "PM_QA": 3.52,
+    "horas_QA": 535,
+    "prazo_teste_meses": 3.43,
+    "equipe_QA": 1.02
+  },
+  "sloc_real_backend": 3050,
+  "fatores_escala": {
+    "PREC": [
+      "Baixo",
+      4.96,
+      "SLM/RAG para conformidade FIWARE é pouco precedido na equipe"
+    ],
+    "FLEX": [
+      "Nominal",
+      3.04,
+      "requisitos negociáveis com o orientador"
+    ],
+    "RESL": [
+      "Nominal",
+      4.24,
+      "riscos tratados em ADRs, sem análise formal"
+    ],
+    "TEAM": [
+      "Alto",
+      2.19,
+      "equipe pequena e coesa"
+    ],
+    "PMAT": [
+      "Baixo",
+      6.24,
+      "processo ainda informal (CMM nível 1)"
+    ]
+  },
+  "multiplicadores": {
+    "RELY": [
+      "Alto",
+      1.1
+    ],
+    "CPLX": [
+      "Alto",
+      1.17
+    ],
+    "PVOL": [
+      "Baixo",
+      0.87
+    ],
+    "APEX": [
+      "Baixo",
+      1.1
+    ],
+    "PLEX": [
+      "Baixo",
+      1.09
+    ],
+    "TOOL": [
+      "Alto",
+      0.9
+    ],
+    "SCED": [
+      "Baixo",
+      1.14
+    ]
+  },
+  "premissas": {
+    "horas_por_pm": 152,
+    "pct_teste": 0.25,
+    "pct_prazo_teste": 0.4
+  }
+}

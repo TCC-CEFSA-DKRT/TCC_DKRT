@@ -1,0 +1,190 @@
+name: Deploy HOMOLOGAÇÃO
+
+# Seção 4 do manual: a tag vX.Y.Z-rc.N, publicada pelo Tech Lead na branch
+# release/X.Y.Z, constrói a imagem UMA vez e implanta na homologação. Esses
+# mesmos artefatos (imagem e build do frontend) são os que sobem para produção.
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-homologacao
+  cancel-in-progress: false
+
+jobs:
+  validar-tag:
+    name: Validar a tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: A tag está numa release/X.Y.Z e a release está atualizada com a main
+        run: |
+          TAG="$GITHUB_REF_NAME"
+          VERSION="${TAG#v}"
+          VERSION="${VERSION%-rc.*}"
+
+          git fetch --no-tags origin "+refs/heads/release/*:refs/remotes/origin/release/*" "+refs/heads/main:refs/remotes/origin/main"
+
+          if ! git branch -r --contains "$GITHUB_SHA" | sed 's/^ *//' | grep -Fxq "origin/release/$VERSION"; then
+            echo "A tag $TAG precisa apontar para um commit da branch release/$VERSION" >&2
+            exit 1
+          fi
+
+          if ! git merge-base --is-ancestor origin/main "$GITHUB_SHA"; then
+            echo "A release/$VERSION não contém a main atual: traga a main para dentro dela e publique uma nova -rc" >&2
+            exit 1
+          fi
+
+  ci-backend:
+    needs: validar-tag
+    uses: ./.github/workflows/ci-backend.yml
+
+  ci-frontend:
+    needs: validar-tag
+    uses: ./.github/workflows/ci-frontend.yml
+
+  ci-infra:
+    needs: validar-tag
+    uses: ./.github/workflows/ci-infra.yml
+
+  ci-images:
+    needs: validar-tag
+    uses: ./.github/workflows/ci-images.yml
+
+  security:
+    needs: validar-tag
+    uses: ./.github/workflows/security.yml
+
+  build:
+    name: Build único (imagem e frontend)
+    needs: [ci-backend, ci-frontend, ci-infra, ci-images, security]
+    runs-on: ubuntu-latest
+    environment: homologacao
+    timeout-minutes: 60
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    env:
+      NAME_PREFIX: ${{ vars.NAME_PREFIX }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Definir a imagem
+        id: meta
+        run: echo "image=${{ steps.ecr.outputs.registry }}/$NAME_PREFIX-auditor:$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      # provenance/sbom desligados: o Lambda não aceita a lista de manifestos
+      # (OCI index) que o buildx gera quando eles estão ligados.
+      - name: Build e push da imagem Lambda
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          provenance: false
+          sbom: false
+          tags: ${{ steps.meta.outputs.image }}
+          cache-from: type=gha,scope=lambda
+          cache-to: type=gha,mode=max,scope=lambda
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build do frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build -- --configuration production
+
+      - name: Guardar o build do frontend como artefato da versão
+        run: |
+          tar czf dist.tgz -C frontend/dist/frontend/browser .
+          aws s3 cp dist.tgz "s3://${{ vars.ARTIFACTS_BUCKET }}/frontend/$GITHUB_REF_NAME/dist.tgz"
+
+  deploy:
+    name: Migrações e deploy (homologação)
+    needs: build
+    runs-on: ubuntu-latest
+    environment: homologacao
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: ./.github/actions/deploy-lambda
+        with:
+          name-prefix: ${{ vars.NAME_PREFIX }}
+          image-uri: ${{ needs.build.outputs.image }}
+
+      - uses: ./.github/actions/deploy-frontend
+        with:
+          artifact: s3://${{ vars.ARTIFACTS_BUCKET }}/frontend/${{ github.ref_name }}/dist.tgz
+          api-url: ${{ vars.API_URL }}
+          bucket: ${{ vars.NAME_PREFIX }}-frontend
+          domain: ${{ vars.FRONTEND_DOMAIN }}
+
+  verificar:
+    name: Fumaça e cenários DKRT
+    needs: deploy
+    runs-on: ubuntu-latest
+    environment: homologacao
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Teste de fumaça
+        run: bash scripts/ci/smoke.sh "${{ vars.API_URL }}" "${{ vars.FRONTEND_URL }}"
+
+      # Os 3 cenários precisam de um Orion acessível pelo runner e do mesmo
+      # Orion configurado na API. Sem ORION_URL, o passo é pulado com aviso
+      # explícito; não aprove a versão sem rodar esses cenários manualmente.
+      - name: 3 cenários DKRT
+        if: vars.ORION_URL != ''
+        env:
+          API_URL: ${{ vars.API_URL }}
+          ORION_URL: ${{ vars.ORION_URL }}
+          FIWARE_SERVICE: ${{ vars.FIWARE_SERVICE }}
+          FIWARE_SERVICE_PATH: ${{ vars.FIWARE_SERVICE_PATH }}
+          ACCEPTANCE_EMAIL: ${{ secrets.ACCEPTANCE_EMAIL }}
+          ACCEPTANCE_PASSWORD: ${{ secrets.ACCEPTANCE_PASSWORD }}
+        run: python3 scripts/ci/acceptance_dkrt.py
+
+      - name: Aviso quando os cenários não rodaram
+        if: vars.ORION_URL == ''
+        run: |
+          echo "::warning::ORION_URL não configurada: os 3 cenários DKRT NÃO foram executados. Rode-os manualmente antes de o Q.A aprovar."
+
+      - name: Resumo
+        run: |
+          {
+            echo "### Homologação atualizada: ${GITHUB_REF_NAME}"
+            echo "- API: ${{ vars.API_URL }}"
+            echo "- Frontend: ${{ vars.FRONTEND_URL }}"
+            echo ""
+            echo "Próximo passo: o Q.A testa (2º ciclo). Aprovada, o Tech Lead faz o merge na main e publica a tag vX.Y.Z."
+          } >> "$GITHUB_STEP_SUMMARY"

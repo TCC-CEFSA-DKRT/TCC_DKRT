@@ -1,0 +1,71 @@
+name: Rollback PRODUÇÃO
+
+# Volta a produção para uma versão vX.Y.Z JÁ publicada antes (imagem e frontend
+# guardados no deploy dela). Não refaz build nem roda migrações: as migrações
+# Alembic do projeto são compatíveis com a versão anterior do código; se uma
+# migração destrutiva foi aplicada, restaure o banco por snapshot do RDS.
+
+on:
+  workflow_dispatch:
+    inputs:
+      versao:
+        description: "Versão para restaurar (ex.- v1.2.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-producao
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: producao
+    timeout-minutes: 30
+    env:
+      VERSAO: ${{ inputs.versao }}
+    steps:
+      - name: Validar o formato da versão
+        run: |
+          if ! printf '%s' "$VERSAO" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Versão inválida: use vX.Y.Z" >&2
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Conferir que a versão existe em produção
+        run: |
+          aws ecr describe-images --repository-name "${{ vars.NAME_PREFIX }}-auditor" --image-ids imageTag="$VERSAO" > /dev/null
+          aws s3 ls "s3://${{ vars.ARTIFACTS_BUCKET }}/frontend/$VERSAO/dist.tgz" > /dev/null
+
+      - uses: ./.github/actions/deploy-lambda
+        with:
+          name-prefix: ${{ vars.NAME_PREFIX }}
+          image-uri: ${{ steps.ecr.outputs.registry }}/${{ vars.NAME_PREFIX }}-auditor:${{ inputs.versao }}
+          run-migrations: "false"
+
+      - uses: ./.github/actions/deploy-frontend
+        with:
+          artifact: s3://${{ vars.ARTIFACTS_BUCKET }}/frontend/${{ inputs.versao }}/dist.tgz
+          api-url: ${{ vars.API_URL }}
+          bucket: ${{ vars.NAME_PREFIX }}-frontend
+          domain: ${{ vars.FRONTEND_DOMAIN }}
+
+      - name: Teste de fumaça
+        run: bash scripts/ci/smoke.sh "${{ vars.API_URL }}" "${{ vars.FRONTEND_URL }}"
+
+      - name: Resumo
+        run: echo "### Produção revertida para ${VERSAO}" >> "$GITHUB_STEP_SUMMARY"

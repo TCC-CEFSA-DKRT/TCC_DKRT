@@ -1,5 +1,5 @@
 variable "name_prefix" {
-  description = "Prefixo de nomes dos recursos (ex.: \"auditor-academy\")."
+  description = "Prefixo de nomes dos recursos (ex.: \"auditor-dev\")."
   type        = string
 }
 

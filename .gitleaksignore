@@ -1,0 +1,4 @@
+# Falsos positivos: senhas fictícias dos casos de teste da API (tests/qualidade).
+de74eeffd310b77db01b45cc8c7ffc6531467401:tests/qualidade/test_bb_04_api_inputs.py:generic-api-key:287
+de74eeffd310b77db01b45cc8c7ffc6531467401:tests/qualidade/test_bb_04_api_inputs.py:generic-api-key:289
+de74eeffd310b77db01b45cc8c7ffc6531467401:tests/qualidade/test_bb_04_api_inputs.py:generic-api-key:291

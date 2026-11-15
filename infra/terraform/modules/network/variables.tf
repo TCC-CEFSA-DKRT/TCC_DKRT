@@ -41,3 +41,9 @@ variable "tags" {
   type    = map(string)
   default = {}
 }
+
+variable "ssh_cidr_blocks" {
+  description = "CIDRs com acesso SSH (porta 22) às instâncias. Vazio (padrão) = sem SSH; use SSM Session Manager."
+  type        = list(string)
+  default     = []
+}

@@ -1,76 +1,57 @@
-.page-title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: var(--space-4);
-}
-
 .filters {
   display: flex;
-  gap: var(--space-2);
-  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
 }
 
 .filters__input {
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  padding: 6px 10px;
+  min-width: 220px;
+  height: 42px;
+  padding: 0 14px;
   font-size: 0.875rem;
-  background: var(--color-surface);
-  color: var(--color-text-primary);
 }
 
 .filters__submit {
-  border: none;
-  background: var(--color-accent);
-  color: #fff;
-  border-radius: 6px;
-  padding: 6px 16px;
-  font-weight: 600;
-  cursor: pointer;
+  height: 42px;
 }
 
-.filters__submit:hover {
-  background: var(--color-accent-hover);
-}
-
-.runs-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.runs-table th {
-  text-align: left;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--color-border);
+.runs-panel {
+  overflow-x: auto;
+  padding: var(--space-2) var(--space-2) 0;
 }
 
 .runs-table td {
-  padding: var(--space-2) var(--space-3);
-  min-height: 40px;
-  border-bottom: 1px solid var(--color-border);
-  font-size: 0.875rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.runs-table__type {
+  font-weight: 600;
 }
 
 .runs-table__link {
   color: var(--color-accent);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
+}
+
+.runs-table__link:hover {
+  text-shadow: 0 0 12px rgba(53, 240, 224, 0.6);
 }
 
 .runs-table__total {
-  margin-top: var(--space-2);
-  font-size: 0.75rem;
+  margin-top: var(--space-3);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.progress {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
   color: var(--color-text-secondary);
 }
 
 .progress--indeterminate {
-  color: var(--color-text-secondary);
   font-style: italic;
 }

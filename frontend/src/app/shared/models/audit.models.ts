@@ -43,6 +43,20 @@ export interface RecommendationResponse {
   confidence: number;
 }
 
+export type SchemaSource = 'live' | 'cache';
+
+export interface DataModelResponse {
+  subject: string;
+  model_name: string;
+  version: string;
+  schema_url: string;
+}
+
+export interface SchemaOriginResponse {
+  source: SchemaSource;
+  fetched_at: string;
+}
+
 export interface EntityReportResponse {
   entity_id: string;
   entity_type: string;
@@ -50,6 +64,8 @@ export interface EntityReportResponse {
   violations: ViolationResponse[];
   recommendations: RecommendationResponse[];
   semantic_analysis_skipped: boolean;
+  data_model?: DataModelResponse | null;
+  schema_origin?: SchemaOriginResponse | null;
 }
 
 export interface RunSummaryResponse {

@@ -1,0 +1,128 @@
+name: Infra (Terraform plan/apply)
+
+# O apply é sempre manual e por ambiente. Cada ambiente tem o seu GitHub
+# Environment "infra-<ambiente>" (em infra-production: revisores obrigatórios) e
+# o seu papel IAM, criado pelo bootstrap. O estado fica no S3 com lock no
+# DynamoDB, uma chave por ambiente.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        description: Ambiente
+        required: true
+        type: choice
+        options: [dev, homolog, production]
+      acao:
+        description: plan só mostra; apply aplica o plano salvo
+        required: true
+        type: choice
+        options: [plan, apply]
+        default: plan
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: infra-${{ inputs.ambiente }}
+  cancel-in-progress: false
+
+env:
+  TF_VERSION: "1.9.8"
+  # Valores usados pelos scripts via variável de ambiente (nunca ${{ }} dentro do run:).
+  AMBIENTE: ${{ inputs.ambiente }}
+  TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+  TF_STATE_LOCK_TABLE: ${{ vars.TF_STATE_LOCK_TABLE }}
+  STATE_REGION: ${{ vars.AWS_REGION }}
+
+jobs:
+  plan:
+    name: terraform plan (${{ inputs.ambiente }})
+    runs-on: ubuntu-latest
+    environment: infra-${{ inputs.ambiente }}
+    defaults:
+      run:
+        working-directory: infra/terraform/environments/${{ inputs.ambiente }}
+    env:
+      TFVARS_DEV: ${{ vars.TFVARS_DEV }}
+      TFVARS_HOMOLOG: ${{ vars.TFVARS_HOMOLOG }}
+      TFVARS_PRODUCTION: ${{ vars.TFVARS_PRODUCTION }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: terraform init
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=$TF_STATE_BUCKET" \
+            -backend-config="key=$AMBIENTE/terraform.tfstate" \
+            -backend-config="region=$STATE_REGION" \
+            -backend-config="dynamodb_table=$TF_STATE_LOCK_TABLE"
+
+      - name: terraform plan
+        run: |
+          VAR_NAME="TFVARS_$(echo "$AMBIENTE" | tr '[:lower:]' '[:upper:]')"
+          printf '%s\n' "${!VAR_NAME}" > terraform.tfvars
+          terraform plan -input=false -no-color -lock-timeout=300s -out=tfplan | tee plan.txt
+          {
+            echo "### terraform plan: $AMBIENTE"
+            echo '```'
+            tail -n 80 plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guardar o plano
+        if: inputs.acao == 'apply'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ inputs.ambiente }}
+          path: infra/terraform/environments/${{ inputs.ambiente }}/tfplan
+          retention-days: 1
+
+  apply:
+    name: terraform apply (${{ inputs.ambiente }})
+    needs: plan
+    if: inputs.acao == 'apply'
+    runs-on: ubuntu-latest
+    # Mesmo Environment do plan: em produção, a segunda aprovação é a do plano
+    # já publicado no resumo do job anterior.
+    environment: infra-${{ inputs.ambiente }}
+    defaults:
+      run:
+        working-directory: infra/terraform/environments/${{ inputs.ambiente }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tfplan-${{ inputs.ambiente }}
+          path: infra/terraform/environments/${{ inputs.ambiente }}
+
+      - name: terraform init
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=$TF_STATE_BUCKET" \
+            -backend-config="key=$AMBIENTE/terraform.tfstate" \
+            -backend-config="region=$STATE_REGION" \
+            -backend-config="dynamodb_table=$TF_STATE_LOCK_TABLE"
+
+      - name: terraform apply
+        run: terraform apply -input=false -lock-timeout=300s tfplan

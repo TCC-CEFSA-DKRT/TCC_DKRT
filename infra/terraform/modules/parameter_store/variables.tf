@@ -11,9 +11,9 @@ variable "orion_credentials_json" {
     --value '...'`) e preservado entre applies por
     lifecycle.ignore_changes.
   DESC
-  type      = string
-  default   = "REPLACE_AFTER_APPLY"
-  sensitive = true
+  type        = string
+  default     = "REPLACE_AFTER_APPLY"
+  sensitive   = true
 }
 
 variable "jwt_signing_key" {

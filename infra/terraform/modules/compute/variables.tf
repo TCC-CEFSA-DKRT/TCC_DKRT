@@ -42,7 +42,7 @@ variable "ollama_ami_id" {
     ollama_instance_type), o ambiente chamador deve resolver esta AMI via
     data "aws_ami" com o filtro "Deep Learning Base OSS Nvidia Driver GPU
     AMI (Ubuntu 22.04)*", owners = ["amazon"] (ver
-    environments/academy/main.tf) e passá-la aqui.
+    environments/dev/main.tf) e passá-la aqui.
   DESC
   type        = string
   default     = null
@@ -72,19 +72,18 @@ variable "ollama_instance_type" {
     entidade auditada, nao mais so' ~10% (adr-0014), o que torna o
     throughput de GPU proporcionalmente mais valioso do que quando essa
     variavel apontava para t3.large (CPU). Custo sob demanda em us-east-1
-    fica em torno de US$0,53/h -- so' viavel dentro do credito do AWS
-    Academy Learner Lab (US$100/aluno) por causa da disciplina de
-    start/stop (nunca deixar ligado por padrao, ver start_ollama.sh/
-    stop_ollama.sh); 24/7 continuado esgotaria o credito em poucos dias.
+    fica em torno de US$0,53/h: manter a disciplina de start/stop (nunca
+    deixar ligado por padrao, ver scripts/start_ollama.sh e
+    scripts/stop_ollama.sh).
     Requer var.ollama_ami_id apontando para uma AMI com driver NVIDIA/CUDA
     (ver variable "ollama_ami_id" acima) -- sem isso a GPU fica ociosa e o
     Ollama roda em CPU do mesmo jeito. Trocar de volta para uma familia
     sem GPU (ex.: t3.large, com ollama_ami_id = null) se a familia g4dn
-    nao estiver liberada para lancamento na conta Academy usada --
-    confirmar isso no console antes do apply real (adr-0015).
+    nao estiver liberada para lancamento na conta --
+    confirmar a cota de vCPU de instancias G no console antes do apply.
   DESC
-  type    = string
-  default = "g4dn.xlarge"
+  type        = string
+  default     = "g4dn.xlarge"
 }
 
 variable "provision_ollama" {
@@ -119,21 +118,20 @@ variable "ollama_model" {
 }
 
 # --- IAM: padrão create_role / existing_role_arn (fase9.spec.md, secao 2.5)
-# AWS Academy Learner Lab bloqueia iam:CreateRole -- create_role=false usa o
-# instance profile já existente (LabInstanceProfile) via data source no
-# ambiente chamador; create_role=true (produção) cria role/policy/instance
-# profile de verdade, com permissões mínimas.
+# create_role=true cria role/policy/instance profile com permissões mínimas;
+# create_role=false usa um instance profile já existente (nome em
+# existing_instance_profile_name).
 
 variable "create_role" {
-  description = "false na Academy (usa LabInstanceProfile pré-existente); true em produção (cria role própria com permissões mínimas)."
+  description = "true cria role própria com permissões mínimas; false usa o instance profile existente informado em existing_instance_profile_name."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "existing_instance_profile_name" {
-  description = "Nome do instance profile já existente a usar quando create_role=false (Academy: \"LabInstanceProfile\")."
+  description = "Nome do instance profile já existente a usar quando create_role=false."
   type        = string
-  default     = "LabInstanceProfile"
+  default     = null
 }
 
 variable "queue_url" {
@@ -156,12 +154,11 @@ variable "orion_credentials_secret_arn" {
     modules/compute so' para o Ollama (API/worker migram para Lambda,
     modules/lambda_compute, que le' esses segredos via Parameter Store,
     modules/parameter_store, nao Secrets Manager), e o Ollama sozinho nao
-    precisa de credencial do Orion nem de chave JWT. A Academy continua
-    passando um ARN real aqui (nao usa Lambda), sem nenhuma mudanca de
-    comportamento.
+    precisa de credencial do Orion nem de chave JWT. O ambiente dev
+    (EC2) passa um ARN real aqui.
   DESC
-  type    = string
-  default = null
+  type        = string
+  default     = null
 }
 
 variable "jwt_signing_key_secret_arn" {
@@ -173,4 +170,50 @@ variable "jwt_signing_key_secret_arn" {
 variable "tags" {
   type    = map(string)
   default = {}
+}
+
+variable "aws_region" {
+  description = "Região AWS, usada pelo script de deploy da API (ecr login, secretsmanager)."
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "fiware_broker_url" {
+  description = "URL do Orion que a API audita."
+  type        = string
+  default     = "http://localhost:1026"
+}
+
+variable "cors_allowed_origins" {
+  description = "Origens permitidas pelo CORS da API (URL do frontend do ambiente)."
+  type        = string
+  default     = "http://localhost:4200"
+}
+
+variable "deployment_mode" {
+  description = "ADR-0019: \"selfhosted\" ou \"saas\"."
+  type        = string
+  default     = "selfhosted"
+}
+
+variable "database_host" {
+  description = "Endpoint do RDS. A senha vem do Secrets Manager (database_secret_arn) na hora do deploy, nunca do Terraform."
+  type        = string
+  default     = null
+}
+
+variable "database_port" {
+  type    = number
+  default = 5432
+}
+
+variable "database_name" {
+  type    = string
+  default = "auditor"
+}
+
+variable "database_secret_arn" {
+  description = "ARN do segredo do RDS (manage_master_user_password). Null omite a permissão na role."
+  type        = string
+  default     = null
 }

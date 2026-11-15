@@ -20,12 +20,18 @@ class SqlAlchemyUnitOfWork:
         self._engine = engine
         self._connection: AsyncConnection | None = None
         self._transaction: AsyncTransaction | None = None
-        self.audits: PostgresAuditRepository | None = None
+        self._audits: PostgresAuditRepository | None = None
+
+    @property
+    def audits(self) -> PostgresAuditRepository:
+        if self._audits is None:
+            raise RuntimeError("UnitOfWork usado fora de um bloco 'async with'.")
+        return self._audits
 
     async def __aenter__(self) -> "SqlAlchemyUnitOfWork":
         self._connection = await self._engine.connect()
         self._transaction = await self._connection.begin()
-        self.audits = PostgresAuditRepository(self._connection)
+        self._audits = PostgresAuditRepository(self._connection)
         return self
 
     async def __aexit__(
@@ -44,4 +50,4 @@ class SqlAlchemyUnitOfWork:
             await self._connection.close()
             self._connection = None
             self._transaction = None
-            self.audits = None
+            self._audits = None

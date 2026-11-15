@@ -1,0 +1,6 @@
+# Copie para terraform.tfvars (gitignored).
+region            = "us-east-1"
+github_repository = "TCC-CEFSA-DKRT/TCC_DKRT"
+
+# Defina false se a conta já tiver o provedor OIDC do GitHub.
+create_oidc_provider = true

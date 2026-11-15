@@ -48,7 +48,7 @@
           <p class="config-error">Não foi possível salvar a configuração. Tente novamente.</p>
         }
 
-        <button type="submit" class="config-submit" [disabled]="saveState() === 'saving'">
+        <button type="submit" class="config-submit btn-primary" [disabled]="saveState() === 'saving'">
           Salvar
         </button>
       </form>
@@ -71,7 +71,7 @@
         } @else {
           <p class="connection-test">Configuração salva — testando a conexão com o broker…</p>
         }
-        <button type="button" class="config-continue" (click)="onContinue()">Continuar</button>
+        <button type="button" class="config-continue btn-secondary" (click)="onContinue()">Continuar</button>
       }
     }
   }

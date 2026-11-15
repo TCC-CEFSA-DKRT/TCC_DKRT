@@ -87,7 +87,7 @@ def _make_lifespan(*, start_background_workers: bool):
     return _lifespan
 
 
-async def _tenant_account_gone(request: Request, exc: TenantBrokerNotConfiguredError) -> JSONResponse:
+async def _tenant_account_gone(request: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(
         status_code=401,
         content={"detail": "Conta nao encontrada; faca login novamente."},
@@ -114,6 +114,7 @@ def create_app(*, start_background_workers: bool = True) -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["Content-Disposition"],
     )
     app.add_exception_handler(TenantBrokerNotConfiguredError, _tenant_account_gone)
     app.include_router(audits.router)

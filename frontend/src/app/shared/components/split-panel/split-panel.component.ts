@@ -8,6 +8,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
     <div class="split-panel">
       <div class="split-panel__brand">
         <div class="split-panel__brand-inner">
+          <span class="split-panel__logo" aria-hidden="true">DK</span>
           <h1 class="split-panel__brand-title">DKRT</h1>
           <p class="split-panel__brand-subtitle">Auditoria de Data Spaces</p>
           <p class="split-panel__brand-tagline">
@@ -17,7 +18,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
         </div>
       </div>
       <div class="split-panel__form">
-        <div class="split-panel__form-inner">
+        <div class="split-panel__form-inner glass">
           <ng-content />
         </div>
       </div>
@@ -30,52 +31,79 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
         min-height: 100vh;
       }
       .split-panel__brand {
-        flex: 1 1 40%;
+        position: relative;
+        flex: 1 1 42%;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-accent);
         padding: var(--space-8);
+        overflow: hidden;
+        background:
+          radial-gradient(520px 420px at 30% 40%, rgba(53, 240, 224, 0.16), transparent 70%),
+          linear-gradient(rgba(53, 240, 224, 0.06) 1px, transparent 1px) 0 0 / 32px 32px,
+          linear-gradient(90deg, rgba(53, 240, 224, 0.06) 1px, transparent 1px) 0 0 / 32px 32px,
+          var(--color-bg-raised);
+        border-right: 1px solid var(--color-border-accent);
       }
       .split-panel__brand-inner {
-        max-width: 360px;
+        position: relative;
+        max-width: 380px;
+      }
+      .split-panel__logo {
+        display: grid;
+        place-items: center;
+        width: 56px;
+        height: 56px;
+        margin-bottom: var(--space-6);
+        border-radius: var(--radius-lg);
+        background: var(--gradient-accent);
+        color: var(--color-on-accent);
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 1.25rem;
+        box-shadow: var(--glow-accent);
       }
       .split-panel__brand-title {
-        color: #fff;
-        font-size: 2rem;
+        font-size: 2.75rem;
         font-weight: 700;
-        margin-bottom: var(--space-4);
+        line-height: 1;
+        letter-spacing: 0.04em;
+        text-shadow: 0 0 26px rgba(53, 240, 224, 0.4);
       }
       .split-panel__brand-subtitle {
-        color: rgba(255, 255, 255, 0.85);
-        font-size: 1rem;
-        font-weight: 500;
-        margin-top: var(--space-1);
+        margin: var(--space-2) 0 var(--space-4);
+        color: var(--color-accent);
+        font-family: var(--font-display);
+        font-size: 1.0625rem;
+        font-weight: 600;
       }
       .split-panel__brand-tagline {
-        color: #fff;
+        color: var(--color-text-secondary);
         font-size: 1rem;
         margin-bottom: var(--space-6);
       }
       .split-panel__brand-note {
-        color: #fff;
+        display: inline-block;
+        padding: 4px 12px;
+        border: 1px solid var(--color-border-accent);
+        border-radius: 999px;
+        color: var(--color-text-secondary);
+        font-family: var(--font-mono);
         font-size: 0.75rem;
-        font-weight: 500;
-        letter-spacing: 0.02em;
+        letter-spacing: 0.04em;
         text-transform: uppercase;
-        opacity: 0.85;
       }
       .split-panel__form {
-        flex: 1 1 60%;
+        flex: 1 1 58%;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-surface);
         padding: var(--space-8);
       }
       .split-panel__form-inner {
         width: 100%;
-        max-width: 360px;
+        max-width: 420px;
+        padding: var(--space-8);
       }
       @media (max-width: 768px) {
         .split-panel {
@@ -85,6 +113,8 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
         .split-panel__brand {
           flex: none;
           padding: var(--space-6) var(--space-4);
+          border-right: none;
+          border-bottom: 1px solid var(--color-border-accent);
         }
         .split-panel__brand-inner {
           max-width: none;
@@ -95,6 +125,9 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
         .split-panel__form {
           flex: none;
           padding: var(--space-6) var(--space-4);
+        }
+        .split-panel__form-inner {
+          padding: var(--space-6);
         }
       }
     `,

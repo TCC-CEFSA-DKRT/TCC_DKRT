@@ -82,3 +82,12 @@ class TestCorsPreflight:
             )
 
         assert "access-control-allow-origin" not in response.headers
+
+    def test_content_disposition_is_exposed_so_the_frontend_can_read_the_pdf_filename(
+        self, monkeypatch
+    ):
+        app = _make_app(monkeypatch)
+        with TestClient(app) as client:
+            response = client.get("/health", headers={"Origin": "http://localhost:4200"})
+
+        assert "content-disposition" in response.headers["access-control-expose-headers"].lower()

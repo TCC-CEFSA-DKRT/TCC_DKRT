@@ -1,0 +1,9 @@
+# Copie para terraform.tfvars (gitignored). Nenhum segredo aqui: as credenciais
+# AWS vêm do papel OIDC no pipeline ou do perfil local de quem aplica.
+
+region            = "us-east-1"
+name_prefix       = "auditor-dev"
+fiware_broker_url = "http://orion.exemplo.com.br:1026"
+
+# Para reduzir custo do dev, troque a GPU por CPU (o Nível 2 fica mais lento):
+# ollama_instance_type = "t3.xlarge"

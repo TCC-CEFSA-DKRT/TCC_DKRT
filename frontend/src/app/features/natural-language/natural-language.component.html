@@ -19,7 +19,7 @@
   />
   <button
     type="submit"
-    class="command-form__submit"
+    class="command-form__submit btn-primary"
     [disabled]="isLoading() || !commandText().trim()"
   >
     {{ isLoading() ? 'Interpretando…' : 'Interpretar' }}
@@ -45,7 +45,7 @@
         (retry)="onInterpret()"
       />
     } @else {
-      <section class="understanding-panel" aria-label="Como o sistema entendeu o seu pedido">
+      <section class="understanding-panel glass" aria-label="Como o sistema entendeu o seu pedido">
         <h2 class="interpretation-panel__title">Como o sistema entendeu</h2>
         <dl class="understanding-list">
           <dt>Pedido</dt>
@@ -55,10 +55,10 @@
           <dd class="understanding-list__intent" [attr.data-intent]="intent()"><strong>{{ intentLabel() }}</strong></dd>
 
           <dt>Tipo de entidade</dt>
-          <dd class="understanding-list__param">{{ interpretation()!.entity_type ?? '—' }}</dd>
+          <dd class="understanding-list__param" [class.understanding-list__param--empty]="!interpretation()!.entity_type">{{ interpretation()!.entity_type ?? '—' }}</dd>
 
           <dt>ID da entidade</dt>
-          <dd class="understanding-list__param">{{ interpretation()!.entity_id ?? '—' }}</dd>
+          <dd class="understanding-list__param" [class.understanding-list__param--empty]="!interpretation()!.entity_id">{{ interpretation()!.entity_id ?? '—' }}</dd>
 
           <dt>Confiança</dt>
           <dd>
@@ -71,7 +71,7 @@
 
       @switch (view()) {
         @case ('discovery') {
-          <div class="interpretation-panel discovery-panel">
+          <div class="interpretation-panel discovery-panel glass">
             <h2 class="interpretation-panel__title">Tipos de entidade no broker</h2>
             @if (!interpretation()!.broker_reachable) {
               <p class="discovery-panel__warning">
@@ -93,7 +93,7 @@
         }
 
         @case ('out-of-scope') {
-          <div class="interpretation-panel out-of-scope-panel" role="note">
+          <div class="interpretation-panel out-of-scope-panel glass" role="note">
             <h2 class="interpretation-panel__title">Pedido fora do escopo</h2>
             <p>
               Este console só entende pedidos sobre <strong>auditoria de entidades FIWARE (NGSI-v2)</strong>
@@ -116,7 +116,7 @@
         }
 
         @case ('clarify') {
-          <div class="interpretation-panel clarify-panel">
+          <div class="interpretation-panel clarify-panel glass">
             <h2 class="interpretation-panel__title">Preciso de um esclarecimento</h2>
             <p class="clarify-panel__question"><strong>{{ clarificationQuestion() }}</strong></p>
             @if (suggestions().length > 0) {
@@ -145,7 +145,7 @@
         }
 
         @case ('ready') {
-          <div class="interpretation-panel confirm-panel">
+          <div class="interpretation-panel confirm-panel glass">
             <h2 class="interpretation-panel__title">Revise antes de executar</h2>
             <p class="status-text">
               A auditoria só começa quando você clicar em <strong>Confirmar e iniciar auditoria</strong>.
@@ -180,7 +180,7 @@
             @if (confirmState() !== 'submitted') {
               <button
                 type="button"
-                class="confirm-button"
+                class="confirm-button btn-primary"
                 [disabled]="!canConfirm()"
                 (click)="onConfirmClick()"
               >
@@ -194,7 +194,7 @@
                   Auditoria iniciada — run {{ createdRun()!.run_id }} ({{ createdRun()!.status }}).
                   <a [routerLink]="['/audit-runs', createdRun()!.run_id]">Ver relatório</a>
                 </p>
-                <button type="button" class="secondary-button" (click)="onNewCommand()">
+                <button type="button" class="secondary-button btn-secondary" (click)="onNewCommand()">
                   Fazer outro pedido
                 </button>
               }

@@ -1,11 +1,9 @@
-# Backend S3 + DynamoDB (lock) -- parcial: os valores reais de bucket/tabela
-# não são fixados aqui (fornecidos via -backend-config para não acoplar este
-# arquivo a uma conta específica). Passe-os via `terraform init -backend-config=...`
-# ou um `backend.hcl` não versionado. `scripts/bootstrap_backend.sh` cria o
-# bucket/tabela quando ainda não existem (o backend não pode se auto-provisionar).
+# Backend S3 + DynamoDB (lock), criados pelo stack infra/terraform/bootstrap.
+# bucket, key, region e dynamodb_table são passados via -backend-config (ver
+# docs/devops/pipeline-e-ambientes.md); a key deste ambiente é
+# homolog/terraform.tfstate.
 terraform {
   backend "s3" {
-    # bucket, key, region, dynamodb_table: fornecidos via -backend-config
     encrypt = true
   }
 

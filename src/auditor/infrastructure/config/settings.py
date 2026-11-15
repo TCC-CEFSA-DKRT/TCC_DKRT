@@ -55,6 +55,9 @@ class Settings(BaseSettings):
     jwt_signing_key: SecretStr | None = None
     jwt_expiration_minutes: int = Field(default=60, gt=0)
 
+    report_pdf_max_entities: int = Field(default=1000, gt=0)
+    report_pdf_max_bytes: int = Field(default=700_000, gt=0)
+
     @model_validator(mode="after")
     def _require_jwt_signing_key_in_saas(self) -> "Settings":
         if self.deployment_mode == "saas" and (

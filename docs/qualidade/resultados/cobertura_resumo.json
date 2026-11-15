@@ -1,0 +1,41 @@
+{
+  "total": {
+    "antes": {
+      "cobertas": 2641,
+      "total": 3050,
+      "pct": 86.6
+    },
+    "depois": {
+      "cobertas": 2704,
+      "total": 3050,
+      "pct": 88.7
+    }
+  },
+  "arquivos": {
+    "domain/services/structural_validator.py": {
+      "antes_pct": 91.0,
+      "depois_pct": 99.1,
+      "instrucoes": 111
+    },
+    "interfaces/aws_lambda/api_handler.py": {
+      "antes_pct": 0.0,
+      "depois_pct": 100.0,
+      "instrucoes": 7
+    },
+    "interfaces/aws_lambda/worker_dlq_handler.py": {
+      "antes_pct": 0.0,
+      "depois_pct": 100.0,
+      "instrucoes": 23
+    },
+    "interfaces/aws_lambda/worker_handler.py": {
+      "antes_pct": 0.0,
+      "depois_pct": 100.0,
+      "instrucoes": 22
+    },
+    "interfaces/rest/app.py": {
+      "antes_pct": 95.8,
+      "depois_pct": 100.0,
+      "instrucoes": 48
+    }
+  }
+}
