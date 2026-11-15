@@ -14,10 +14,9 @@ import {
   AuditRunFilters,
   AuditRunSummaryResponse,
   RunStatus,
-} from '../../shared/models/audit.models';
+} from '../../shared/interfaces/audit.interface';
 import { AuditRunsApiService } from './audit-runs-api.service';
-
-type ViewState = 'loading' | 'loaded' | 'empty' | 'error';
+import { ViewState } from './audit-runs.interface';
 
 const POLL_INTERVAL_MS = 5000;
 const RUN_STATUS_OPTIONS: RunStatus[] = ['queued', 'running', 'completed', 'failed', 'partial'];

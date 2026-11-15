@@ -30,7 +30,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
         color: var(--color-text-secondary);
         border: 1px dashed var(--color-border-accent);
         border-radius: var(--radius-lg);
-        background: rgba(14, 25, 36, 0.5);
+        background: rgba(var(--inset-rgb), 0.5);
       }
       .empty-state__message {
         font-size: 1rem;

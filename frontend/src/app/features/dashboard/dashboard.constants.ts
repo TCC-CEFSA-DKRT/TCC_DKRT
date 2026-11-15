@@ -1,5 +1,5 @@
-import { RunSummaryResponse } from '../../shared/models/audit.models';
-import { StatusSegmentDefinition } from './dashboard.models';
+import { RunSummaryResponse } from '../../shared/interfaces/audit.interface';
+import { StatusSegmentDefinition } from './dashboard.interface';
 
 export const EMPTY_SUMMARY: RunSummaryResponse = {
   total_entities: 0,

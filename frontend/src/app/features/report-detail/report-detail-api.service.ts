@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, timeout } from 'rxjs';
 
 import { API_CONFIG } from '../../core/api-config';
-import { AuditRunResponse } from '../../shared/models/audit.models';
+import { AuditRunResponse } from '../../shared/interfaces/audit.interface';
 import { EXPORT_PDF_TIMEOUT_MS } from './report-labels';
 
 @Injectable({ providedIn: 'root' })

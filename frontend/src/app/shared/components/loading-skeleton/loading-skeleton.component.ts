@@ -22,7 +22,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
         background: linear-gradient(
           90deg,
           var(--color-surface-2) 25%,
-          rgba(53, 240, 224, 0.12) 37%,
+          rgba(var(--accent-rgb), 0.12) 37%,
           var(--color-surface-2) 63%
         );
         background-size: 400% 100%;

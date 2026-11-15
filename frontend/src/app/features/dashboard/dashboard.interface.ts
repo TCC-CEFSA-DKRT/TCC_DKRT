@@ -1,4 +1,4 @@
-import { RunSummaryResponse } from '../../shared/models/audit.models';
+import { RunSummaryResponse } from '../../shared/interfaces/audit.interface';
 
 export type DashboardViewState = 'loading' | 'loaded' | 'empty' | 'error';
 

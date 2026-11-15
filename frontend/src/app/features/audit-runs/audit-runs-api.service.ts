@@ -8,7 +8,7 @@ import {
   AuditRunFilters,
   AuditRunSummaryResponse,
   PageResponse,
-} from '../../shared/models/audit.models';
+} from '../../shared/interfaces/audit.interface';
 
 /** Fase 8, seção 4 — Audit Runs: lista com filtros + progresso em tempo
  * real. Reaproveita `GET /audits` (seção 0.1) e `GET /audits/{id}/progress`

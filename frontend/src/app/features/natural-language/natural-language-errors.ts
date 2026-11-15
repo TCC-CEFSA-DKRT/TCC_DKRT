@@ -1,9 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { TimeoutError } from 'rxjs';
 
-import { COMMAND_TEXT_MAX_LENGTH } from '../../shared/models/command.models';
-
-export type NaturalLanguageAction = 'interpret' | 'confirm';
+import { COMMAND_TEXT_MAX_LENGTH } from './natural-language.constants';
+import { NaturalLanguageAction } from './natural-language.interface';
 
 /** Issue #21 — traduz qualquer falha HTTP em uma frase clara para o
  * usuário. Nunca devolve `error.message`, stack trace, código interno ou o

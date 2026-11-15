@@ -2,12 +2,12 @@ import {
   EntityReportResponse,
   RecommendationResponse,
   ViolationResponse,
-} from '../../shared/models/audit.models';
+} from '../../shared/interfaces/audit.interface';
 import {
   EntityReportView,
   RecommendationView,
   SeverityGroupView,
-} from './report-detail.models';
+} from './report-detail.interface';
 import { ACTION_LABELS, RULE_LABELS, SEVERITY_GROUP_TITLES, SEVERITY_ORDER } from './report-labels';
 
 export function ruleLabel(rule: string): string {

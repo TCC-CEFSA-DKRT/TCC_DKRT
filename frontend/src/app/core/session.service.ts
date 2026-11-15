@@ -3,7 +3,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 import { switchMap, tap } from 'rxjs/operators';
 
-import { Session } from '../shared/models/session.models';
+import { Session } from '../shared/interfaces/session.interface';
 import { API_CONFIG } from './api-config';
 
 @Injectable({ providedIn: 'root' })

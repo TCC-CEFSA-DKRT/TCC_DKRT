@@ -3,12 +3,12 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { API_CONFIG } from '../../core/api-config';
-import { PageResponse } from '../../shared/models/audit.models';
+import { PageResponse } from '../../shared/interfaces/audit.interface';
 import {
   CatalogModelResponse,
   CatalogModelSchemaResponse,
   CatalogStatusResponse,
-} from '../../shared/models/catalog.models';
+} from '../../shared/interfaces/catalog.interface';
 
 /** Fase 8, seção 7 — Catalog. `getStatus()` reaproveita `GET /catalog`
  * (backend `catalog_sync_status_repository.py`). `listModels()`/

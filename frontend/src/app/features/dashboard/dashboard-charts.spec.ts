@@ -1,4 +1,4 @@
-import { AuditRunSummaryResponse, RunSummaryResponse } from '../../shared/models/audit.models';
+import { AuditRunSummaryResponse, RunSummaryResponse } from '../../shared/interfaces/audit.interface';
 import {
   aggregateByType,
   describeSegments,
