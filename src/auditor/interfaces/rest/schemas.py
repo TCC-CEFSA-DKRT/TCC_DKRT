@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Any, Generic, Literal, TypeVar
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from auditor.domain.entities.audit_run import AuditRun
 from auditor.domain.entities.entity_report import (
@@ -45,10 +45,37 @@ class SessionResponse(BaseModel):
     tenant: TenantResponse | None
 
 
-class BrokerConfigRequest(BaseModel):
-    broker_url: str = Field(pattern=r"^https?://\S+$")
+BrokerKind = Literal["local", "cloud"]
+
+
+class BrokerTargetRequest(BaseModel):
     fiware_service: str = Field(pattern=r"^[A-Za-z0-9_]{0,50}$")
     fiware_service_path: str = Field(default="/", pattern=r"^/([A-Za-z0-9_]+(/[A-Za-z0-9_]+)*)?$")
+    broker_kind: BrokerKind = "local"
+    broker_api_key: str | None = Field(default=None, max_length=4096, pattern=r"^\S*$")
+
+
+class BrokerConnectionTestRequest(BrokerTargetRequest):
+    broker_url: str = Field(max_length=2048)
+
+
+class BrokerConfigRequest(BrokerTargetRequest):
+    broker_url: str = Field(max_length=2048, pattern=r"^https?://\S+$")
+    save_without_connection: bool = False
+
+    @model_validator(mode="after")
+    def cloud_broker_requires_https(self) -> BrokerConfigRequest:
+        if self.broker_kind == "cloud" and not self.broker_url.startswith("https://"):
+            raise ValueError("Broker em nuvem exige URL com https://.")
+        return self
+
+
+class BrokerConnectionTestResponse(BaseModel):
+    status: Literal[
+        "ok", "invalid_url", "unreachable", "timeout", "unauthorized", "unexpected_response"
+    ]
+    entity_types_count: int | None = None
+    http_status: int | None = None
 
 
 class BrokerConfigResponse(BaseModel):
@@ -56,6 +83,10 @@ class BrokerConfigResponse(BaseModel):
     broker_url: str
     fiware_service: str
     fiware_service_path: str
+    broker_kind: BrokerKind = "local"
+    has_api_key: bool = False
+    default_local_broker_url: str = ""
+    connection: BrokerConnectionTestResponse | None = None
 
 
 class AuditCreateRequest(BaseModel):
