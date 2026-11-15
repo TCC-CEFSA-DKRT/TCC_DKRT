@@ -8,6 +8,7 @@ import { ActivatedRoute, convertToParamMap } from '@angular/router';
 
 import { ReportDetailComponent } from './report-detail.component';
 import { API_CONFIG, DEFAULT_API_CONFIG } from '../../core/api-config';
+import { FileDownloadService } from '../../core/file-download.service';
 import { AuditRunResponse, EntityReportResponse } from '../../shared/models/audit.models';
 
 const BASE_URL = DEFAULT_API_CONFIG.baseUrl;
@@ -40,6 +41,7 @@ function setUpWithRoute(runId: string | null) {
       provideHttpClient(),
       provideHttpClientTesting(),
       { provide: API_CONFIG, useValue: DEFAULT_API_CONFIG },
+      { provide: FileDownloadService, useValue: jasmine.createSpyObj('FileDownloadService', ['save']) },
       {
         provide: ActivatedRoute,
         useValue: { snapshot: { paramMap: convertToParamMap(runId ? { runId } : {}) } },
@@ -427,6 +429,83 @@ describe('ReportDetailComponent', () => {
       const link = view.element.querySelector('.schema-origin a');
       expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
       expect(link?.getAttribute('target')).toBe('_blank');
+    });
+  });
+
+  describe('issue #23 — exportar PDF', () => {
+    const PDF_URL = `${BASE_URL}/audits/run-1/report.pdf`;
+    const exportButton = (element: HTMLElement) =>
+      element.querySelector('.export-button') as HTMLButtonElement;
+
+    it('downloads the PDF of the whole audit with the browser time zone and the server filename', async () => {
+      const view = await renderReports([makeReport()]);
+      httpMock = view.httpMock;
+      const downloads = TestBed.inject(FileDownloadService) as jasmine.SpyObj<FileDownloadService>;
+
+      exportButton(view.element).click();
+      view.fixture.detectChanges();
+
+      const req = httpMock.expectOne((r) => r.url === PDF_URL);
+      expect(req.request.responseType).toBe('blob');
+      expect(req.request.params.get('tz')).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
+      const pdf = new Blob(['%PDF-1.4'], { type: 'application/pdf' });
+      req.flush(pdf, {
+        headers: { 'Content-Disposition': 'attachment; filename="relatorio-streetlight-2026-10-24-1405.pdf"' },
+      });
+      view.fixture.detectChanges();
+
+      expect(downloads.save).toHaveBeenCalledOnceWith(pdf, 'relatorio-streetlight-2026-10-24-1405.pdf');
+      expect(exportButton(view.element).disabled).toBeFalse();
+      expect(exportButton(view.element).textContent).toContain('Exportar PDF');
+    });
+
+    it('shows progress and ignores extra clicks while the PDF is being generated', async () => {
+      const view = await renderReports([makeReport()]);
+      httpMock = view.httpMock;
+
+      exportButton(view.element).click();
+      view.fixture.detectChanges();
+      exportButton(view.element).click();
+
+      expect(exportButton(view.element).disabled).toBeTrue();
+      expect(exportButton(view.element).textContent).toContain('Gerando PDF');
+      expect(view.element.querySelector('.export-status')?.textContent).toContain('alguns segundos');
+      const requests = httpMock.match((r) => r.url === PDF_URL);
+      expect(requests.length).toBe(1);
+      requests[0].flush(new Blob(['%PDF']));
+    });
+
+    it('shows a clear message when the export fails and lets the user try again', async () => {
+      const view = await renderReports([makeReport()]);
+      httpMock = view.httpMock;
+      const downloads = TestBed.inject(FileDownloadService) as jasmine.SpyObj<FileDownloadService>;
+
+      exportButton(view.element).click();
+      httpMock
+        .expectOne((r) => r.url === PDF_URL)
+        .flush(new Blob(['Internal Server Error']), { status: 500, statusText: 'Server Error' });
+      view.fixture.detectChanges();
+
+      const alert = view.element.querySelector('[role="alert"]');
+      expect(alert?.textContent).toContain('Não foi possível gerar o PDF');
+      expect(alert?.textContent).not.toContain('500');
+      expect(downloads.save).not.toHaveBeenCalled();
+      expect(exportButton(view.element).disabled).toBeFalse();
+    });
+
+    it('explains that the report is too large when the API answers 413', async () => {
+      const view = await renderReports([makeReport()]);
+      httpMock = view.httpMock;
+
+      exportButton(view.element).click();
+      httpMock
+        .expectOne((r) => r.url === PDF_URL)
+        .flush(new Blob(['{}']), { status: 413, statusText: 'Payload Too Large' });
+      view.fixture.detectChanges();
+
+      const alert = view.element.querySelector('[role="alert"]');
+      expect(alert?.textContent).toContain('grande demais para exportar em PDF');
+      expect(alert?.textContent).toContain('Audite menos entidades por vez');
     });
   });
 });

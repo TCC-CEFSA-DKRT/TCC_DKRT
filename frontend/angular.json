@@ -35,6 +35,13 @@
               }
             ],
             "styles": [
+              "@fontsource/chakra-petch/600.css",
+              "@fontsource/chakra-petch/700.css",
+              "@fontsource/ibm-plex-sans/400.css",
+              "@fontsource/ibm-plex-sans/500.css",
+              "@fontsource/ibm-plex-sans/600.css",
+              "@fontsource/ibm-plex-mono/400.css",
+              "@fontsource/ibm-plex-mono/500.css",
               "src/styles.scss"
             ],
             "scripts": [],
@@ -97,6 +104,13 @@
               }
             ],
             "styles": [
+              "@fontsource/chakra-petch/600.css",
+              "@fontsource/chakra-petch/700.css",
+              "@fontsource/ibm-plex-sans/400.css",
+              "@fontsource/ibm-plex-sans/500.css",
+              "@fontsource/ibm-plex-sans/600.css",
+              "@fontsource/ibm-plex-mono/400.css",
+              "@fontsource/ibm-plex-mono/500.css",
               "src/styles.scss"
             ],
             "scripts": [],

@@ -17,13 +17,13 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
     `
       .skeleton-row {
         height: 20px;
-        border-radius: 4px;
-        margin-bottom: var(--space-2, 8px);
+        border-radius: var(--radius-sm);
+        margin-bottom: var(--space-2);
         background: linear-gradient(
           90deg,
-          var(--color-border, #e2e5ea) 25%,
-          #edeff2 37%,
-          var(--color-border, #e2e5ea) 63%
+          var(--color-surface-2) 25%,
+          rgba(53, 240, 224, 0.12) 37%,
+          var(--color-surface-2) 63%
         );
         background-size: 400% 100%;
         animation: skeleton-loading 1.4s ease infinite;

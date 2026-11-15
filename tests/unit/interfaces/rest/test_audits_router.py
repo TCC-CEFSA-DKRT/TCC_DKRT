@@ -18,6 +18,8 @@ from uuid import UUID, uuid4
 import httpx
 import pytest
 
+from auditor.application.report_export import ReportExportLimits
+from auditor.application.use_cases.export_audit_report import ExportAuditReportUseCase
 from auditor.domain.entities.audit_run import AuditRun, RunStatus, RunSummary
 from auditor.domain.entities.entity_report import EntityReport, SchemaOrigin, SchemaSource
 from auditor.domain.ports.audit_repository_port import AuditRunSummaryView, Page, RunFilters
@@ -27,6 +29,7 @@ from auditor.domain.value_objects.data_model_ref import DataModelRef
 from auditor.domain.value_objects.entity_type import EntityType
 from auditor.domain.value_objects.tenant import Tenant
 from auditor.infrastructure.config.container import (
+    get_export_audit_report_use_case,
     get_interpret_audit_command_use_case,
     get_run_audit_use_case,
     get_selfhosted_accounts,
@@ -34,7 +37,9 @@ from auditor.infrastructure.config.container import (
     get_unit_of_work,
 )
 from auditor.infrastructure.config.settings import Settings
+from auditor.infrastructure.reporting.pdf_audit_report_renderer import PdfAuditReportRenderer
 from auditor.interfaces.rest.app import create_app
+from auditor.interfaces.rest.routers import audits as audits_router
 
 _TENANT_HEADERS = {"Fiware-Service": "openiot", "Fiware-ServicePath": "/"}
 
@@ -346,6 +351,129 @@ class TestGetAuditReportSchemaInfo:
 
         assert body["data_model"]["model_name"] == "Streetlight"
         assert body["schema_origin"] is None
+
+
+class TestExportAuditReport:
+    def _store_run(self, repo, fiware_service: str = "openiot") -> AuditRun:
+        tenant = Tenant(fiware_service=fiware_service, fiware_service_path="/")
+        run = AuditRun.create(
+            tenant=tenant,
+            entity_type=EntityType("Streetlight"),
+            broker_url="http://orion:1026",
+            started_at=datetime(2026, 10, 24, 17, 5, tzinfo=timezone.utc),
+        )
+        run.add_report(
+            EntityReport(
+                entity_id="urn:ngsi-ld:Streetlight:001",
+                entity_type=EntityType("Streetlight"),
+                data_model=None,
+                status=ConformanceStatus.NO_MODEL_FOUND,
+                violations=[],
+            )
+        )
+        repo.runs[(run.id, tenant.fiware_service)] = run
+        return run
+
+    @pytest.mark.asyncio
+    async def test_returns_a_pdf_attachment_named_after_the_type_and_local_date(
+        self, client, app_and_repo
+    ):
+        _, repo = app_and_repo
+        run = self._store_run(repo)
+
+        response = await client.get(
+            f"/audits/{run.id}/report.pdf",
+            params={"tz": "America/Sao_Paulo"},
+            headers=_TENANT_HEADERS,
+        )
+
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "application/pdf"
+        assert response.headers["content-disposition"] == (
+            'attachment; filename="relatorio-streetlight-2026-10-24-1405.pdf"'
+        )
+        assert response.headers["cache-control"] == "no-store"
+        assert response.content.startswith(b"%PDF")
+
+    @pytest.mark.asyncio
+    async def test_an_invalid_timezone_falls_back_to_utc_instead_of_failing(
+        self, client, app_and_repo
+    ):
+        _, repo = app_and_repo
+        run = self._store_run(repo)
+
+        response = await client.get(
+            f"/audits/{run.id}/report.pdf", params={"tz": "Not/AZone"}, headers=_TENANT_HEADERS
+        )
+
+        assert response.status_code == 200
+        assert "2026-10-24-1705" in response.headers["content-disposition"]
+
+    @pytest.mark.asyncio
+    async def test_run_of_another_tenant_returns_404(self, client, app_and_repo):
+        _, repo = app_and_repo
+        run = self._store_run(repo, fiware_service="other_city")
+
+        response = await client.get(f"/audits/{run.id}/report.pdf", headers=_TENANT_HEADERS)
+
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_unknown_run_returns_404(self, client):
+        response = await client.get(f"/audits/{uuid4()}/report.pdf", headers=_TENANT_HEADERS)
+
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("name", ["America", "Etc", "America/", "../etc/passwd"])
+    async def test_timezone_names_that_are_not_zones_fall_back_to_utc(
+        self, client, app_and_repo, name
+    ):
+        _, repo = app_and_repo
+        run = self._store_run(repo)
+
+        response = await client.get(
+            f"/audits/{run.id}/report.pdf", params={"tz": name}, headers=_TENANT_HEADERS
+        )
+
+        assert response.status_code == 200
+        assert "2026-10-24-1705" in response.headers["content-disposition"]
+
+    @pytest.mark.asyncio
+    async def test_an_os_error_while_reading_the_zone_falls_back_to_utc(
+        self, client, app_and_repo, monkeypatch
+    ):
+        def directory_instead_of_zone(name):
+            raise IsADirectoryError(name)
+
+        monkeypatch.setattr(audits_router, "ZoneInfo", directory_instead_of_zone)
+        _, repo = app_and_repo
+        run = self._store_run(repo)
+
+        response = await client.get(
+            f"/audits/{run.id}/report.pdf", params={"tz": "America"}, headers=_TENANT_HEADERS
+        )
+
+        assert response.status_code == 200
+        assert "2026-10-24-1705" in response.headers["content-disposition"]
+
+    @pytest.mark.asyncio
+    async def test_a_report_above_the_export_limit_returns_413_with_a_clear_message(
+        self, client, app_and_repo
+    ):
+        app, repo = app_and_repo
+        app.dependency_overrides[get_export_audit_report_use_case] = lambda: (
+            ExportAuditReportUseCase(
+                renderer=PdfAuditReportRenderer(),
+                limits=ReportExportLimits(max_entities=0, max_bytes=700_000),
+            )
+        )
+        run = self._store_run(repo)
+
+        response = await client.get(f"/audits/{run.id}/report.pdf", headers=_TENANT_HEADERS)
+
+        assert response.status_code == 413
+        assert "limite para exportar em PDF" in response.json()["detail"]
 
 
 class TestGetAuditProgress:

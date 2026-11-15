@@ -1,4 +1,5 @@
 <h1 class="page-title">Catálogo</h1>
+<p class="page-subtitle">Smart Data Models sincronizados do repositório oficial (smart-data-models, no GitHub) e usados para validar as entidades.</p>
 
 @switch (state()) {
   @case ('loading') {
@@ -27,15 +28,15 @@
       }
 
       <dl class="catalog-status__facts">
-        <div class="fact">
+        <div class="fact glass">
           <dt>Última sincronização bem-sucedida</dt>
           <dd>{{ status()!.last_synced_at | date: 'dd/MM/yyyy HH:mm' }}</dd>
         </div>
-        <div class="fact">
+        <div class="fact glass">
           <dt>Modelos indexados</dt>
           <dd>{{ status()!.models_count }}</dd>
         </div>
-        <div class="fact">
+        <div class="fact glass">
           <dt>Status da última tentativa</dt>
           <dd>{{ status()!.last_sync_successful ? 'Sucesso' : 'Falhou (ver aviso acima)' }}</dd>
         </div>
@@ -57,7 +58,7 @@
         placeholder="Subject (ex.: dataModel.Streetlighting)"
         [(ngModel)]="modelSubjectInput"
       />
-      <button type="submit" class="filters__submit">Filtrar</button>
+      <button type="submit" class="filters__submit btn-primary">Filtrar</button>
     </form>
 
     @switch (modelsState()) {
@@ -74,7 +75,8 @@
         />
       }
       @case ('loaded') {
-        <table class="models-table">
+        <div class="models-panel glass">
+        <table class="models-table data-table">
           <thead>
             <tr>
               <th>Subject</th>
@@ -85,10 +87,10 @@
           <tbody>
             @for (model of models(); track model.subject + '::' + model.model_name) {
               <tr>
-                <td>{{ model.subject }}</td>
-                <td>{{ model.model_name }}</td>
+                <td class="models-table__subject">{{ model.subject }}</td>
+                <td class="models-table__name">{{ model.model_name }}</td>
                 <td>
-                  <button type="button" class="models-table__toggle" (click)="toggleSchema(model)">
+                  <button type="button" class="models-table__toggle btn-secondary" (click)="toggleSchema(model)">
                     {{ isExpanded(model) ? 'Ocultar schema' : 'Ver schema' }}
                   </button>
                 </td>
@@ -117,10 +119,11 @@
             }
           </tbody>
         </table>
+        </div>
         <div class="models-table__pagination">
           <button
             type="button"
-            class="models-table__page-button"
+            class="models-table__page-button btn-secondary"
             [disabled]="modelsPage() <= 1"
             (click)="previousModelsPage()"
           >
@@ -131,7 +134,7 @@
           </span>
           <button
             type="button"
-            class="models-table__page-button"
+            class="models-table__page-button btn-secondary"
             [disabled]="!modelsHasNext()"
             (click)="nextModelsPage()"
           >

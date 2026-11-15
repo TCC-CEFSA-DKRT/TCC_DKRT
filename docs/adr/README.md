@@ -40,6 +40,7 @@ As ADRs 0000 a 0012 documentam a fase multiagente inicial do projeto, substituí
 | [0019](adr-0019.md) | Dois modos de implantação (SaaS multi-tenant + self-hosted no ambiente do produtor) | Proposto |
 | [0020](adr-0020.md) | Sessão por cookie httpOnly (SaaS) + gate de Configuração (self-hosted) + `/session` em runtime no lugar da flag de build | Proposto |
 | [0021](adr-0021.md) | Três ambientes AWS (dev em EC2, homologação e produção em Lambda), pipeline por GitHub Actions com OIDC e build único promovido | Aceito |
+| [0022](adr-0022.md) | PDF do relatório de auditoria gerado no backend, com ReportLab | Proposto |
 
 ## Como escrever o próximo
 

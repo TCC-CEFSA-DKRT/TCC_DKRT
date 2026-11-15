@@ -19,6 +19,8 @@ import httpx
 from cryptography.fernet import Fernet, MultiFernet
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
+from auditor.application.report_export import ReportExportLimits
+from auditor.application.use_cases.export_audit_report import ExportAuditReportUseCase
 from auditor.application.use_cases.interpret_audit_command import InterpretAuditCommandUseCase
 from auditor.application.use_cases.run_audit import RunAuditUseCase
 from auditor.application.use_cases.sync_catalog import SyncCatalogUseCase
@@ -41,6 +43,7 @@ from auditor.infrastructure.queue.sqs_job_queue import SqsJobQueue
 from auditor.infrastructure.llm.ollama_analyzer import OllamaAnalyzer
 from auditor.infrastructure.llm.ollama_command_interpreter import OllamaCommandInterpreter
 from auditor.infrastructure.rag.corpus_loader import CorpusLoader
+from auditor.infrastructure.reporting.pdf_audit_report_renderer import PdfAuditReportRenderer
 from auditor.infrastructure.rag.embedder import Embedder, SentenceTransformersEmbedder
 from auditor.infrastructure.schema_catalog.catalog_sync_status_repository import (
     CatalogSyncStatusRepository,
@@ -223,6 +226,22 @@ def get_interpret_audit_command_use_case() -> InterpretAuditCommandUseCase:
     return InterpretAuditCommandUseCase(
         interpreter=get_command_interpreter(),
         context_broker=get_context_broker(),
+    )
+
+
+@lru_cache
+def get_audit_report_renderer() -> PdfAuditReportRenderer:
+    return PdfAuditReportRenderer()
+
+
+def get_export_audit_report_use_case() -> ExportAuditReportUseCase:
+    settings = get_settings()
+    return ExportAuditReportUseCase(
+        renderer=get_audit_report_renderer(),
+        limits=ReportExportLimits(
+            max_entities=settings.report_pdf_max_entities,
+            max_bytes=settings.report_pdf_max_bytes,
+        ),
     )
 
 
