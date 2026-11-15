@@ -563,12 +563,11 @@ class TestStreamAuditProgress:
         assert '"total": 2' in response.text
 
     @pytest.mark.asyncio
-    async def test_stream_emits_an_error_event_for_an_unknown_run(self, client):
+    async def test_stream_of_an_unknown_run_is_404_before_opening_the_stream(self, client):
         response = await client.get(f"/audits/{uuid4()}/stream", headers=_TENANT_HEADERS)
 
-        assert response.status_code == 200
-        assert "event: error" in response.text
-        assert "Audit run not found" in response.text
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Audit run not found"}
 
 
 def _make_summary_view(

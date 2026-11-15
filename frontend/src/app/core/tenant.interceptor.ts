@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 
 import { API_CONFIG } from './api-config';
+import { LOGIN_PATH } from './session.constants';
 import { SessionService } from './session.service';
 
 export const tenantInterceptor: HttpInterceptorFn = (req, next) => {
@@ -26,8 +27,11 @@ export const tenantInterceptor: HttpInterceptorFn = (req, next) => {
         current?.deployment_mode === 'saas' &&
         !req.url.endsWith('/auth/login')
       ) {
-        session.session.update((s) => (s ? { ...s, tenant: null } : s));
-        router.navigateByUrl('/login');
+        if (current.tenant) {
+          session.expire(router.url);
+        } else {
+          router.navigateByUrl(LOGIN_PATH);
+        }
       }
       return throwError(() => error);
     })
