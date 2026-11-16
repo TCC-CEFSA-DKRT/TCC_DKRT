@@ -14,7 +14,9 @@ import { SessionService } from './session.service';
 const BASE_URL = DEFAULT_API_CONFIG.baseUrl;
 
 async function runGuard(): Promise<boolean | UrlTree> {
-  const result = TestBed.runInInjectionContext(() => appGuard({} as never, {} as never));
+  const result = TestBed.runInInjectionContext(() =>
+    appGuard({} as never, { url: '/audit-runs/abc' } as never)
+  );
   const resolved = isObservable(result) ? await firstValueFrom(result) : result;
   return resolved as boolean | UrlTree;
 }
@@ -61,12 +63,12 @@ describe('appGuard', () => {
     expect(await promise).toBe(true);
   });
 
-  it('redirects to /login when saas has no tenant', async () => {
+  it('sends a saas user without session to the login, remembering the page they asked for', async () => {
     const promise = runGuard();
     httpMock.expectOne(`${BASE_URL}/session`).flush({ deployment_mode: 'saas', tenant: null });
 
     const result = await promise;
-    expect(result).toEqual(router.parseUrl('/login'));
+    expect(result).toEqual(router.parseUrl('/login?returnUrl=%2Faudit-runs%2Fabc'));
   });
 
   it('redirects to /config when self-hosted has no tenant', async () => {

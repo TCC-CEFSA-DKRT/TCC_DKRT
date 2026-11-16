@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -102,7 +103,8 @@ export class ReportDetailComponent {
         this.statusFilter.set('all');
         this.state.set(run.reports.length === 0 ? 'empty' : 'loaded');
       },
-      error: () => this.state.set('error'),
+      error: (error: unknown) =>
+        this.state.set(error instanceof HttpErrorResponse && error.status === 404 ? 'not-found' : 'error'),
     });
   }
 

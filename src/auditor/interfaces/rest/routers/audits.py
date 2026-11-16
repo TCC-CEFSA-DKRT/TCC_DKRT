@@ -248,6 +248,9 @@ async def stream_audit_progress(
     nao bloqueia o criterio de pronto"). Implementacao por polling
     periodico no banco ate' um status terminal, em vez de notificacao
     push real — simples e correta, suficiente para o escopo desta fase."""
+    async with uow:
+        if await uow.audits.get_by_id(run_id, tenant) is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Audit run not found")
 
     async def event_source():
         while True:

@@ -1,12 +1,14 @@
 import { Routes } from '@angular/router';
 import { ShellComponent } from './layout/shell/shell.component';
 import { appGuard } from './core/app.guard';
+import { loginGuard } from './core/login.guard';
 
 /** Roteamento lazy por feature (fase8.spec.md, seção 1) — cada rota carrega
  * seu componente standalone só quando visitada, nenhum NgModule. */
 export const routes: Routes = [
   {
     path: 'login',
+    canActivate: [loginGuard],
     loadComponent: () => import('./features/login/login.component').then((m) => m.LoginComponent),
   },
   {

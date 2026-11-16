@@ -4,6 +4,12 @@
   @case ('loading') {
     <app-loading-skeleton [rows]="8" />
   }
+  @case ('not-found') {
+    <app-empty-state
+      message="Auditoria não encontrada."
+      hint="Ela não existe ou não está disponível para a sua conta. Volte para Auditorias e escolha outra."
+    />
+  }
   @case ('error') {
     <app-error-state message="Não foi possível carregar este relatório." (retry)="load()" />
   }

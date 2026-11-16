@@ -509,6 +509,7 @@ class TestLogin:
         )
         assert claims["fiware_service"] == _TENANT_A.fiware_service
         assert claims["fiware_service_path"] == _TENANT_A.fiware_service_path
+        assert claims["sub"] == "user@example.com"
 
     @pytest.mark.asyncio
     async def test_l2_wrong_password_is_401(self, monkeypatch):
@@ -611,6 +612,7 @@ class TestLoginSetsSessionCookie:
         assert "Max-Age=3600" in set_cookie
         assert "Domain=" not in set_cookie
         assert "access_token" in response.json()
+        assert response.headers["cache-control"] == "no-store"
 
     @pytest.mark.asyncio
     async def test_l8_wrong_credentials_do_not_set_a_session_cookie(self, monkeypatch):

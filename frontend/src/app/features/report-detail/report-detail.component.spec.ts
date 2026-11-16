@@ -84,6 +84,34 @@ describe('ReportDetailComponent', () => {
 
   afterEach(() => httpMock.verify());
 
+  describe('audit that cannot be opened', () => {
+    async function openFailing(status: number) {
+      await setUpWithRoute('run-1');
+      httpMock = TestBed.inject(HttpTestingController);
+      const fixture = TestBed.createComponent(ReportDetailComponent);
+      fixture.detectChanges();
+      httpMock
+        .expectOne(`${BASE_URL}/audits/run-1`)
+        .flush({ detail: 'Audit run not found' }, { status, statusText: 'Error' });
+      fixture.detectChanges();
+      return fixture.nativeElement as HTMLElement;
+    }
+
+    it('says the audit was not found, without offering a retry that would never work', async () => {
+      const element = await openFailing(404);
+
+      expect(element.textContent).toContain('Auditoria não encontrada.');
+      expect(element.querySelector('app-error-state')).toBeNull();
+    });
+
+    it('offers a retry when the API fails for another reason', async () => {
+      const element = await openFailing(500);
+
+      expect(element.querySelector('app-error-state')).not.toBeNull();
+      expect(element.textContent).not.toContain('Auditoria não encontrada.');
+    });
+  });
+
   it('visually distinguishes structural (Nível 1) from semantic (Nível 2) violations', async () => {
     await setUpWithRoute('run-1');
     httpMock = TestBed.inject(HttpTestingController);
@@ -199,7 +227,7 @@ describe('ReportDetailComponent', () => {
     expect(text).toContain('"to": "temperature"');
   });
 
-  describe('issue #22', () => {
+  describe('report by entity', () => {
     it('groups violations by severity, most severe first, with Portuguese titles and counts', async () => {
       const view = await renderReports([
         makeReport({
@@ -432,7 +460,7 @@ describe('ReportDetailComponent', () => {
     });
   });
 
-  describe('issue #23 — exportar PDF', () => {
+  describe('exporting the report as PDF', () => {
     const PDF_URL = `${BASE_URL}/audits/run-1/report.pdf`;
     const exportButton = (element: HTMLElement) =>
       element.querySelector('.export-button') as HTMLButtonElement;

@@ -43,6 +43,8 @@ class TenantResponse(BaseModel):
 class SessionResponse(BaseModel):
     deployment_mode: Literal["saas", "selfhosted"]
     tenant: TenantResponse | None
+    expires_at: datetime | None = None
+    login_email: str | None = None
 
 
 BrokerKind = Literal["local", "cloud"]

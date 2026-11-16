@@ -19,7 +19,9 @@ describe('tenantInterceptor', () => {
   let router: jasmine.SpyObj<Router>;
 
   beforeEach(() => {
-    router = jasmine.createSpyObj<Router>('Router', ['navigateByUrl']);
+    router = jasmine.createSpyObj<Router>('Router', ['navigateByUrl', 'navigate'], {
+      url: '/audit-runs/abc',
+    });
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(withInterceptors([tenantInterceptor])),
@@ -74,7 +76,7 @@ describe('tenantInterceptor', () => {
     req.flush([]);
   });
 
-  it('on a 401 in saas mode, clears the session tenant and redirects to /login', () => {
+  it('on a 401 with an open session, ends it and opens the login with the expired notice', () => {
     session.session.set({
       deployment_mode: 'saas',
       tenant: { fiware_service: 'openiot', fiware_service_path: '/' },
@@ -88,7 +90,21 @@ describe('tenantInterceptor', () => {
 
     expect(failed).toBe(true);
     expect(session.session()?.tenant).toBeNull();
+    expect(router.navigate).toHaveBeenCalledWith(['/login'], {
+      queryParams: { reason: 'expired', returnUrl: '/audit-runs/abc' },
+    });
+  });
+
+  it('on a 401 without a session, opens the login without the expired notice', () => {
+    session.session.set({ deployment_mode: 'saas', tenant: null });
+
+    http.get(`${BASE_URL}/audits`).subscribe({ error: () => {} });
+    httpMock
+      .expectOne(`${BASE_URL}/audits`)
+      .flush({ detail: 'Sessao ausente' }, { status: 401, statusText: 'Unauthorized' });
+
     expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
+    expect(router.navigate).not.toHaveBeenCalled();
   });
 
   it('a 401 from /auth/login itself never triggers a redirect', () => {
@@ -103,6 +119,7 @@ describe('tenantInterceptor', () => {
       .flush({ detail: 'Email ou senha invalidos.' }, { status: 401, statusText: 'Unauthorized' });
 
     expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(router.navigate).not.toHaveBeenCalled();
   });
 
   it('a 401 in self-hosted mode never redirects to /login', () => {
@@ -117,5 +134,6 @@ describe('tenantInterceptor', () => {
       .flush({ detail: 'Fiware-Service ausente' }, { status: 401, statusText: 'Unauthorized' });
 
     expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(router.navigate).not.toHaveBeenCalled();
   });
 });

@@ -5,7 +5,7 @@ import {
   ViolationSeverity,
 } from '../../shared/interfaces/audit.interface';
 
-export type ReportViewState = 'loading' | 'loaded' | 'empty' | 'error';
+export type ReportViewState = 'loading' | 'loaded' | 'empty' | 'not-found' | 'error';
 
 export type ExportState = 'idle' | 'exporting' | 'error';
 
