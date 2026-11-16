@@ -1,12 +1,14 @@
 name: CI Backend
 
 # Seção 3 do Manual de Gestão de Código e Entrega. Roda em todo PR para a
-# main, em todo push em release/*, antes do deploy no DEV (workflow_call) e
-# semanalmente (testes golden do SLM, que são pesados demais para cada PR).
+# main OU para release/** (é o PR da feature pra dentro da release que pega
+# esse check), em todo push em release/*, antes do deploy no DEV
+# (workflow_call) e semanalmente (testes golden do SLM, que são pesados
+# demais para cada PR).
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, "release/**"]
     paths:
       - "src/**"
       - "tests/**"

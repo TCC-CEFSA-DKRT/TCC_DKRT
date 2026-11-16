@@ -4,7 +4,8 @@ name: CodeQL
 # (entrada do usuário até SQL, URL, comando, HTML). Gratuito em repositório
 # público. Os achados aparecem na aba Security > Code scanning e como anotação
 # no PR. Para bloquear o merge, exija o check "CodeQL" na regra de proteção da
-# main (docs/devops/workflows-explicados.md). Terraform, Dockerfile e Actions
+# main E de release/** (docs/devops/workflows-explicados.md). Terraform,
+# Dockerfile e Actions
 # ficam com o Semgrep (security.yml), que o CodeQL não cobre.
 #
 # Atenção: não habilite também o "default setup" do CodeQL nas configurações do
@@ -12,7 +13,7 @@ name: CodeQL
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, "release/**"]
     paths:
       - "src/**"
       - "frontend/**"
