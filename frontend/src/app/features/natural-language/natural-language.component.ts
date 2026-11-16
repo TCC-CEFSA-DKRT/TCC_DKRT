@@ -3,27 +3,17 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
-import { AuditCreateResponse } from '../../shared/models/audit.models';
-import {
-  COMMAND_TEXT_MAX_LENGTH,
-  CommandIntent,
-  InterpretAuditResponse,
-} from '../../shared/models/command.models';
+import { AuditCreateResponse } from '../../shared/interfaces/audit.interface';
+import { CommandIntent, InterpretAuditResponse } from '../../shared/interfaces/command.interface';
 import { NaturalLanguageApiService } from './natural-language-api.service';
 import { describeNaturalLanguageError } from './natural-language-errors';
-
-type InterpretState = 'idle' | 'loading' | 'interpreted' | 'error';
-type ConfirmState = 'idle' | 'submitting' | 'submitted' | 'error';
-
-/** Qual painel mostrar depois da interpretação (issue #21):
- * - `ready`: pronto para revisar e confirmar (único que tem botão de confirmar);
- * - `clarify`: pedido ambíguo — pergunta de esclarecimento + sugestões;
- * - `discovery`: lista de tipos do broker;
- * - `out-of-scope`: pedido fora do domínio FIWARE — nada é executado;
- * - `unavailable`: o modelo de linguagem não respondeu. */
-type ResultView = 'ready' | 'clarify' | 'discovery' | 'out-of-scope' | 'unavailable';
-
-type ConfidenceLevel = 'alta' | 'media' | 'baixa';
+import { COMMAND_TEXT_MAX_LENGTH } from './natural-language.constants';
+import {
+  ConfidenceLevel,
+  ConfirmState,
+  InterpretState,
+  ResultView,
+} from './natural-language.interface';
 
 /** Confiança mínima para considerar que o modelo "entendeu" o comando —
  * abaixo disso a interpretação é tratada como ambígua mesmo que

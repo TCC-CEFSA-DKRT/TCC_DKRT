@@ -1,5 +1,5 @@
-import { RecommendationAction, ViolationSeverity } from '../../shared/models/audit.models';
-import { StatusFilter } from './report-detail.models';
+import { RecommendationAction, ViolationSeverity } from '../../shared/interfaces/audit.interface';
+import { StatusFilter } from './report-detail.interface';
 
 export const SEVERITY_ORDER: readonly ViolationSeverity[] = ['error', 'warning', 'info'];
 

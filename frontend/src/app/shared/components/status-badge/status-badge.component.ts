@@ -1,28 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
-/** União de todos os vocabulários de status/severidade que este badge sabe
- * mapear — `ConformanceStatus`, `RunStatus` e `ViolationSeverity` (ver
- * shared/models/audit.models.ts) compartilham o mesmo componente porque
- * usam exatamente os mesmos tokens de cor (docs/design/design-system.md). */
-export type BadgeKind =
-  | 'conformant'
-  | 'partial'
-  | 'non_conformant'
-  | 'no_model_found'
-  | 'schema_unavailable'
-  | 'queued'
-  | 'running'
-  | 'completed'
-  | 'failed'
-  | 'no_entities_found'
-  | 'error'
-  | 'warning'
-  | 'info';
-
-interface BadgeStyle {
-  label: string;
-  colorVar: string;
-}
+import { BadgeKind, BadgeStyle } from './status-badge.interface';
 
 const BADGE_STYLES: Record<BadgeKind, BadgeStyle> = {
   conformant: { label: 'Conforme', colorVar: '--color-conformant' },

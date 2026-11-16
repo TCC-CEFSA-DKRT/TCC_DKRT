@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { API_CONFIG } from '../../core/api-config';
-import { AuditRunSummaryResponse, PageResponse } from '../../shared/models/audit.models';
+import { AuditRunSummaryResponse, PageResponse } from '../../shared/interfaces/audit.interface';
 
 /** Fase 8, seção 3 — dados do Dashboard. Reaproveita os dois endpoints da
  * seção 0 (`GET /audits` para a agregação por tenant/categoria, `GET

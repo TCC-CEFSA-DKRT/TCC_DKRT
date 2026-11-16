@@ -7,7 +7,7 @@ import { provideHttpClient } from '@angular/common/http';
 
 import { DashboardComponent } from './dashboard.component';
 import { API_CONFIG, DEFAULT_API_CONFIG } from '../../core/api-config';
-import { AuditRunSummaryResponse, PageResponse } from '../../shared/models/audit.models';
+import { AuditRunSummaryResponse, PageResponse } from '../../shared/interfaces/audit.interface';
 
 const BASE_URL = DEFAULT_API_CONFIG.baseUrl;
 

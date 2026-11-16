@@ -1,9 +1,12 @@
 # Design System — DKRT
 
 Guia visual da interface do DKRT (issue #61). Substitui a versão da Fase 8 (tema claro,
-uma família tipográfica, sem gradiente nem brilho): a identidade passou a ser escura,
-com acento ciano/verde, para que todas as telas tenham a mesma cara e a interface passe
-uma impressão profissional na apresentação. O funcionamento das telas não muda.
+uma família tipográfica, sem gradiente nem brilho): a identidade tem acento ciano/verde,
+para que todas as telas tenham a mesma cara e a interface passe uma impressão profissional
+na apresentação. O funcionamento das telas não muda.
+
+Há dois temas, escuro e claro (seção "Temas" abaixo). As tabelas de paleta descrevem o
+tema escuro; o claro troca só os valores, com os mesmos nomes de token.
 
 Toda tela usa só os tokens de `frontend/src/styles.scss`. Cor, fonte ou espaçamento
 "avulso" numa tela é bug de design.
@@ -58,6 +61,49 @@ Status e severidade (texto, badges, gráficos):
 Nos gráficos, verde e âmbar ficam próximos para quem tem daltonismo protan: por isso todo
 gráfico tem legenda com o nome de cada status, 2px de separação entre segmentos e os
 números escritos ao lado. A cor nunca é a única forma de identificar um status.
+
+## Temas
+
+O usuário escolhe o tema no botão "Tema claro" / "Tema escuro" do menu lateral (e no canto
+da tela de Login e Configuração). Sem escolha salva, o app segue o tema do sistema
+operacional e acompanha se ele mudar. A escolha fica salva no navegador
+(`localStorage`, chave `dkrt-theme`).
+
+Como funciona: `ThemeService` (`core/theme.service.ts`) coloca `data-theme="dark"` ou
+`data-theme="light"` no `<html>`. Em `styles.scss`, os valores de cada tema ficam nos
+mixins `dark-theme` e `light-theme`; os nomes dos tokens são os mesmos nos dois, então
+nenhuma tela precisa saber qual tema está ativo. Cores com transparência usam um token
+RGB (`--accent-rgb`, `--accent-2-rgb`, `--inset-rgb`, `--text-glow-rgb`) com
+`rgba(var(--accent-rgb), 0.1)`, para a transparência continuar igual nos dois temas.
+
+Tema claro — contrastes medidos sobre `surface-2` (`#F1F5F7`):
+
+| Token | Valor | Contraste |
+|---|---|---|
+| `--color-bg` | `#F3F6F8` | — |
+| `--color-surface` | `#FFFFFF` | — |
+| `--color-surface-2` | `#F1F5F7` | — |
+| `--color-border-strong` | `#71858F` | 3,5:1 |
+| `--color-text-primary` | `#0D1B24` | 16,0:1 |
+| `--color-text-secondary` | `#3E5361` | 7,3:1 |
+| `--color-text-muted` | `#566B77` | 5,1:1 |
+| `--color-accent` | `#007A72` | 4,8:1 |
+| `--color-conformant` | `#0F7F52` | 4,6:1 |
+| `--color-partial` / `--color-warning` | `#9B6100` | 4,7:1 |
+| `--color-non-conformant` | `#C8336F` | 4,6:1 |
+| `--color-no-model` | `#5B6B75` | 5,0:1 |
+| `--color-schema-unavailable` | `#6F42C1` | 5,9:1 |
+| `--color-info` | `#1A63C2` | 5,3:1 |
+
+O gradiente da marca e o texto escuro do botão primário são os mesmos nos dois temas
+(12,3:1). No tema claro o vermelho de "não conforme" puxa para o magenta: com o vermelho
+puro, âmbar e vermelho ficavam quase iguais para daltonismo deutan (ΔE 3,1). Com
+`#C8336F`, o par mais próximo é verde × âmbar, ΔE 7,3 para protan, a mesma situação do
+tema escuro, coberta pela legenda, pelos 2px entre segmentos e pelos números escritos.
+
+Tons de cinza: o status nunca depende só da cor (badge com texto, legenda com nome,
+números nos gráficos), então as telas continuam legíveis impressas em preto e branco ou
+com o filtro de tons de cinza do sistema.
 
 ## Espaçamento, bordas e sombras
 

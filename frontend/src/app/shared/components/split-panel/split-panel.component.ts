@@ -1,8 +1,11 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
+import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
+
 @Component({
   selector: 'app-split-panel',
   standalone: true,
+  imports: [ThemeToggleComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="split-panel">
@@ -18,6 +21,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
         </div>
       </div>
       <div class="split-panel__form">
+        <app-theme-toggle class="split-panel__theme" />
         <div class="split-panel__form-inner glass">
           <ng-content />
         </div>
@@ -39,9 +43,9 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
         padding: var(--space-8);
         overflow: hidden;
         background:
-          radial-gradient(520px 420px at 30% 40%, rgba(53, 240, 224, 0.16), transparent 70%),
-          linear-gradient(rgba(53, 240, 224, 0.06) 1px, transparent 1px) 0 0 / 32px 32px,
-          linear-gradient(90deg, rgba(53, 240, 224, 0.06) 1px, transparent 1px) 0 0 / 32px 32px,
+          radial-gradient(520px 420px at 30% 40%, rgba(var(--accent-rgb), 0.16), transparent 70%),
+          linear-gradient(rgba(var(--accent-rgb), 0.06) 1px, transparent 1px) 0 0 / 32px 32px,
+          linear-gradient(90deg, rgba(var(--accent-rgb), 0.06) 1px, transparent 1px) 0 0 / 32px 32px,
           var(--color-bg-raised);
         border-right: 1px solid var(--color-border-accent);
       }
@@ -68,7 +72,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
         font-weight: 700;
         line-height: 1;
         letter-spacing: 0.04em;
-        text-shadow: 0 0 26px rgba(53, 240, 224, 0.4);
+        text-shadow: 0 0 26px rgba(var(--text-glow-rgb), 0.4);
       }
       .split-panel__brand-subtitle {
         margin: var(--space-2) 0 var(--space-4);
@@ -99,6 +103,12 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
         align-items: center;
         justify-content: center;
         padding: var(--space-8);
+        position: relative;
+      }
+      .split-panel__theme {
+        position: absolute;
+        top: var(--space-6);
+        right: var(--space-6);
       }
       .split-panel__form-inner {
         width: 100%;

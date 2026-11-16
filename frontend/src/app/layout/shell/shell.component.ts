@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { SessionService } from '../../core/session.service';
+import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme-toggle.component';
 
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ThemeToggleComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="shell">
@@ -68,6 +69,7 @@ import { SessionService } from '../../core/session.service';
             <span class="shell__tenant">{{ session()?.tenant?.fiware_service }}</span>
             <button type="button" class="shell__logout" (click)="onLogout()">Sair</button>
           }
+          <app-theme-toggle />
           <span class="shell__project">TCC · FESA</span>
         </div>
         </div>
@@ -86,7 +88,7 @@ import { SessionService } from '../../core/session.service';
       .shell__nav {
         width: 250px;
         flex-shrink: 0;
-        background: linear-gradient(180deg, rgba(14, 25, 36, 0.92), rgba(8, 15, 22, 0.9));
+        background: var(--gradient-nav);
         border-right: 1px solid var(--color-border-accent);
       }
       .shell__nav-inner {
@@ -158,13 +160,13 @@ import { SessionService } from '../../core/session.service';
         stroke-linejoin: round;
       }
       .shell__link:hover {
-        background: rgba(53, 240, 224, 0.06);
+        background: rgba(var(--accent-rgb), 0.06);
         color: var(--color-text-primary);
       }
       .shell__link--active {
-        background: linear-gradient(90deg, rgba(53, 240, 224, 0.18), rgba(53, 240, 224, 0.03));
-        box-shadow: inset 3px 0 0 var(--color-accent), 0 0 22px rgba(53, 240, 224, 0.12);
-        color: #eafffb;
+        background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.18), rgba(var(--accent-rgb), 0.03));
+        box-shadow: inset 3px 0 0 var(--color-accent), 0 0 22px rgba(var(--accent-rgb), 0.12);
+        color: var(--color-nav-active-text);
       }
       .shell__content {
         flex: 1;

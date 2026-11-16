@@ -1,4 +1,4 @@
-import { AuditRunSummaryResponse, RunSummaryResponse } from '../../shared/models/audit.models';
+import { AuditRunSummaryResponse, RunSummaryResponse } from '../../shared/interfaces/audit.interface';
 import { EMPTY_SUMMARY, STATUS_SEGMENTS, TIMELINE_SEGMENTS, UNTYPED_RUN_LABEL } from './dashboard.constants';
 import {
   CategoryAggregate,
@@ -7,7 +7,7 @@ import {
   StatusSegmentDefinition,
   SummaryTile,
   TimelineColumn,
-} from './dashboard.models';
+} from './dashboard.interface';
 
 export function addSummaries(a: RunSummaryResponse, b: RunSummaryResponse): RunSummaryResponse {
   return {

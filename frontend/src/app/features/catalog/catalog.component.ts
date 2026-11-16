@@ -5,23 +5,11 @@ import { FormsModule } from '@angular/forms';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
 import { LoadingSkeletonComponent } from '../../shared/components/loading-skeleton/loading-skeleton.component';
-import { CatalogModelResponse, CatalogStatusResponse } from '../../shared/models/catalog.models';
+import { CatalogModelResponse, CatalogStatusResponse } from '../../shared/interfaces/catalog.interface';
 import { CatalogApiService } from './catalog-api.service';
-
-type ViewState = 'loading' | 'loaded' | 'never_synced' | 'error';
-type ModelsState = 'idle' | 'loading' | 'loaded' | 'empty' | 'error';
-type SchemaState = 'loading' | 'loaded' | 'error';
+import { ExpandedSchema, ModelsState, ViewState } from './catalog.interface';
 
 const MODELS_PAGE_SIZE = 20;
-
-interface ExpandedSchema {
-  key: string;
-  state: SchemaState;
-  content?: unknown;
-  source?: string;
-  fetchedAt?: string;
-  error?: string;
-}
 
 function modelKey(subject: string, modelName: string): string {
   return `${subject}::${modelName}`;

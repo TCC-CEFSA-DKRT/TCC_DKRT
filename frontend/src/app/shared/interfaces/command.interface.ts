@@ -7,9 +7,6 @@ export interface InterpretAuditRequest {
  * e `out_of_scope` (pedido fora do domínio FIWARE, nada é executado). */
 export type CommandIntent = 'audit' | 'discovery' | 'clarify' | 'out_of_scope';
 
-/** Mesmo limite de `COMMAND_TEXT_MAX_LENGTH` no backend (schemas.py). */
-export const COMMAND_TEXT_MAX_LENGTH = 500;
-
 export interface InterpretAuditResponse {
   intent: CommandIntent;
   entity_type: string | null;

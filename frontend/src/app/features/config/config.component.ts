@@ -6,13 +6,10 @@ import { Router } from '@angular/router';
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
 import { LoadingSkeletonComponent } from '../../shared/components/loading-skeleton/loading-skeleton.component';
 import { SplitPanelComponent } from '../../shared/components/split-panel/split-panel.component';
-import { BrokerConfigResponse, EntityTypesResponse } from '../../shared/models/config.models';
+import { BrokerConfigResponse, EntityTypesResponse } from '../../shared/interfaces/config.interface';
 import { API_CONFIG } from '../../core/api-config';
 import { SessionService } from '../../core/session.service';
-
-type LoadState = 'loading' | 'ready' | 'error';
-type SaveState = 'idle' | 'saving' | 'error';
-type ConnectionTest = { status: 'ok'; count: number } | { status: 'warn' } | null;
+import { ConnectionTest, LoadState, SaveState } from './config.interface';
 
 @Component({
   selector: 'app-config',
