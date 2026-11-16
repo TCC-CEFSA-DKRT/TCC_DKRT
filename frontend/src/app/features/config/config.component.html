@@ -11,67 +11,154 @@
     }
     @case ('ready') {
       <h2 class="config-title">Configuração do broker</h2>
-      <form class="config-form" (ngSubmit)="onSave()">
-        <label class="config-field" for="config-broker-url">
+      <form class="config-form" novalidate (ngSubmit)="onSave()">
+        <fieldset class="config-kind">
+          <legend class="config-kind__legend">Onde está o broker?</legend>
+          @for (option of kindOptions; track option.value) {
+            <label class="config-kind__option" [class.config-kind__option--selected]="values().brokerKind === option.value">
+              <input
+                type="radio"
+                name="brokerKind"
+                class="config-kind__radio"
+                [value]="option.value"
+                [checked]="values().brokerKind === option.value"
+                (change)="setKind(option.value)"
+              />
+              <span class="config-kind__title">{{ option.title }}</span>
+              <span class="config-kind__description">{{ option.description }}</span>
+            </label>
+          }
+        </fieldset>
+
+        <label class="config-field" [for]="inputIds.brokerUrl">
           <span>URL do broker</span>
           <input
-            id="config-broker-url"
+            [id]="inputIds.brokerUrl"
             class="config-field__input"
             name="brokerUrl"
-            placeholder="http://orion:1026"
-            [(ngModel)]="brokerUrl"
-            required
+            inputmode="url"
+            autocomplete="off"
+            [placeholder]="values().brokerKind === 'cloud' ? 'https://orion.exemplo.com' : 'http://localhost:1026'"
+            [ngModel]="values().brokerUrl"
+            (ngModelChange)="setField('brokerUrl', $event)"
+            [attr.aria-invalid]="fieldErrors().brokerUrl ? true : null"
+            [attr.aria-describedby]="fieldErrors().brokerUrl ? 'config-broker-url-error' : null"
           />
+          @if (fieldErrors().brokerUrl; as error) {
+            <small id="config-broker-url-error" class="config-field__error">{{ error }}</small>
+          }
         </label>
-        <label class="config-field" for="config-fiware-service">
-          <span>Fiware-Service</span>
+
+        <label class="config-field" [for]="inputIds.fiwareService">
+          <span>Fiware-Service <em class="config-field__optional">(opcional)</em></span>
           <input
-            id="config-fiware-service"
+            [id]="inputIds.fiwareService"
             class="config-field__input"
             name="fiwareService"
-            [(ngModel)]="fiwareService"
+            autocomplete="off"
+            [ngModel]="values().fiwareService"
+            (ngModelChange)="setField('fiwareService', $event)"
+            [attr.aria-invalid]="fieldErrors().fiwareService ? true : null"
+            aria-describedby="config-fiware-service-hint"
           />
-          <small class="config-field__hint">Deixe em branco se o broker não usa isolamento por serviço (Fiware-Service) do Orion.</small>
+          <small id="config-fiware-service-hint" class="config-field__hint">Deixe em branco se o broker não usa isolamento por serviço (Fiware-Service) do Orion.</small>
+          @if (fieldErrors().fiwareService; as error) {
+            <small class="config-field__error">{{ error }}</small>
+          }
         </label>
-        <label class="config-field" for="config-fiware-service-path">
+
+        <label class="config-field" [for]="inputIds.fiwareServicePath">
           <span>Fiware-ServicePath</span>
           <input
-            id="config-fiware-service-path"
+            [id]="inputIds.fiwareServicePath"
             class="config-field__input"
             name="fiwareServicePath"
-            [(ngModel)]="fiwareServicePath"
-            required
+            autocomplete="off"
+            [ngModel]="values().fiwareServicePath"
+            (ngModelChange)="setField('fiwareServicePath', $event)"
+            [attr.aria-invalid]="fieldErrors().fiwareServicePath ? true : null"
+            [attr.aria-describedby]="fieldErrors().fiwareServicePath ? 'config-fiware-service-path-error' : null"
           />
+          @if (fieldErrors().fiwareServicePath; as error) {
+            <small id="config-fiware-service-path-error" class="config-field__error">{{ error }}</small>
+          }
         </label>
 
-        @if (saveState() === 'error') {
-          <p class="config-error">Não foi possível salvar a configuração. Tente novamente.</p>
+        @if (values().brokerKind === 'cloud') {
+          <label class="config-field" [for]="inputIds.apiKey">
+            <span>Chave de acesso <em class="config-field__optional">(opcional)</em></span>
+            <input
+              [id]="inputIds.apiKey"
+              class="config-field__input"
+              name="apiKey"
+              type="password"
+              autocomplete="off"
+              [placeholder]="values().hasSavedApiKey ? 'Chave salva. Deixe em branco para manter.' : ''"
+              [ngModel]="values().apiKey"
+              (ngModelChange)="setField('apiKey', $event)"
+              [attr.aria-invalid]="fieldErrors().apiKey ? true : null"
+              aria-describedby="config-api-key-hint"
+            />
+            <small id="config-api-key-hint" class="config-field__hint">Enviada ao broker como Authorization: Bearer. Deixe em branco se o broker não exige chave.</small>
+            @if (fieldErrors().apiKey; as error) {
+              <small class="config-field__error">{{ error }}</small>
+            }
+          </label>
         }
 
-        <button type="submit" class="config-submit btn-primary" [disabled]="saveState() === 'saving'">
-          Salvar
-        </button>
+        <div class="config-result" role="status">
+          @if (testState() === 'testing') {
+            <p class="connection-test">Testando a conexão com o broker…</p>
+          } @else if (testState() === 'error') {
+            <p class="connection-test connection-test--error">{{ requestFailedMessage }}</p>
+          } @else if (saveState() !== 'needs-confirmation' && saveState() !== 'saved' && connectionMessage(); as message) {
+            <p class="connection-test" [class.connection-test--ok]="message.tone === 'ok'" [class.connection-test--error]="message.tone === 'error'">
+              {{ message.text }}
+            </p>
+          }
+        </div>
+
+        @if (saveState() === 'needs-confirmation') {
+          <div class="config-confirm" role="alert">
+            <p class="config-confirm__title">A configuração não foi salva: o teste de conexão falhou.</p>
+            @if (connectionMessage(); as message) {
+              <p class="config-confirm__reason">{{ message.text }}</p>
+            }
+            <p class="config-confirm__warning">Se salvar assim, as auditorias vão falhar até o broker responder.</p>
+            <div class="config-actions">
+              <button type="button" class="config-fix btn-primary" (click)="onFixConfig()">Corrigir a configuração</button>
+              <button type="button" class="config-save-anyway btn-secondary" (click)="onSaveAnyway()">Salvar mesmo assim</button>
+            </div>
+          </div>
+        }
+
+        @if (saveState() === 'error') {
+          <p class="config-error" role="alert">Não foi possível salvar a configuração. Tente novamente.</p>
+        }
+
+        @if (saveState() !== 'needs-confirmation') {
+          <div class="config-actions">
+            <button type="button" class="config-test btn-secondary" [disabled]="busy()" (click)="onTest()">
+              {{ testState() === 'testing' ? 'Testando…' : 'Testar conexão' }}
+            </button>
+            <button type="submit" class="config-submit btn-primary" [disabled]="busy()">
+              {{ saveState() === 'saving' ? 'Salvando…' : 'Salvar' }}
+            </button>
+          </div>
+        }
       </form>
 
-      @if (saved()) {
-        @if (connectionTest(); as test) {
-          @switch (test.status) {
-            @case ('ok') {
-              <p class="connection-test connection-test--ok">
-                Configuração salva — broker alcançável, {{ test.count }} tipo(s) de entidade
-                encontrado(s).
-              </p>
-            }
-            @case ('warn') {
-              <p class="connection-test connection-test--warn">
-                Configuração salva, mas o broker não respondeu. Verifique a URL antes de continuar.
-              </p>
-            }
+      @if (saveState() === 'saved' && savedConfig(); as saved) {
+        <div class="config-saved" role="status">
+          @if (saved.connection; as connection) {
+            <p class="connection-test connection-test--ok">Configuração salva. {{ connectionMessageFor(connection) }}</p>
+          } @else {
+            <p class="connection-test connection-test--warn">
+              Configuração salva sem conexão confirmada. As auditorias vão falhar até o broker responder.
+            </p>
           }
-        } @else {
-          <p class="connection-test">Configuração salva — testando a conexão com o broker…</p>
-        }
-        <button type="button" class="config-continue btn-secondary" (click)="onContinue()">Continuar</button>
+          <button type="button" class="config-continue btn-secondary" (click)="onContinue()">Continuar</button>
+        </div>
       }
     }
   }
