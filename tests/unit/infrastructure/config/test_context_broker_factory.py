@@ -16,19 +16,23 @@ from auditor.infrastructure.context_broker.tenant_routed_context_broker import (
 
 @pytest.fixture(autouse=True)
 def _clear_caches():
-    container_module.get_settings.cache_clear()
-    container_module.get_engine.cache_clear()
-    container_module.get_tenant_account_repository.cache_clear()
-    container_module.get_broker_http_client.cache_clear()
-    container_module.get_embedder.cache_clear()
-    container_module.get_knowledge_retriever.cache_clear()
+    # Capturados antes do corpo do teste rodar: um dos testes substitui
+    # container_module.get_tenant_account_repository via monkeypatch.setattr,
+    # entao ler o atributo do modulo de novo no teardown (depois do yield)
+    # pegaria o mock sem .cache_clear() em vez da funcao real.
+    caches = (
+        container_module.get_settings,
+        container_module.get_engine,
+        container_module.get_tenant_account_repository,
+        container_module.get_broker_http_client,
+        container_module.get_embedder,
+        container_module.get_knowledge_retriever,
+    )
+    for cache in caches:
+        cache.cache_clear()
     yield
-    container_module.get_settings.cache_clear()
-    container_module.get_engine.cache_clear()
-    container_module.get_tenant_account_repository.cache_clear()
-    container_module.get_broker_http_client.cache_clear()
-    container_module.get_embedder.cache_clear()
-    container_module.get_knowledge_retriever.cache_clear()
+    for cache in caches:
+        cache.cache_clear()
 
 
 class TestGetContextBrokerSelfHosted:
