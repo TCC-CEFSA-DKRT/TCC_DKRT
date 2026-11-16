@@ -10,9 +10,12 @@ Decisão: `docs/adr/adr-0021.md`. Processo: Manual de Gestão de Código e Entre
 | HOMOLOGAÇÃO | `auditor-homolog` | Lambda + ALB + CloudFront/S3 + RDS | tag `vX.Y.Z-rc.N` em `release/X.Y.Z` | Environment `homologacao` |
 | PRODUÇÃO | `auditor-prod` | Lambda + ALB + CloudFront/S3 + RDS Multi-AZ | tag `vX.Y.Z` na `main` | Environment `producao` (revisores obrigatórios) |
 
-Fluxo: PR → CI (por pasta) → merge → DEV (Q.A, 1º ciclo) → `release/X.Y.Z` + tag `-rc` →
-HOMOLOGAÇÃO (Q.A, 2º ciclo) → merge na `main` + tag `vX.Y.Z` → PRODUÇÃO (mesma imagem e
-mesmo frontend, promovidos). Rollback: workflow `Rollback PRODUÇÃO` com a versão anterior.
+Fluxo: `release/X.Y.Z` nasce da `main` → PR da feature para a `release/X.Y.Z` → CI →
+merge → DEV (Q.A, 1º ciclo, roda a branch que estiver pronta) → tag `-rc` na
+`release/X.Y.Z` → HOMOLOGAÇÃO (Q.A, 2º ciclo) → merge da `release/X.Y.Z` na `main` + tag
+`vX.Y.Z` → PRODUÇÃO (mesma imagem e mesmo frontend, promovidos). A `main` só recebe
+código já homologado — a feature nunca mergeia direto nela. Rollback: workflow
+`Rollback PRODUÇÃO` com a versão anterior.
 
 ## Workflows
 
@@ -38,8 +41,8 @@ mesmo frontend, promovidos). Rollback: workflow `Rollback PRODUÇÃO` com a vers
      Opcional em `homologacao`: `ORION_URL`, `FIWARE_SERVICE`, `FIWARE_SERVICE_PATH` e os
      segredos `ACCEPTANCE_EMAIL`/`ACCEPTANCE_PASSWORD` para os 3 cenários DKRT.
    - `producao`: revisores obrigatórios e "Prevent self-review".
-4. **Branch protection** (`main`, `develop`): exigir os checks `ci-backend`, `ci-frontend`,
-   `ci-infra`, `security` e `CodeQL`.
+4. **Branch protection** (`main`, `develop`, `release/**`): exigir os checks `ci-backend`,
+   `ci-frontend`, `ci-infra`, `security` e `CodeQL`.
 5. **Primeiro provisionamento** de cada ambiente: `infra-apply` (plan, depois apply). Nos
    ambientes Lambda a primeira criação usa a imagem `bootstrap`; em seguida rodar o deploy do
    ambiente (DEV manual, HOMOLOG por tag `-rc`).

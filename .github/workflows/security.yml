@@ -3,12 +3,13 @@ name: Segurança
 # Seção 3.1 do manual: pip-audit, npm audit e varredura de segredos, mais
 # Semgrep para IaC (o SAST do código está em codeql.yml; o manual não exige
 # SAST, foi adicionado). Roda em
-# PR para a main, em push em release/*, antes das implantações e semanalmente
-# (novas vulnerabilidades surgem mesmo sem commits).
+# PR para a main ou para release/** (PR da feature pra dentro da release),
+# em push em release/*, antes das implantações e semanalmente (novas
+# vulnerabilidades surgem mesmo sem commits).
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, "release/**"]
   push:
     branches: ["release/**"]
   schedule:
