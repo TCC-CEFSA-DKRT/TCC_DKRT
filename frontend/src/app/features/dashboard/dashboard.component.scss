@@ -76,7 +76,7 @@
   padding: var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: rgba(5, 11, 17, 0.45);
+  background: rgba(var(--inset-rgb), 0.45);
 }
 
 .card__title {
@@ -177,7 +177,7 @@
 
 .type-switch__button--active {
   border-color: var(--color-accent);
-  background: rgba(53, 240, 224, 0.1);
+  background: rgba(var(--accent-rgb), 0.1);
   color: var(--color-accent);
   font-weight: 600;
 }

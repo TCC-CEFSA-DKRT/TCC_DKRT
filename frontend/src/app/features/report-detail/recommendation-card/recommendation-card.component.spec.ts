@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
-import { RecommendationView } from '../report-detail.models';
+import { RecommendationView } from '../report-detail.interface';
 import { RecommendationCardComponent } from './recommendation-card.component';
 
 function render(view: RecommendationView): HTMLElement {

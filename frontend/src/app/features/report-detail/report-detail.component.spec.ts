@@ -9,7 +9,7 @@ import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { ReportDetailComponent } from './report-detail.component';
 import { API_CONFIG, DEFAULT_API_CONFIG } from '../../core/api-config';
 import { FileDownloadService } from '../../core/file-download.service';
-import { AuditRunResponse, EntityReportResponse } from '../../shared/models/audit.models';
+import { AuditRunResponse, EntityReportResponse } from '../../shared/interfaces/audit.interface';
 
 const BASE_URL = DEFAULT_API_CONFIG.baseUrl;
 

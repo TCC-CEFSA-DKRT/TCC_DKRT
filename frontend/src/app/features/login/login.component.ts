@@ -5,8 +5,7 @@ import { Router } from '@angular/router';
 
 import { SplitPanelComponent } from '../../shared/components/split-panel/split-panel.component';
 import { SessionService } from '../../core/session.service';
-
-type LoginState = 'idle' | 'submitting' | 'error';
+import { LoginState } from './login.interface';
 
 @Component({
   selector: 'app-login',

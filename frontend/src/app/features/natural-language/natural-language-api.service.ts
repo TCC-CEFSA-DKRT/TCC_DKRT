@@ -3,8 +3,8 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, timeout } from 'rxjs';
 
 import { API_CONFIG } from '../../core/api-config';
-import { AuditCreateRequest, AuditCreateResponse } from '../../shared/models/audit.models';
-import { InterpretAuditRequest, InterpretAuditResponse } from '../../shared/models/command.models';
+import { AuditCreateRequest, AuditCreateResponse } from '../../shared/interfaces/audit.interface';
+import { InterpretAuditRequest, InterpretAuditResponse } from '../../shared/interfaces/command.interface';
 
 /** Issue #21 — limite de espera no navegador. O backend já desiste do
  * Ollama em 60 s e devolve `interpreter_available: false`; este limite só

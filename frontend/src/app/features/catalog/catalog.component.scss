@@ -95,7 +95,7 @@
 }
 
 .models-table__schema-row td {
-  background: rgba(5, 11, 17, 0.45);
+  background: rgba(var(--inset-rgb), 0.45);
 }
 
 .models-table__schema-meta {
@@ -112,7 +112,7 @@
 
 .models-table__schema-content {
   font-size: 0.8125rem;
-  background: rgba(5, 11, 17, 0.7);
+  background: rgba(var(--inset-rgb), 0.7);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: var(--space-3);
@@ -120,7 +120,7 @@
   overflow: auto;
   white-space: pre;
   margin: 0;
-  color: #b4fbf3;
+  color: var(--color-chip-text);
 }
 
 .models-table__pagination {

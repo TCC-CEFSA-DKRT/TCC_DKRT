@@ -3,7 +3,7 @@ import {
   EntityReportResponse,
   ViolationResponse,
   ViolationSeverity,
-} from '../../shared/models/audit.models';
+} from '../../shared/interfaces/audit.interface';
 
 export type ReportViewState = 'loading' | 'loaded' | 'empty' | 'error';
 

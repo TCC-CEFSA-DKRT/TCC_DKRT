@@ -36,7 +36,7 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
         padding: var(--space-2) var(--space-3);
         border-radius: var(--radius-sm);
         border: 1px solid var(--color-border);
-        background: rgba(5, 11, 17, 0.55);
+        background: rgba(var(--inset-rgb), 0.55);
       }
       .diff-view__label {
         font-size: 0.75rem;

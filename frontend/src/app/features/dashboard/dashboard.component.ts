@@ -4,7 +4,7 @@ import { DatePipe } from '@angular/common';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
 import { LoadingSkeletonComponent } from '../../shared/components/loading-skeleton/loading-skeleton.component';
-import { AuditRunSummaryResponse } from '../../shared/models/audit.models';
+import { AuditRunSummaryResponse } from '../../shared/interfaces/audit.interface';
 import { DashboardApiService } from './dashboard-api.service';
 import { STATUS_SEGMENTS, TIMELINE_SEGMENTS } from './dashboard.constants';
 import {
@@ -17,7 +17,7 @@ import {
   summaryTiles,
   timelineColumns,
 } from './dashboard-charts';
-import { CategoryAggregate, DashboardViewState } from './dashboard.models';
+import { CategoryAggregate, DashboardViewState } from './dashboard.interface';
 
 @Component({
   selector: 'app-dashboard',

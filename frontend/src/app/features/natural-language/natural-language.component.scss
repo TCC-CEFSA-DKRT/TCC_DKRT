@@ -15,7 +15,7 @@
   height: 56px;
   padding: 0 var(--space-5);
   font-size: 1.0625rem;
-  background: rgba(5, 11, 17, 0.86);
+  background: rgba(var(--inset-rgb), 0.86);
 }
 
 .command-form__submit {
@@ -141,9 +141,9 @@
 
 .understanding-list__param {
   justify-self: start;
-  color: #b4fbf3;
-  background: rgba(53, 240, 224, 0.09);
-  border: 1px solid rgba(53, 240, 224, 0.5);
+  color: var(--color-chip-text);
+  background: rgba(var(--accent-rgb), 0.09);
+  border: 1px solid rgba(var(--accent-rgb), 0.5);
   border-radius: 999px;
   padding: 3px 14px;
   font-size: 0.875rem;
@@ -197,7 +197,7 @@
 .chip:hover,
 .chip:focus-visible {
   border-color: var(--color-accent);
-  box-shadow: 0 0 14px rgba(53, 240, 224, 0.3);
+  box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.3);
 }
 
 .confirm-panel > .status-text {

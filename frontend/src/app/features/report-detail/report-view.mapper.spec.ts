@@ -1,4 +1,4 @@
-import { EntityReportResponse, ViolationResponse } from '../../shared/models/audit.models';
+import { EntityReportResponse, ViolationResponse } from '../../shared/interfaces/audit.interface';
 import { RULE_LABELS } from './report-labels';
 import {
   entityTrackKey,

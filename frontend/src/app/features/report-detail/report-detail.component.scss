@@ -69,10 +69,10 @@
 
 .status-filter__option--active {
   border-color: var(--color-accent);
-  background: rgba(53, 240, 224, 0.1);
+  background: rgba(var(--accent-rgb), 0.1);
   color: var(--color-accent);
   font-weight: 600;
-  box-shadow: 0 0 16px rgba(53, 240, 224, 0.2);
+  box-shadow: 0 0 16px rgba(var(--accent-rgb), 0.2);
 }
 
 .status-filter__count {
@@ -117,7 +117,7 @@
 .semantic-skipped-note,
 .no-violations {
   font-size: 0.8125rem;
-  background: rgba(5, 11, 17, 0.55);
+  background: rgba(var(--inset-rgb), 0.55);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: var(--space-2) var(--space-3);
@@ -146,7 +146,7 @@
   border: 1px solid var(--color-border);
   border-left: 3px solid var(--color-border-strong);
   border-radius: var(--radius-md);
-  background: rgba(5, 11, 17, 0.35);
+  background: rgba(var(--inset-rgb), 0.35);
   padding: var(--space-3) var(--space-4);
   margin-bottom: var(--space-3);
 }
@@ -181,7 +181,7 @@
 }
 
 .violation__source--semantic {
-  background: rgba(53, 240, 224, 0.12);
+  background: rgba(var(--accent-rgb), 0.12);
   color: var(--color-accent);
 }
 

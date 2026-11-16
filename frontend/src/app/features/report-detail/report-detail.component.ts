@@ -8,7 +8,7 @@ import { LoadingSkeletonComponent } from '../../shared/components/loading-skelet
 import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge.component';
 import { DiffViewComponent } from '../../shared/components/diff-view/diff-view.component';
 import { FileDownloadService, filenameFromContentDisposition } from '../../core/file-download.service';
-import { AuditRunResponse } from '../../shared/models/audit.models';
+import { AuditRunResponse } from '../../shared/interfaces/audit.interface';
 import { RecommendationCardComponent } from './recommendation-card/recommendation-card.component';
 import { ReportDetailApiService } from './report-detail-api.service';
 import {
@@ -17,7 +17,7 @@ import {
   FilterOption,
   ReportViewState,
   StatusFilter,
-} from './report-detail.models';
+} from './report-detail.interface';
 import { browserTimeZone, describeExportError } from './report-export';
 import { ALWAYS_VISIBLE_FILTERS, STATUS_FILTER_LABELS } from './report-labels';
 import { entityTrackKey, toEntityReportView } from './report-view.mapper';

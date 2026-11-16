@@ -37,7 +37,7 @@
 }
 
 .runs-table__link:hover {
-  text-shadow: 0 0 12px rgba(53, 240, 224, 0.6);
+  text-shadow: 0 0 12px rgba(var(--text-glow-rgb), 0.6);
 }
 
 .runs-table__total {
