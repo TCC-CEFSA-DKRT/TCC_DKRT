@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import jwt
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 
 from auditor.domain.value_objects.tenant import Tenant
 from auditor.infrastructure.config.container import get_selfhosted_accounts, get_settings
 from auditor.infrastructure.config.settings import Settings
 from auditor.infrastructure.persistence.tenant_account_repository import TenantAccountRepository
-from auditor.interfaces.rest.access_tokens import tenant_from_access_token
+from auditor.interfaces.rest.access_tokens import SessionClaims, session_from_access_token
 from auditor.interfaces.rest.dependencies import session_token
 from auditor.interfaces.rest.schemas import SessionResponse, TenantResponse
 
@@ -22,20 +22,24 @@ def _tenant_response(tenant: Tenant) -> TenantResponse:
 
 @router.get("", response_model=SessionResponse)
 async def get_session(
+    response: Response,
     token: str | None = Depends(session_token),
     settings: Settings = Depends(get_settings),
     accounts: TenantAccountRepository | None = Depends(get_selfhosted_accounts),
 ) -> SessionResponse:
+    response.headers["Cache-Control"] = "no-store"
     if settings.deployment_mode == "saas":
-        tenant = None
+        claims: SessionClaims | None = None
         if token is not None:
             try:
-                tenant = tenant_from_access_token(token, settings)
+                claims = session_from_access_token(token, settings)
             except jwt.InvalidTokenError:
-                tenant = None
+                claims = None
         return SessionResponse(
             deployment_mode="saas",
-            tenant=_tenant_response(tenant) if tenant is not None else None,
+            tenant=_tenant_response(claims.tenant) if claims is not None else None,
+            expires_at=claims.expires_at if claims is not None else None,
+            login_email=claims.login_email if claims is not None else None,
         )
 
     if accounts is None:

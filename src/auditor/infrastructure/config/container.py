@@ -25,11 +25,13 @@ from auditor.application.use_cases.interpret_audit_command import InterpretAudit
 from auditor.application.use_cases.run_audit import RunAuditUseCase
 from auditor.application.use_cases.sync_catalog import SyncCatalogUseCase
 from auditor.application.use_cases.sync_knowledge_base import SyncKnowledgeBaseUseCase
+from auditor.domain.ports.broker_connection_tester_port import BrokerConnectionTesterPort
 from auditor.domain.ports.context_broker_port import ContextBrokerPort
 from auditor.domain.services.structural_validator import StructuralValidator
 from auditor.infrastructure.config.settings import Settings
 from auditor.infrastructure.context_broker.ngsi_v2_mapper import NgsiV2Mapper
 from auditor.infrastructure.context_broker.orion_adapter import OrionAdapter
+from auditor.infrastructure.context_broker.orion_connection_tester import OrionConnectionTester
 from auditor.infrastructure.context_broker.self_hosted_context_broker import (
     SelfHostedContextBroker,
 )
@@ -139,6 +141,10 @@ def get_context_broker() -> ContextBrokerPort:
 
 def get_selfhosted_accounts() -> TenantAccountRepository | None:
     return get_tenant_account_repository() if get_settings().broker_api_key_encryption_keys_list else None
+
+
+def get_broker_connection_tester() -> BrokerConnectionTesterPort:
+    return OrionConnectionTester(get_broker_http_client())
 
 
 def get_unit_of_work() -> SqlAlchemyUnitOfWork:

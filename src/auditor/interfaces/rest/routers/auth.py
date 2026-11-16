@@ -57,8 +57,9 @@ async def login(
             detail="Email ou senha invalidos.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    token = issue_access_token(account.tenant, settings)
+    token = issue_access_token(account.tenant, settings, login_email=account.login_email)
     _set_session_cookie(response, token, settings)
+    response.headers["Cache-Control"] = "no-store"
     return AccessTokenResponse(access_token=token)
 
 

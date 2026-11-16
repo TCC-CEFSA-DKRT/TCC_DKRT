@@ -1,12 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { SessionService } from '../../core/session.service';
 import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme-toggle.component';
+import { UserMenuComponent } from '../../shared/components/user-menu/user-menu.component';
 
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ThemeToggleComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ThemeToggleComponent, UserMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="shell">
@@ -65,16 +66,17 @@ import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme
           </a>
         }
         <div class="shell__footer">
-          @if (session()?.deployment_mode === 'saas') {
-            <span class="shell__tenant">{{ session()?.tenant?.fiware_service }}</span>
-            <button type="button" class="shell__logout" (click)="onLogout()">Sair</button>
-          }
           <app-theme-toggle />
           <span class="shell__project">TCC · FESA</span>
         </div>
         </div>
       </nav>
       <main class="shell__content">
+        @if (session()?.deployment_mode === 'saas' && session()?.tenant) {
+          <header class="shell__topbar">
+            <app-user-menu />
+          </header>
+        }
         <router-outlet />
       </main>
     </div>
@@ -180,39 +182,21 @@ import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme
         flex-direction: column;
         gap: var(--space-2);
       }
-      .shell__tenant {
-        font-family: var(--font-mono);
-        font-size: 0.75rem;
-        color: var(--color-text-secondary);
+      .shell__topbar {
+        display: flex;
+        justify-content: flex-end;
+        margin: calc(-1 * var(--space-4)) 0 var(--space-4);
       }
       .shell__project {
         font-size: 0.75rem;
         letter-spacing: 0.04em;
         color: var(--color-text-muted);
       }
-      .shell__logout {
-        border: none;
-        background: none;
-        text-align: left;
-        padding: var(--space-2) 0;
-        color: var(--color-text-secondary);
-        font-size: 0.875rem;
-        font-weight: 500;
-        cursor: pointer;
-      }
-      .shell__logout:hover {
-        color: var(--color-accent);
-      }
     `,
   ],
 })
 export class ShellComponent {
   private readonly sessionService = inject(SessionService);
-  private readonly router = inject(Router);
 
   protected readonly session = this.sessionService.session;
-
-  protected onLogout(): void {
-    this.sessionService.logout().subscribe(() => this.router.navigateByUrl('/login'));
-  }
 }

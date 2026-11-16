@@ -11,7 +11,11 @@ from auditor.infrastructure.config.container import get_selfhosted_accounts, get
 from auditor.infrastructure.config.settings import Settings
 from auditor.infrastructure.persistence.tenant_account_repository import TenantAccount
 from auditor.interfaces.rest import app as app_module
-from auditor.interfaces.rest.access_tokens import JWT_ALGORITHM, SESSION_COOKIE_NAME
+from auditor.interfaces.rest.access_tokens import (
+    JWT_ALGORITHM,
+    SESSION_COOKIE_NAME,
+    issue_access_token,
+)
 
 _SAAS = Settings(_env_file=None, deployment_mode="saas", jwt_signing_key="k" * 32)
 _SELFHOSTED_NO_KEY = Settings(_env_file=None)
@@ -98,6 +102,46 @@ class TestSessionSaas:
 
         assert response.status_code == 200
         assert response.json()["tenant"] is None
+        assert response.json()["expires_at"] is None
+
+    @pytest.mark.asyncio
+    async def test_valid_cookie_tells_when_the_session_expires(self, monkeypatch):
+        token = _token(_SAAS)
+        expected = jwt.decode(token, options={"verify_signature": False})["exp"]
+        async with _client(monkeypatch, _SAAS) as client:
+            response = await client.get(
+                "/session", headers={"Cookie": f"{SESSION_COOKIE_NAME}={token}"}
+            )
+
+        expires_at = datetime.fromisoformat(response.json()["expires_at"])
+        assert expires_at.timestamp() == expected
+
+    @pytest.mark.asyncio
+    async def test_valid_cookie_tells_who_is_logged_in(self, monkeypatch):
+        token = issue_access_token(_TENANT_A, _SAAS, login_email="a@cidade.test")
+        async with _client(monkeypatch, _SAAS) as client:
+            response = await client.get(
+                "/session", headers={"Cookie": f"{SESSION_COOKIE_NAME}={token}"}
+            )
+
+        assert response.json()["login_email"] == "a@cidade.test"
+
+    @pytest.mark.asyncio
+    async def test_token_without_the_login_email_still_opens_the_session(self, monkeypatch):
+        async with _client(monkeypatch, _SAAS) as client:
+            response = await client.get(
+                "/session", headers={"Cookie": f"{SESSION_COOKIE_NAME}={_token(_SAAS)}"}
+            )
+
+        assert response.json()["tenant"]["fiware_service"] == "tenant_a"
+        assert response.json()["login_email"] is None
+
+    @pytest.mark.asyncio
+    async def test_session_answer_is_never_cached(self, monkeypatch):
+        async with _client(monkeypatch, _SAAS) as client:
+            response = await client.get("/session")
+
+        assert response.headers["cache-control"] == "no-store"
 
 
 class TestSessionSelfHostedWithoutKey:

@@ -1,37 +1,52 @@
 <app-split-panel>
   <h2 class="login-title">Entrar</h2>
-  <form class="login-form" (ngSubmit)="onSubmit()">
-    <label class="login-field" for="login-email">
+
+  @if (sessionExpired) {
+    <p class="login-notice" role="status">{{ expiredMessage }}</p>
+  }
+
+  <form class="login-form" novalidate (ngSubmit)="onSubmit()">
+    <label class="login-field" [for]="inputIds.email">
       <span>Email</span>
       <input
-        id="login-email"
+        [id]="inputIds.email"
         class="login-field__input"
         type="email"
         name="email"
         autocomplete="username"
-        [(ngModel)]="email"
-        required
+        [ngModel]="email()"
+        (ngModelChange)="email.set($event)"
+        [attr.aria-invalid]="fieldErrors().email ? true : null"
+        [attr.aria-describedby]="fieldErrors().email ? 'login-email-error' : null"
       />
+      @if (fieldErrors().email; as error) {
+        <small id="login-email-error" class="login-field__error">{{ error }}</small>
+      }
     </label>
-    <label class="login-field" for="login-password">
+    <label class="login-field" [for]="inputIds.password">
       <span>Senha</span>
       <input
-        id="login-password"
+        [id]="inputIds.password"
         class="login-field__input"
         type="password"
         name="password"
         autocomplete="current-password"
-        [(ngModel)]="password"
-        required
+        [ngModel]="password()"
+        (ngModelChange)="password.set($event)"
+        [attr.aria-invalid]="fieldErrors().password ? true : null"
+        [attr.aria-describedby]="fieldErrors().password ? 'login-password-error' : null"
       />
+      @if (fieldErrors().password; as error) {
+        <small id="login-password-error" class="login-field__error">{{ error }}</small>
+      }
     </label>
 
     @if (state() === 'error') {
-      <p class="login-error">{{ errorMessage() }}</p>
+      <p class="login-error" role="alert">{{ errorMessage() }}</p>
     }
 
     <button type="submit" class="login-submit btn-primary" [disabled]="state() === 'submitting'">
-      Entrar
+      {{ state() === 'submitting' ? 'Entrando…' : 'Entrar' }}
     </button>
   </form>
 </app-split-panel>

@@ -46,24 +46,30 @@ describe('ShellComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Configuração');
   });
 
-  it('shows the tenant name and a "Sair" button only in saas mode', () => {
+  it('shows who is logged in and the "Sair" button at the top only in saas mode', () => {
     session.session.set({ deployment_mode: 'selfhosted', tenant: { fiware_service: 'openiot', fiware_service_path: '/' } });
     const fixture = TestBed.createComponent(ShellComponent);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.shell__logout')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.shell__topbar app-user-menu')).toBeNull();
 
-    session.session.set({ deployment_mode: 'saas', tenant: { fiware_service: 'acme', fiware_service_path: '/' } });
+    session.session.set({
+      deployment_mode: 'saas',
+      tenant: { fiware_service: 'acme', fiware_service_path: '/' },
+      login_email: 'ana@acme.test',
+    });
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.shell__tenant').textContent).toContain('acme');
-    expect(fixture.nativeElement.querySelector('.shell__logout')).not.toBeNull();
+    const menu: HTMLElement = fixture.nativeElement.querySelector('.shell__topbar app-user-menu');
+    expect(menu.textContent).toContain('ana@acme.test');
+    expect(menu.textContent).toContain('acme');
+    expect(fixture.nativeElement.querySelector('.shell__nav .user-menu__logout')).toBeNull();
   });
 
-  it('logging out calls POST /auth/logout and navigates to /login', () => {
+  it('logging out from the top menu calls POST /auth/logout and navigates to /login', () => {
     session.session.set({ deployment_mode: 'saas', tenant: { fiware_service: 'acme', fiware_service_path: '/' } });
     const fixture = TestBed.createComponent(ShellComponent);
     fixture.detectChanges();
 
-    (fixture.nativeElement.querySelector('.shell__logout') as HTMLButtonElement).click();
+    (fixture.nativeElement.querySelector('.user-menu__logout') as HTMLButtonElement).click();
     httpMock.expectOne(`${BASE_URL}/auth/logout`).flush(null, { status: 204, statusText: 'No Content' });
 
     expect(router.navigateByUrl).toHaveBeenCalledWith('/login');

@@ -15,8 +15,13 @@ import pytest
 
 from auditor.domain.ports.audit_repository_port import Page
 from auditor.domain.ports.command_interpreter_port import AuditCommandInterpretation
+from auditor.domain.value_objects.broker_connection import (
+    BrokerConnectionCheck,
+    BrokerConnectionStatus,
+)
 from auditor.domain.value_objects.tenant import Tenant
 from auditor.infrastructure.config.container import (
+    get_broker_connection_tester,
     get_interpret_audit_command_use_case,
     get_run_audit_use_case,
     get_selfhosted_accounts,
@@ -82,6 +87,11 @@ class _Accounts:
         self.criadas.append((novo, broker_url))
 
 
+class _BrokerAlcancavel:
+    async def check(self, broker_url, tenant, api_key):
+        return BrokerConnectionCheck(BrokerConnectionStatus.OK, entity_types_count=0, http_status=200)
+
+
 class _Logins:
     def __init__(self, senha="senha-correta-123"):
         agora = datetime.now(timezone.utc)
@@ -103,6 +113,7 @@ def _cliente(monkeypatch, settings=None, accounts=None, logins=None):
     app.dependency_overrides[get_interpret_audit_command_use_case] = lambda: _Interpret()
     app.dependency_overrides[get_unit_of_work] = lambda: _Uow()
     app.dependency_overrides[get_selfhosted_accounts] = lambda: accounts
+    app.dependency_overrides[get_broker_connection_tester] = lambda: _BrokerAlcancavel()
     if logins is not None:
         app.dependency_overrides[get_tenant_account_repository] = lambda: logins
     # raise_app_exceptions=False: uma excecao nao tratada vira resposta 500,

@@ -15,7 +15,7 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
           <h1 class="split-panel__brand-title">DKRT</h1>
           <p class="split-panel__brand-subtitle">Auditoria de Data Spaces</p>
           <p class="split-panel__brand-tagline">
-            Opere o Orion Context Broker em linguagem natural, sem aprender a API NGSI-v2.
+            Opere o Orion Context Broker em linguagem natural.
           </p>
           <p class="split-panel__brand-note">NGSI-v2 · Smart Data Models</p>
         </div>

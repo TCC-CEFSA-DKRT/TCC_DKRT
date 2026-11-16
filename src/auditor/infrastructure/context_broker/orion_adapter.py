@@ -18,6 +18,15 @@ from auditor.domain.value_objects.tenant import Tenant
 _PAGE_SIZE = 1000
 
 
+def orion_headers(tenant: Tenant, api_key: str | None) -> dict[str, str]:
+    headers = {"Fiware-ServicePath": tenant.fiware_service_path}
+    if tenant.fiware_service:
+        headers["Fiware-Service"] = tenant.fiware_service
+    if api_key is not None:
+        headers["Authorization"] = f"Bearer {api_key}"
+    return headers
+
+
 class OrionAdapter(ContextBrokerPort):
     def __init__(
         self,
@@ -32,12 +41,7 @@ class OrionAdapter(ContextBrokerPort):
         self._api_key = api_key
 
     def _headers(self, tenant: Tenant) -> dict[str, str]:
-        headers = {"Fiware-ServicePath": tenant.fiware_service_path}
-        if tenant.fiware_service:
-            headers["Fiware-Service"] = tenant.fiware_service
-        if self._api_key is not None:
-            headers["Authorization"] = f"Bearer {self._api_key}"
-        return headers
+        return orion_headers(tenant, self._api_key)
 
     async def broker_url(self, tenant: Tenant) -> str:
         return self._base_url_raw

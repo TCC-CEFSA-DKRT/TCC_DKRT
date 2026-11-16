@@ -6,4 +6,6 @@ export interface TenantResponse {
 export interface Session {
   deployment_mode: 'saas' | 'selfhosted';
   tenant: TenantResponse | null;
+  expires_at?: string | null;
+  login_email?: string | null;
 }

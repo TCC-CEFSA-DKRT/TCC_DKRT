@@ -11,6 +11,53 @@
   margin-bottom: var(--space-4);
 }
 
+.config-kind {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.config-kind__legend {
+  margin-bottom: var(--space-2);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.config-kind__option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.config-kind__option--selected {
+  border-color: var(--color-accent);
+  background: rgba(var(--accent-rgb), 0.08);
+}
+
+.config-kind__radio {
+  margin: 3px 0 0;
+  accent-color: var(--color-accent);
+}
+
+.config-kind__title {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.config-kind__description {
+  grid-column: 2;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
 .config-field {
   display: flex;
   flex-direction: column;
@@ -25,12 +72,23 @@
   font-size: 0.9375rem;
 }
 
+.config-field__input[aria-invalid='true'] {
+  border-color: var(--color-non-conformant);
+}
+
+.config-field__optional {
+  font-style: normal;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
 .config-field__hint {
   font-weight: 400;
   color: var(--color-text-muted);
   font-size: 0.8125rem;
 }
 
+.config-field__error,
 .config-error {
   color: var(--color-non-conformant);
   font-size: 0.8125rem;
@@ -38,14 +96,40 @@
   margin: 0;
 }
 
-.config-submit {
-  margin-top: var(--space-2);
+.config-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.config-actions button {
   padding: 12px 18px;
+}
+
+.config-confirm {
+  padding: var(--space-4);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-md);
+  background: rgba(var(--inset-rgb), 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.config-confirm__title {
+  font-weight: 600;
+  color: var(--color-warning);
+}
+
+.config-confirm__reason,
+.config-confirm__warning {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
 }
 
 .connection-test {
   font-size: 0.8125rem;
-  margin: 0 0 var(--space-4);
+  margin: 0;
   color: var(--color-text-secondary);
 }
 
@@ -57,4 +141,22 @@
 .connection-test--warn {
   color: var(--color-warning);
   font-weight: 500;
+}
+
+.connection-test--error {
+  color: var(--color-non-conformant);
+  font-weight: 500;
+}
+
+.config-saved {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+@media (max-width: 520px) {
+  .config-kind {
+    grid-template-columns: 1fr;
+  }
 }
