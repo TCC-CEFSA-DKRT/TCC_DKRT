@@ -6,8 +6,9 @@ semântico via SLM local + RAG (**Nível 2** — detecta o que o Nível 1 não a
 `temp` vs `temperature`).
 
 > Projeto de TCC. Arquitetura hexagonal (ports & adapters) — ver `docs/plano_refatoracao_v3.md`
-> (plano mestre) e `.cursor/specs/fase1.spec.md` a `fase10.spec.md` (specs por fase, fonte de
-> verdade sobre comportamento). Decisões arquiteturais: `docs/adr/` (ver seu próprio índice
+> (plano mestre) e `docs/specs/fase1.spec.md` a `fase10.spec.md` (specs por fase, fonte de
+> verdade sobre comportamento; mesmo conteúdo de `.cursor/specs/`, que não é versionado).
+> Decisões arquiteturais: `docs/adr/` (ver seu próprio índice
 > para o que é histórico e o que é vigente). Documentação de uma iteração anterior do projeto
 > (um sistema multiagente, descartado) foi movida para `docs/legacy/` — nada lá descreve o
 > sistema atual.
@@ -177,7 +178,7 @@ python scripts/run_experiment.py \
 ```
 
 Requer o mesmo ambiente do passo 1-3 de pé, com um SLM real acessível — nunca roda contra
-mocks. Ver `.cursor/specs/fase10.spec.md` e `dataset/experiment/README.md` (formato do
+mocks. Ver `docs/specs/fase10.spec.md` e `dataset/experiment/README.md` (formato do
 dataset — curadoria humana, não gerada por ferramenta).
 
 ## Infraestrutura AWS (Terraform) e pipeline — ADR-0021
@@ -213,7 +214,7 @@ sistema multiagente descartado e está em `docs/legacy/`, não é reaproveitáve
   é obrigado a não introduzir violação nova.
 - `docs/plano_refatoracao_v3.md` (Parte I, 1.1) ainda descreve as restrições da AWS Academy
   Learner Lab como vigentes — não atualizado pela ADR-0018 (reescrita grande, follow-up
-  separado); `.cursor/specs/fase9.spec.md` já tem uma nota apontando para a ADR-0018.
+  separado); `docs/specs/fase9.spec.md` já tem uma nota apontando para a ADR-0018.
 - Servidor MCP (ADR-0016) aceito mas não implementado (ver seção acima).
 
 ## Estrutura do projeto
@@ -232,8 +233,8 @@ docs/
 ├── plano_refatoracao_v3.md   # plano mestre — fonte de verdade sobre decisões e fases
 ├── adr/                       # decisões arquiteturais (ver o próprio índice: histórico vs. vigente)
 ├── historico/                 # histórico de desenvolvimento: um arquivo por issue (no lugar de comentários no código)
+├── specs/faseN.spec.md        # spec de comportamento por fase — a mais próxima do código
 └── legacy/                    # documentação da iteração multiagente descartada
-.cursor/specs/faseN.spec.md   # spec de comportamento por fase — a mais próxima do código
 ```
 
 ## Sem comentários no código
