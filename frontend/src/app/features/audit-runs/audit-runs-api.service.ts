@@ -9,6 +9,7 @@ import {
   AuditRunSummaryResponse,
   PageResponse,
 } from '../../shared/interfaces/audit.interface';
+import { EntityTypesResponse } from '../../shared/interfaces/config.interface';
 
 /** Fase 8, seção 4 — Audit Runs: lista com filtros + progresso em tempo
  * real. Reaproveita `GET /audits` (seção 0.1) e `GET /audits/{id}/progress`
@@ -29,6 +30,10 @@ export class AuditRunsApiService {
     return this.http.get<PageResponse<AuditRunSummaryResponse>>(`${this.config.baseUrl}/audits`, {
       params,
     });
+  }
+
+  listEntityTypes(): Observable<EntityTypesResponse> {
+    return this.http.get<EntityTypesResponse>(`${this.config.baseUrl}/entity-types`);
   }
 
   getProgress(runId: string): Observable<AuditProgressResponse> {

@@ -122,7 +122,7 @@ async def list_audits(
 
 @router.get("/summary-over-time", response_model=list[AuditRunSummaryResponse])
 async def get_summary_over_time(
-    entity_type: str,
+    entity_type: str = Query(min_length=1),
     tenant: Tenant = Depends(get_tenant),
     uow: SqlAlchemyUnitOfWork = Depends(get_unit_of_work),
 ) -> list[AuditRunSummaryResponse]:

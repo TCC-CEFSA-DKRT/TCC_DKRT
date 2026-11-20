@@ -50,16 +50,23 @@
         class="filters__input"
         name="model_q"
         placeholder="Buscar por nome (ex.: Streetlight)"
+        aria-label="Buscar modelo por nome"
         [(ngModel)]="modelSearchInput"
       />
       <input
         class="filters__input"
         name="model_subject"
         placeholder="Subject (ex.: dataModel.Streetlighting)"
+        aria-label="Filtrar por subject"
+        aria-describedby="catalog-subject-hint"
         [(ngModel)]="modelSubjectInput"
       />
       <button type="submit" class="filters__submit btn-primary">Filtrar</button>
     </form>
+    <p id="catalog-subject-hint" class="filters__hint">
+      Subject é a pasta do modelo no repositório oficial do Smart Data Models, a mesma da primeira coluna da
+      tabela (ex.: dataModel.Streetlighting). A busca por nome aceita só uma parte do nome.
+    </p>
 
     @switch (modelsState()) {
       @case ('loading') {

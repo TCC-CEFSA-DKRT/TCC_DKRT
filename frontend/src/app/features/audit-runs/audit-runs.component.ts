@@ -16,10 +16,10 @@ import {
   RunStatus,
 } from '../../shared/interfaces/audit.interface';
 import { AuditRunsApiService } from './audit-runs-api.service';
+import { RUN_STATUS_OPTIONS } from './audit-runs.constants';
 import { ViewState } from './audit-runs.interface';
 
 const POLL_INTERVAL_MS = 5000;
-const RUN_STATUS_OPTIONS: RunStatus[] = ['queued', 'running', 'completed', 'failed', 'partial'];
 
 /** Fase 8, seção 4 — Audit Runs: lista com filtros (tipo, status, período)
  * refletidos na URL, progresso em tempo real dos runs em execução via
@@ -52,6 +52,8 @@ export class AuditRunsComponent {
   protected readonly total = signal(0);
   protected readonly progressByRunId = signal<Partial<Record<string, AuditProgressResponse>>>({});
   protected readonly statusOptions = RUN_STATUS_OPTIONS;
+  protected readonly entityTypeSuggestions = signal<string[]>([]);
+  private entityTypesRequested = false;
 
   protected readonly filters = signal<AuditRunFilters>(this.filtersFromQueryParams());
 
@@ -110,6 +112,19 @@ export class AuditRunsComponent {
       queryParamsHandling: 'merge',
     });
     this.load();
+  }
+
+  protected loadEntityTypeSuggestions(): void {
+    if (this.entityTypesRequested) {
+      return;
+    }
+    this.entityTypesRequested = true;
+    this.api.listEntityTypes().subscribe({
+      next: (response) => this.entityTypeSuggestions.set(response.types),
+      error: () => {
+        this.entityTypesRequested = false;
+      },
+    });
   }
 
   protected refreshProgress(): void {

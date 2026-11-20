@@ -7,6 +7,7 @@ import pytest
 hcl2 = pytest.importorskip("hcl2")
 
 TERRAFORM_ROOT = Path(__file__).resolve().parents[3] / "infra" / "terraform"
+STACK_MAIN = TERRAFORM_ROOT / "modules" / "stack_lambda" / "main.tf"
 
 
 def _load(path: Path):
@@ -31,7 +32,7 @@ def _find_resource(doc, resource_type, resource_name):
 
 
 def _module_call_args(module_name):
-    doc = _load(TERRAFORM_ROOT / "environments" / "production" / "main.tf")
+    doc = _load(STACK_MAIN)
     for block in doc["module"]:
         for name, body in block.items():
             if _unquote(name) == module_name:
@@ -40,7 +41,7 @@ def _module_call_args(module_name):
                     for key, value in body.items()
                     if key not in ("__is_block__", "source", "providers")
                 }
-    raise AssertionError(f"module {module_name!r} nao encontrado em production/main.tf")
+    raise AssertionError(f"module {module_name!r} nao encontrado em stack_lambda/main.tf")
 
 
 def _module_variables(module_dir):
@@ -110,7 +111,7 @@ class TestModuleWiringMatchesDeclaredVariables:
 
         for arg_name in call_args:
             assert arg_name in variables, (
-                f"production/main.tf passa {arg_name!r} para {module_name!r}, "
+                f"stack_lambda/main.tf passa {arg_name!r} para {module_name!r}, "
                 f"mas modules/{module_dir}/variables.tf nao declara essa variable"
             )
 
@@ -123,7 +124,7 @@ class TestModuleWiringMatchesDeclaredVariables:
             if "default" not in body:
                 assert var_name in call_args, (
                     f"modules/{module_dir}/variables.tf exige {var_name!r} sem default, "
-                    f"mas production/main.tf nao passa esse argumento para {module_name!r}"
+                    f"mas stack_lambda/main.tf nao passa esse argumento para {module_name!r}"
                 )
 
     def test_lambda_compute_gets_the_new_broker_keys_arguments_wired_from_production(self):
@@ -136,7 +137,7 @@ class TestModuleWiringMatchesDeclaredVariables:
             "broker_api_key_encryption_keys_parameter_arn",
         ):
             assert name in variables, f"lambda_compute nao declara a variable {name!r}"
-            assert name in call_args, f"production/main.tf nao passa {name!r} para lambda_compute"
+            assert name in call_args, f"stack_lambda/main.tf nao passa {name!r} para lambda_compute"
 
 
 class TestAdminLambda:
@@ -198,7 +199,7 @@ class TestAdminLambda:
             assert name in production_output_names, f"production/outputs.tf nao expõe {name!r}"
 
     def test_exactly_one_security_group_rule_still_opens_the_database_sg(self):
-        doc = _load(TERRAFORM_ROOT / "environments" / "production" / "main.tf")
+        doc = _load(STACK_MAIN)
         matches = [
             body
             for block in doc.get("resource", [])

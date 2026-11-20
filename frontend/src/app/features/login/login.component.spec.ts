@@ -167,6 +167,37 @@ describe('LoginComponent', () => {
     });
   });
 
+  describe('showing the password', () => {
+    it('hides the password by default', async () => {
+      const { query } = await render();
+
+      expect(query<HTMLInputElement>('#login-password')!.type).toBe('password');
+      expect(query<HTMLInputElement>('.login-show-password input')!.checked).toBeFalse();
+    });
+
+    it('shows what was typed while "Mostrar senha" is checked and hides it again when unchecked', async () => {
+      const { query, type, refresh } = await render();
+      await type('#login-password', 'segredo-123');
+      const toggle = query<HTMLInputElement>('.login-show-password input')!;
+
+      toggle.click();
+      await refresh();
+      expect(query<HTMLInputElement>('#login-password')!.type).toBe('text');
+      expect(query<HTMLInputElement>('#login-password')!.value).toBe('segredo-123');
+
+      toggle.click();
+      await refresh();
+      expect(query<HTMLInputElement>('#login-password')!.type).toBe('password');
+    });
+
+    it('says which field the checkbox controls', async () => {
+      const { query, text } = await render();
+
+      expect(text()).toContain('Mostrar senha');
+      expect(query('.login-show-password input')!.getAttribute('aria-controls')).toBe('login-password');
+    });
+  });
+
   describe('expired session', () => {
     it('explains that the session expired', async () => {
       const { text } = await render({ reason: 'expired' });

@@ -28,7 +28,7 @@
       <input
         [id]="inputIds.password"
         class="login-field__input"
-        type="password"
+        [type]="showPassword() ? 'text' : 'password'"
         name="password"
         autocomplete="current-password"
         [ngModel]="password()"
@@ -39,6 +39,16 @@
       @if (fieldErrors().password; as error) {
         <small id="login-password-error" class="login-field__error">{{ error }}</small>
       }
+    </label>
+    <label class="login-show-password">
+      <input
+        type="checkbox"
+        name="showPassword"
+        [attr.aria-controls]="inputIds.password"
+        [checked]="showPassword()"
+        (change)="showPassword.set(!showPassword())"
+      />
+      <span>Mostrar senha</span>
     </label>
 
     @if (state() === 'error') {
