@@ -194,18 +194,17 @@ async def test_criar_auditoria(monkeypatch, caso, corpo, status):
 
 
 # ============================ RF-05: GET /audits (paginacao) ==================
-# Contrato proposto no plano de testes: page >= 1 e 1 <= page_size <= 100.
 _PG = [
     ("CT-PAG-01", "page=1 (limite inferior)", "page=1", 200, "AVL", None),
-    ("CT-PAG-02", "page=0 (abaixo do limite)", "page=0", 422, "AVL", "D-01"),
-    ("CT-PAG-03", "page=-1", "page=-1", 422, "AVL", "D-01"),
+    ("CT-PAG-02", "page=0 (abaixo do limite)", "page=0", 422, "AVL", None),
+    ("CT-PAG-03", "page=-1", "page=-1", 422, "AVL", None),
     ("CT-PAG-04", "page=abc (tipo inválido)", "page=abc", 422, "CE", None),
     ("CT-PAG-05", "page_size=1 (limite inferior)", "page_size=1", 200, "AVL", None),
-    ("CT-PAG-06", "page_size=0 (abaixo do limite)", "page_size=0", 422, "AVL", "D-01"),
-    ("CT-PAG-07", "page_size=-5", "page_size=-5", 422, "AVL", "D-01"),
+    ("CT-PAG-06", "page_size=0 (abaixo do limite)", "page_size=0", 422, "AVL", None),
+    ("CT-PAG-07", "page_size=-5", "page_size=-5", 422, "AVL", None),
     ("CT-PAG-08", "page_size=100 (limite superior)", "page_size=100", 200, "AVL", None),
-    ("CT-PAG-09", "page_size=101 (acima do limite)", "page_size=101", 422, "AVL", "D-01"),
-    ("CT-PAG-10", "page_size=1000000 (carga abusiva)", "page_size=1000000", 422, "AVL", "D-01"),
+    ("CT-PAG-09", "page_size=101 (acima do limite)", "page_size=101", 422, "AVL", None),
+    ("CT-PAG-10", "page_size=1000000 (carga abusiva)", "page_size=1000000", 422, "AVL", None),
     ("CT-PAG-11", "Filtro status válido", "status=failed", 200, "CE", None),
     ("CT-PAG-12", "Filtro status inexistente", "status=invalido", 422, "CE", None),
     ("CT-PAG-13", "Sem parâmetros (padrões)", "", 200, "CE", None),

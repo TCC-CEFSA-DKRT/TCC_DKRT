@@ -1,5 +1,28 @@
 # Suporte a NGSI-LD, selecionável por broker/tenant
 
+## 2026-11-20 — CI verde: paginação sem limite, comentário novo e falso positivo do gitleaks (Diego)
+
+**Contexto:** três falhas no CI deste PR, sem relação com NGSI-LD em si — a suíte (`tests/qualidade/test_bb_04_api_inputs.py::test_listar_execucoes[CT-PAG-09]`), o verificador de comentários e o `gitleaks`.
+
+**O que mudou:**
+- `interfaces/rest/routers/audits.py::list_audits` — `page`/`page_size` passaram de `int` puro pra `Query(ge=1)`/`Query(ge=1, le=100)`. Sem isso, `GET /audits?page_size=101` (e `page=0`, `page=-1`, `page_size=0`, `page_size=-5`, `page_size=1000000`) devolvia 200 em vez do 422 que o contrato de paginação (RF-05) já previa nos casos de teste.
+- `tests/qualidade/test_bb_04_api_inputs.py::_PG` — removido o `defeito="D-01"` dos 6 casos (`CT-PAG-02/03/06/07/09/10`) agora que o limite é aplicado; esses casos eram `xfail(strict=True)` de propósito (ver `docs/qualidade/README.md`), então continuar validando sem tirar a marca faria o CI falhar por XPASS estrito.
+- Comentário novo em `test_bb_04_api_inputs.py:197` (explicando o contrato de paginação) removido; o contexto foi pra esta entrada em vez de ficar no código, como manda o `AGENTS.md`.
+- `.gitleaks.toml` novo na raiz, com `[extend] useDefault = true` e um `[allowlist].paths` cobrindo `tests/qualidade/test_bb_04_api_inputs.py` — esse arquivo só tem credenciais de fixture (`senha-correta-123`, `user@example.com`) pra testar `POST /auth/login`, nunca segredo real; o `security.yml` já passava `--config /repo/.gitleaks.toml` implicitamente por auto-detecção, mas passou a receber o flag explícito pra não depender disso.
+
+**Por quê / decisões:**
+- Path-allowlist no arquivo inteiro em vez de regex por segredo: é o único arquivo de teste com esse tipo de dado, e qualquer senha/e-mail de fixture nova ali seria o mesmo tipo de falso positivo — regra mais específica só adicionaria manutenção sem reduzir risco real (não é um arquivo de produção).
+- Não toquei `docs/qualidade/resultados/{matriz_rastreabilidade.csv,casos_de_teste.json,junit.xml}` nem o `.docx`/`.pdf` do relatório — são artefatos gerados por `scripts/qualidade/matriz_rastreabilidade.py` a partir de uma execução da suíte, não leio à mão; regenerar fica pendente.
+
+**Armadilhas e pontos de atenção:**
+- `tests/unit/infrastructure/config/test_context_broker_factory.py` e `test_tenant_account_repository_factory.py` falham localmente (`DID NOT RAISE RuntimeError`) mesmo em `main`/sem nenhuma mudança deste PR — algo no ambiente local (provavelmente `BROKER_API_KEY_ENCRYPTION_KEYS` já setada na env do shell) vaza pro `monkeypatch.delenv`. Confirmado com `git stash` que o mesmo falha sem as mudanças daqui; não é regressão deste PR, nem reproduz no CI (que começou limpo nesse ponto).
+
+**Pendências:**
+- Regenerar `docs/qualidade/resultados/*` e o relatório (`.docx`/`.pdf`) pra refletir que D-01 foi corrigido (6 casos saem de "defeito conhecido" pra "conforme").
+- Mesma pendência de renormalização CRLF→LF já registrada na entrada anterior deste arquivo continua aberta.
+
+**Referências:** PR atual (continuação de c3a44a35/23408896/a1722abf), `docs/qualidade/README.md` (seção "Defeitos conhecidos").
+
 ## 2026-11-20 — OrionLdAdapter convivendo com o OrionAdapter (ADR-0023) (Diego)
 
 **Contexto:** o sistema só falava NGSI-v2 com o Orion (`OrionAdapter` fixo em todo lugar que instanciava um `ContextBrokerPort`). Era pra atender as duas estruturas (NGSI-v2 e NGSI-LD), com o cliente escolhendo qual broker usa em cada caso — não uma troca total de protocolo.
