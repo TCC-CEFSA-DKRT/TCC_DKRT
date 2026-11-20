@@ -214,7 +214,7 @@ class _FakeTenantAccountRepository:
             raise self._error
         return self._count
 
-    async def create(self, tenant, broker_url, broker_api_key=None, login_email=None, password=None):
+    async def create(self, tenant, broker_url, broker_api_key=None, login_email=None, password=None, **kwargs):
         if self._register_error is not None:
             raise self._register_error
         self.create_calls.append(

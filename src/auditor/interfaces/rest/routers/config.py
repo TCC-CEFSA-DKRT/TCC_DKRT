@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import cast
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from auditor.domain.ports.broker_connection_tester_port import BrokerConnectionTesterPort
@@ -22,6 +24,7 @@ from auditor.interfaces.rest.schemas import (
     BrokerConnectionTestResponse,
     BrokerKind,
     BrokerTargetRequest,
+    NgsiVersion,
 )
 
 router = APIRouter(prefix="/config", tags=["config"])
@@ -80,6 +83,7 @@ async def get_config(
             fiware_service=settings.fiware_service,
             fiware_service_path=settings.fiware_service_path,
             broker_kind=_kind_of(settings.fiware_broker_url, has_api_key=False),
+            ngsi_version=settings.fiware_ngsi_version,
             default_local_broker_url=settings.fiware_broker_url,
         )
     has_api_key = account.broker_api_key is not None
@@ -89,6 +93,7 @@ async def get_config(
         fiware_service=account.tenant.fiware_service,
         fiware_service_path=account.tenant.fiware_service_path,
         broker_kind=_kind_of(account.broker_url, has_api_key),
+        ngsi_version=cast(NgsiVersion, account.ngsi_version),
         has_api_key=has_api_key,
         default_local_broker_url=settings.fiware_broker_url,
     )
@@ -101,7 +106,9 @@ async def test_connection(
     tester: BrokerConnectionTesterPort = Depends(get_broker_connection_tester),
 ) -> BrokerConnectionTestResponse:
     api_key = _api_key_for(body, await _current_account(accounts))
-    check = await tester.check(body.broker_url.strip(), _tenant_of(body), api_key)
+    check = await tester.check(
+        body.broker_url.strip(), _tenant_of(body), api_key, body.ngsi_version
+    )
     return _connection_response(check)
 
 
@@ -121,7 +128,7 @@ async def put_config(
 
     connection: BrokerConnectionTestResponse | None = None
     if not body.save_without_connection:
-        check = await tester.check(body.broker_url, new_tenant, api_key)
+        check = await tester.check(body.broker_url, new_tenant, api_key, body.ngsi_version)
         connection = _connection_response(check)
         if not check.succeeded:
             raise HTTPException(
@@ -133,15 +140,24 @@ async def put_config(
             )
 
     if current is None:
-        await accounts.create(new_tenant, body.broker_url, broker_api_key=api_key)
+        await accounts.create(
+            new_tenant, body.broker_url, broker_api_key=api_key, ngsi_version=body.ngsi_version
+        )
     else:
-        await accounts.replace_tenant(current.tenant, new_tenant, body.broker_url, broker_api_key=api_key)
+        await accounts.replace_tenant(
+            current.tenant,
+            new_tenant,
+            body.broker_url,
+            broker_api_key=api_key,
+            ngsi_version=body.ngsi_version,
+        )
     return BrokerConfigResponse(
         configured=True,
         broker_url=body.broker_url,
         fiware_service=body.fiware_service,
         fiware_service_path=body.fiware_service_path,
         broker_kind=body.broker_kind,
+        ngsi_version=body.ngsi_version,
         has_api_key=api_key is not None,
         default_local_broker_url=settings.fiware_broker_url,
         connection=connection,

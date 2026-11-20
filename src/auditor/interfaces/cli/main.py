@@ -227,6 +227,7 @@ def tenant_register(
     broker_api_key: str = typer.Option(None, "--broker-api-key", help="Api key do broker (cifrada em repouso)."),
     email: str = typer.Option(None, "--email", help="Login SaaS (omitir = conta self-hosted, sem login)."),
     password: str = typer.Option(None, "--password", help="Senha inicial (omitida com --email = gerada e exibida uma unica vez)."),
+    ngsi_version: str = typer.Option("v2", "--ngsi-version", help="Estrutura do broker: v2 (NGSI-v2, default) ou ld (NGSI-LD). Ver ADR-0023."),
 ) -> None:
     """Cadastra uma conta em tenant_accounts (ADR-0019)."""
     if password is not None and (email is None or not password):
@@ -234,6 +235,9 @@ def tenant_register(
         raise typer.Exit(code=1)
     if email is not None and not tenant:
         typer.echo("--email (conta SaaS) exige --tenant nao vazio.", err=True)
+        raise typer.Exit(code=1)
+    if ngsi_version not in ("v2", "ld"):
+        typer.echo("--ngsi-version precisa ser 'v2' ou 'ld'.", err=True)
         raise typer.Exit(code=1)
     generated_password = secrets.token_urlsafe(16) if email is not None and password is None else None
 
@@ -244,6 +248,7 @@ def tenant_register(
             broker_api_key=broker_api_key,
             login_email=email,
             password=password if password is not None else generated_password,
+            ngsi_version=ngsi_version,
         )
 
     try:

@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     fiware_broker_url: str = "http://localhost:1026"
+    fiware_ngsi_version: Literal["v2", "ld"] = "v2"
     fiware_service: str = "openiot"
     fiware_service_path: str = "/"
     database_url: str = "postgresql+asyncpg://auditor:auditor@localhost:5433/auditor"

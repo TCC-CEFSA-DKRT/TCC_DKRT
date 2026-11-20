@@ -27,7 +27,7 @@ def git(*args):
 
 
 def added_lines(base, head, staged):
-    common = ["diff", "-M", "-U0", "--no-color", "--diff-filter=ACMR"]
+    common = ["diff", "-M", "-U0", "--no-color", "--diff-filter=ACMR", "--ignore-cr-at-eol"]
     if staged:
         diff = git(*common, "--cached", "--", *ROOTS)
     else:

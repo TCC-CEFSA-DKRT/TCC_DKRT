@@ -110,6 +110,24 @@ class TestGetByLoginEmail:
 
 class TestCreate:
     @pytest.mark.asyncio
+    async def test_create_defaults_ngsi_version_to_v2(self, repository):
+        await repository.create(TENANT_A, broker_url="https://orion.example.com")
+
+        account = await repository.get_by_tenant(TENANT_A)
+
+        assert account.ngsi_version == "v2"
+
+    @pytest.mark.asyncio
+    async def test_create_accepts_ngsi_version_ld(self, repository):
+        await repository.create(
+            TENANT_A, broker_url="https://orion-ld.example.com", ngsi_version="ld"
+        )
+
+        account = await repository.get_by_tenant(TENANT_A)
+
+        assert account.ngsi_version == "ld"
+
+    @pytest.mark.asyncio
     async def test_create_saas_account_round_trips(self, repository):
         api_key = "chave-ção-🔑"
         await repository.create(
@@ -351,6 +369,33 @@ class TestUpdateBroker:
         assert updated.updated_at >= original.created_at
 
     @pytest.mark.asyncio
+    async def test_update_broker_without_ngsi_version_keeps_the_saved_structure(self, repository):
+        await repository.create(
+            TENANT_A, broker_url="https://orion-ld.example.com", ngsi_version="ld"
+        )
+
+        await repository.update_broker(
+            TENANT_A, broker_url="https://orion-ld-novo.example.com", broker_api_key=None
+        )
+
+        account = await repository.get_by_tenant(TENANT_A)
+        assert account.ngsi_version == "ld"
+
+    @pytest.mark.asyncio
+    async def test_update_broker_can_change_the_ngsi_version_explicitly(self, repository):
+        await repository.create(TENANT_A, broker_url="https://orion.example.com")
+
+        await repository.update_broker(
+            TENANT_A,
+            broker_url="https://orion.example.com",
+            broker_api_key=None,
+            ngsi_version="ld",
+        )
+
+        account = await repository.get_by_tenant(TENANT_A)
+        assert account.ngsi_version == "ld"
+
+    @pytest.mark.asyncio
     async def test_update_broker_on_unknown_tenant_raises_lookup_error(self, repository):
         with pytest.raises(LookupError):
             await repository.update_broker(
@@ -489,6 +534,30 @@ class TestReplaceTenant:
         assert account_c.login_email is None
         assert account_c.password_hash is None
         assert await _count(engine) == 1
+
+    @pytest.mark.asyncio
+    async def test_replace_without_ngsi_version_preserves_the_old_structure(self, repository):
+        await repository.create(
+            TENANT_A, broker_url="https://orion-ld-1.example.com", ngsi_version="ld"
+        )
+
+        await repository.replace_tenant(
+            TENANT_A, TENANT_C, "https://orion-ld-2.example.com", None
+        )
+
+        account_c = await repository.get_by_tenant(TENANT_C)
+        assert account_c.ngsi_version == "ld"
+
+    @pytest.mark.asyncio
+    async def test_replace_can_change_the_ngsi_version_explicitly(self, repository):
+        await repository.create(TENANT_A, broker_url="https://orion-1.example.com")
+
+        await repository.replace_tenant(
+            TENANT_A, TENANT_C, "https://orion-2.example.com", None, ngsi_version="ld"
+        )
+
+        account_c = await repository.get_by_tenant(TENANT_C)
+        assert account_c.ngsi_version == "ld"
 
     @pytest.mark.asyncio
     async def test_replace_refuses_account_with_login_and_keeps_row_intact(

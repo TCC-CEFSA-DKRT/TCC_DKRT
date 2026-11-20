@@ -20,12 +20,16 @@ _TENANT_B = Tenant(fiware_service="tenant_b", fiware_service_path="/")
 
 
 def _account(
-    tenant: Tenant, broker_url: str, broker_api_key: str | None = None
+    tenant: Tenant,
+    broker_url: str,
+    broker_api_key: str | None = None,
+    ngsi_version: str = "v2",
 ) -> TenantAccount:
     return TenantAccount(
         tenant=tenant,
         broker_url=broker_url,
         broker_api_key=broker_api_key,
+        ngsi_version=ngsi_version,
         login_email=None,
         password_hash=None,
         created_at=datetime.now(timezone.utc),
@@ -94,6 +98,44 @@ class TestRoutingPerTenant:
         await broker.fetch_entities(_TENANT_A, None)
 
         assert captured["authorization"] is None
+
+
+class TestPerAccountNgsiVersion:
+    @pytest.mark.asyncio
+    async def test_an_ld_account_routes_to_the_ngsi_ld_endpoint(self):
+        captured = {}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            captured["path"] = request.url.path
+            return httpx.Response(200, json=[])
+
+        accounts = {
+            _TENANT_A: _account(_TENANT_A, "https://orion-ld-a.example.com", ngsi_version="ld")
+        }
+        broker = TenantRoutedContextBroker(
+            _FakeTenantAccountRepository(accounts), client=_client_with_handler(handler)
+        )
+
+        await broker.fetch_entities(_TENANT_A, None)
+
+        assert captured["path"] == "/ngsi-ld/v1/entities"
+
+    @pytest.mark.asyncio
+    async def test_a_v2_account_still_routes_to_the_v2_endpoint(self):
+        captured = {}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            captured["path"] = request.url.path
+            return httpx.Response(200, json=[])
+
+        accounts = {_TENANT_A: _account(_TENANT_A, "https://orion-a.example.com")}
+        broker = TenantRoutedContextBroker(
+            _FakeTenantAccountRepository(accounts), client=_client_with_handler(handler)
+        )
+
+        await broker.fetch_entities(_TENANT_A, None)
+
+        assert captured["path"] == "/v2/entities"
 
 
 class TestMissingAccount:

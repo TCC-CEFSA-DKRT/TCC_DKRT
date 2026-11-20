@@ -8,5 +8,9 @@ from auditor.domain.value_objects.tenant import Tenant
 
 class BrokerConnectionTesterPort(Protocol):
     async def check(
-        self, broker_url: str, tenant: Tenant, api_key: str | None
+        self,
+        broker_url: str,
+        tenant: Tenant,
+        api_key: str | None,
+        ngsi_version: str = "v2",
     ) -> BrokerConnectionCheck: ...

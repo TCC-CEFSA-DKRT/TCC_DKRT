@@ -3,8 +3,8 @@
 A API roda in-process (httpx.ASGITransport) com dependencias substituidas por
 fakes — sem Orion, Postgres, fila ou Ollama. Tecnicas: classes de
 equivalencia (CE) e analise de valor-limite (AVL) sobre os campos de entrada
-validados por `schemas.py`; os casos que encontraram defeitos (D-01, D-02 e
-D-06, corrigidos na issue #60) guardam o ID do defeito em `Caso.defeito`."""
+validados por `schemas.py`; casos com defeito conhecido ficam como xfail
+estrito e sao descritos no relatorio de defeitos."""
 
 from __future__ import annotations
 
@@ -80,15 +80,15 @@ class _Accounts:
     async def get_single(self):
         return self.atual
 
-    async def create(self, tenant, broker_url, broker_api_key=None):
+    async def create(self, tenant, broker_url, broker_api_key=None, **kwargs):
         self.criadas.append((tenant, broker_url))
 
-    async def replace_tenant(self, atual, novo, broker_url, broker_api_key=None):
+    async def replace_tenant(self, atual, novo, broker_url, broker_api_key=None, **kwargs):
         self.criadas.append((novo, broker_url))
 
 
 class _BrokerAlcancavel:
-    async def check(self, broker_url, tenant, api_key):
+    async def check(self, broker_url, tenant, api_key, ngsi_version="v2"):
         return BrokerConnectionCheck(BrokerConnectionStatus.OK, entity_types_count=0, http_status=200)
 
 
@@ -196,15 +196,15 @@ async def test_criar_auditoria(monkeypatch, caso, corpo, status):
 # ============================ RF-05: GET /audits (paginacao) ==================
 _PG = [
     ("CT-PAG-01", "page=1 (limite inferior)", "page=1", 200, "AVL", None),
-    ("CT-PAG-02", "page=0 (abaixo do limite)", "page=0", 422, "AVL", "D-01"),
-    ("CT-PAG-03", "page=-1", "page=-1", 422, "AVL", "D-01"),
+    ("CT-PAG-02", "page=0 (abaixo do limite)", "page=0", 422, "AVL", None),
+    ("CT-PAG-03", "page=-1", "page=-1", 422, "AVL", None),
     ("CT-PAG-04", "page=abc (tipo inválido)", "page=abc", 422, "CE", None),
     ("CT-PAG-05", "page_size=1 (limite inferior)", "page_size=1", 200, "AVL", None),
-    ("CT-PAG-06", "page_size=0 (abaixo do limite)", "page_size=0", 422, "AVL", "D-01"),
-    ("CT-PAG-07", "page_size=-5", "page_size=-5", 422, "AVL", "D-01"),
-    ("CT-PAG-08", "page_size=200 (limite superior)", "page_size=200", 200, "AVL", None),
-    ("CT-PAG-09", "page_size=201 (acima do limite)", "page_size=201", 422, "AVL", "D-01"),
-    ("CT-PAG-10", "page_size=1000000 (carga abusiva)", "page_size=1000000", 422, "AVL", "D-01"),
+    ("CT-PAG-06", "page_size=0 (abaixo do limite)", "page_size=0", 422, "AVL", None),
+    ("CT-PAG-07", "page_size=-5", "page_size=-5", 422, "AVL", None),
+    ("CT-PAG-08", "page_size=100 (limite superior)", "page_size=100", 200, "AVL", None),
+    ("CT-PAG-09", "page_size=101 (acima do limite)", "page_size=101", 422, "AVL", None),
+    ("CT-PAG-10", "page_size=1000000 (carga abusiva)", "page_size=1000000", 422, "AVL", None),
     ("CT-PAG-11", "Filtro status válido", "status=failed", 200, "CE", None),
     ("CT-PAG-12", "Filtro status inexistente", "status=invalido", 422, "CE", None),
     ("CT-PAG-13", "Sem parâmetros (padrões)", "", 200, "CE", None),

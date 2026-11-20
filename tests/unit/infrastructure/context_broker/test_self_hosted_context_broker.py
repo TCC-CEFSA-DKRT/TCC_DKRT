@@ -15,11 +15,17 @@ _TENANT_SAVED = Tenant(fiware_service="saved_service", fiware_service_path="/")
 _TENANT_ARBITRARY = Tenant(fiware_service="arbitrary_service", fiware_service_path="/")
 
 
-def _account(tenant: Tenant, broker_url: str, broker_api_key: str | None = None) -> TenantAccount:
+def _account(
+    tenant: Tenant,
+    broker_url: str,
+    broker_api_key: str | None = None,
+    ngsi_version: str = "v2",
+) -> TenantAccount:
     return TenantAccount(
         tenant=tenant,
         broker_url=broker_url,
         broker_api_key=broker_api_key,
+        ngsi_version=ngsi_version,
         login_email=None,
         password_hash=None,
         created_at=datetime.now(timezone.utc),
@@ -71,7 +77,49 @@ class TestWithASavedRow:
         assert await broker.broker_url(_TENANT_ARBITRARY) == "https://orion-saved.example.com"
 
 
+class TestWithALdSavedRow:
+    @pytest.mark.asyncio
+    async def test_uses_the_ld_adapter_against_the_ngsi_ld_endpoint(self):
+        captured = {}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            captured["path"] = request.url.path
+            return httpx.Response(200, json=[])
+
+        account = _account(
+            _TENANT_SAVED, "https://orion-ld.example.com", ngsi_version="ld"
+        )
+        broker = SelfHostedContextBroker(
+            _FakeAccounts(account),
+            client=_client_with_handler(handler),
+            default_broker_url="http://localhost:1026",
+        )
+
+        await broker.fetch_entities(_TENANT_ARBITRARY, None)
+
+        assert captured["path"] == "/ngsi-ld/v1/entities"
+
+
 class TestWithoutASavedRow:
+    @pytest.mark.asyncio
+    async def test_falls_back_to_the_default_ngsi_version_ld(self):
+        captured = {}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            captured["path"] = request.url.path
+            return httpx.Response(200, json=[])
+
+        broker = SelfHostedContextBroker(
+            _FakeAccounts(None),
+            client=_client_with_handler(handler),
+            default_broker_url="http://orion-ld-default:1026",
+            default_ngsi_version="ld",
+        )
+
+        await broker.fetch_entities(_TENANT_ARBITRARY, None)
+
+        assert captured["path"] == "/ngsi-ld/v1/entities"
+
     @pytest.mark.asyncio
     async def test_falls_back_to_the_default_broker_url(self):
         calls = []

@@ -18,7 +18,7 @@ class _FakeTenantAccountRepository:
     async def rotate_encryption(self) -> int:
         return self._count
 
-    async def create(self, tenant, broker_url, broker_api_key=None, login_email=None, password=None):
+    async def create(self, tenant, broker_url, broker_api_key=None, login_email=None, password=None, **kwargs):
         self.create_calls.append({"login_email": login_email, "password": password})
 
 

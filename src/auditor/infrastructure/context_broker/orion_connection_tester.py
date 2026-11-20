@@ -8,6 +8,7 @@ from auditor.domain.value_objects.broker_connection import (
 )
 from auditor.domain.value_objects.tenant import Tenant
 from auditor.infrastructure.context_broker.orion_adapter import orion_headers
+from auditor.infrastructure.context_broker.orion_ld_adapter import orion_ld_headers
 
 CONNECTION_TEST_TIMEOUT_SECONDS = 5.0
 _REFUSED_CREDENTIAL_STATUSES = {401, 403}
@@ -28,14 +29,22 @@ class OrionConnectionTester:
         self._client = client
 
     async def check(
-        self, broker_url: str, tenant: Tenant, api_key: str | None
+        self,
+        broker_url: str,
+        tenant: Tenant,
+        api_key: str | None,
+        ngsi_version: str = "v2",
     ) -> BrokerConnectionCheck:
         if not _is_valid_broker_url(broker_url):
             return BrokerConnectionCheck(BrokerConnectionStatus.INVALID_URL)
+        if ngsi_version == "ld":
+            path, headers = "/ngsi-ld/v1/types", orion_ld_headers(tenant, api_key)
+        else:
+            path, headers = "/v2/types", orion_headers(tenant, api_key)
         try:
             response = await self._client.get(
-                f"{broker_url.rstrip('/')}/v2/types",
-                headers=orion_headers(tenant, api_key),
+                f"{broker_url.rstrip('/')}{path}",
+                headers=headers,
                 timeout=CONNECTION_TEST_TIMEOUT_SECONDS,
             )
         except httpx.TimeoutException:
@@ -60,6 +69,8 @@ class OrionConnectionTester:
             payload = response.json()
         except ValueError:
             payload = None
+        if isinstance(payload, dict) and "typeList" in payload:
+            payload = payload["typeList"]
         if not isinstance(payload, list):
             return BrokerConnectionCheck(
                 BrokerConnectionStatus.UNEXPECTED_RESPONSE, http_status=response.status_code

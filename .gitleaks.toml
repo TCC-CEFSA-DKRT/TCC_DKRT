@@ -1,0 +1,8 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Credenciais fixas de fixture em testes (nunca segredos reais)."
+paths = [
+  '''tests/qualidade/test_bb_04_api_inputs\.py''',
+]

@@ -93,8 +93,8 @@ async def list_audits(
     status_: RunStatus | None = Query(default=None, alias="status"),
     started_after: datetime | None = None,
     started_before: datetime | None = None,
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=200),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
     uow: SqlAlchemyUnitOfWork = Depends(get_unit_of_work),
 ) -> PageResponse[AuditRunSummaryResponse]:
     """Fase 8, secao 0.1 — tela "Audit Runs". So' a borda HTTP que faltava:
