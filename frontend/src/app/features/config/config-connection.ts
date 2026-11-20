@@ -22,5 +22,6 @@ export function connectionValuesKey(values: ConfigFormValues): string {
     values.fiwareService.trim(),
     values.fiwareServicePath.trim() || '/',
     values.brokerKind === 'cloud' ? values.apiKey.trim() : '',
+    values.ngsiVersion,
   ]);
 }

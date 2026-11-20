@@ -14,6 +14,7 @@ import {
   BrokerConnectionFailedDetail,
   BrokerConnectionTestResponse,
   BrokerKind,
+  NgsiVersion,
 } from '../../shared/interfaces/config.interface';
 import { ConfigApiService } from './config-api.service';
 import { connectionValuesKey, describeConnection } from './config-connection';
@@ -22,6 +23,7 @@ import {
   BROKER_KIND_OPTIONS,
   CONNECTION_REQUEST_FAILED_MESSAGE,
   FIELD_INPUT_IDS,
+  NGSI_VERSION_OPTIONS,
 } from './config.constants';
 import {
   ConfigField,
@@ -39,6 +41,7 @@ const EMPTY_VALUES: ConfigFormValues = {
   fiwareServicePath: '/',
   apiKey: '',
   hasSavedApiKey: false,
+  ngsiVersion: 'v2',
 };
 
 @Component({
@@ -56,6 +59,7 @@ export class ConfigComponent {
   private readonly document = inject(DOCUMENT);
 
   protected readonly kindOptions = BROKER_KIND_OPTIONS;
+  protected readonly ngsiVersionOptions = NGSI_VERSION_OPTIONS;
   protected readonly inputIds = FIELD_INPUT_IDS;
   protected readonly requestFailedMessage = CONNECTION_REQUEST_FAILED_MESSAGE;
 
@@ -104,6 +108,7 @@ export class ConfigComponent {
           fiwareServicePath: cfg.fiware_service_path,
           apiKey: '',
           hasSavedApiKey: cfg.has_api_key ?? false,
+          ngsiVersion: cfg.ngsi_version ?? 'v2',
         });
         this.canGoBack.set(cfg.configured);
         this.loadState.set('ready');
@@ -123,6 +128,11 @@ export class ConfigComponent {
       brokerKind: kind,
       brokerUrl: this.urlForKind(kind, current.brokerUrl.trim()),
     }));
+    this.resetConfirmation();
+  }
+
+  protected setNgsiVersion(version: NgsiVersion): void {
+    this.values.update((current) => ({ ...current, ngsiVersion: version }));
     this.resetConfirmation();
   }
 

@@ -19,6 +19,7 @@ export function toBrokerTarget(values: ConfigFormValues): BrokerTargetRequest {
     fiware_service_path: values.fiwareServicePath.trim() || '/',
     broker_kind: values.brokerKind,
     broker_api_key: values.brokerKind === 'cloud' && apiKey ? apiKey : null,
+    ngsi_version: values.ngsiVersion,
   };
 }
 

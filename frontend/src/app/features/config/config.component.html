@@ -35,6 +35,24 @@
           }
         </fieldset>
 
+        <fieldset class="config-kind">
+          <legend class="config-kind__legend">Qual é a estrutura dos dados?</legend>
+          @for (option of ngsiVersionOptions; track option.value) {
+            <label class="config-kind__option" [class.config-kind__option--selected]="values().ngsiVersion === option.value">
+              <input
+                type="radio"
+                name="ngsiVersion"
+                class="config-kind__radio"
+                [value]="option.value"
+                [checked]="values().ngsiVersion === option.value"
+                (change)="setNgsiVersion(option.value)"
+              />
+              <span class="config-kind__title">{{ option.title }}</span>
+              <span class="config-kind__description">{{ option.description }}</span>
+            </label>
+          }
+        </fieldset>
+
         <label class="config-field" [for]="inputIds.brokerUrl">
           <span>URL do broker</span>
           <input
@@ -121,10 +139,12 @@
             <p class="connection-test">Testando a conexão com o broker…</p>
           } @else if (testState() === 'error') {
             <p class="connection-test connection-test--error">{{ requestFailedMessage }}</p>
-          } @else if (saveState() !== 'needs-confirmation' && saveState() !== 'saved' && connectionMessage(); as message) {
-            <p class="connection-test" [class.connection-test--ok]="message.tone === 'ok'" [class.connection-test--error]="message.tone === 'error'">
-              {{ message.text }}
-            </p>
+          } @else {
+            @if (saveState() !== 'needs-confirmation' && saveState() !== 'saved' && connectionMessage(); as message) {
+              <p class="connection-test" [class.connection-test--ok]="message.tone === 'ok'" [class.connection-test--error]="message.tone === 'error'">
+                {{ message.text }}
+              </p>
+            }
           }
         </div>
 
