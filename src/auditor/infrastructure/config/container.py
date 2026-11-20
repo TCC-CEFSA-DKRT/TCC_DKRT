@@ -29,8 +29,8 @@ from auditor.domain.ports.broker_connection_tester_port import BrokerConnectionT
 from auditor.domain.ports.context_broker_port import ContextBrokerPort
 from auditor.domain.services.structural_validator import StructuralValidator
 from auditor.infrastructure.config.settings import Settings
+from auditor.infrastructure.context_broker.adapter_factory import build_orion_adapter
 from auditor.infrastructure.context_broker.ngsi_v2_mapper import NgsiV2Mapper
-from auditor.infrastructure.context_broker.orion_adapter import OrionAdapter
 from auditor.infrastructure.context_broker.orion_connection_tester import OrionConnectionTester
 from auditor.infrastructure.context_broker.self_hosted_context_broker import (
     SelfHostedContextBroker,
@@ -131,11 +131,14 @@ def get_context_broker() -> ContextBrokerPort:
             get_tenant_account_repository(), client=get_broker_http_client()
         )
     if not settings.broker_api_key_encryption_keys_list:
-        return OrionAdapter(settings.fiware_broker_url, client=get_http_client())
+        return build_orion_adapter(
+            settings.fiware_ngsi_version, settings.fiware_broker_url, get_http_client()
+        )
     return SelfHostedContextBroker(
         get_tenant_account_repository(),
         client=get_http_client(),
         default_broker_url=settings.fiware_broker_url,
+        default_ngsi_version=settings.fiware_ngsi_version,
     )
 
 

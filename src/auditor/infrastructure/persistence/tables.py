@@ -159,6 +159,10 @@ tenant_accounts_table = Table(
     Column("fiware_service_path", String, nullable=False),
     Column("broker_url", String, nullable=False),
     Column("broker_api_key_encrypted", String, nullable=True),
+    # ADR-0023: "v2" (default, NGSI-v2/Orion classico) ou "ld" (NGSI-LD) --
+    # decide qual adapter o container usa para este broker (ver
+    # infrastructure/context_broker/adapter_factory.py).
+    Column("ngsi_version", String, nullable=False, server_default=text("'v2'")),
     Column("login_email", String, nullable=True),
     Column("password_hash", String, nullable=True),
     Column("created_at", DateTime(timezone=True), nullable=False, server_default=text("now()")),

@@ -62,6 +62,17 @@ class TestGetContextBrokerSelfHosted:
 
         assert await broker.broker_url(Tenant(fiware_service="openiot")) == "http://orion:1026/"
 
+    def test_fiware_ngsi_version_ld_returns_an_orion_ld_adapter(self, monkeypatch):
+        from auditor.infrastructure.context_broker.orion_ld_adapter import OrionLdAdapter
+
+        monkeypatch.delenv("DEPLOYMENT_MODE", raising=False)
+        monkeypatch.delenv("BROKER_API_KEY_ENCRYPTION_KEYS", raising=False)
+        monkeypatch.setenv("FIWARE_NGSI_VERSION", "ld")
+
+        broker = container_module.get_context_broker()
+
+        assert isinstance(broker, OrionLdAdapter)
+
 
 class TestGetContextBrokerSelfHostedWithEncryptionKey:
     def test_returns_a_self_hosted_context_broker_when_a_fernet_key_is_configured(
@@ -83,6 +94,15 @@ class TestGetContextBrokerSelfHostedWithEncryptionKey:
         broker = container_module.get_context_broker()
 
         assert broker._default_broker_url == "http://orion-default:1026"
+
+    def test_uses_fiware_ngsi_version_as_the_default_ngsi_version(self, monkeypatch):
+        monkeypatch.delenv("DEPLOYMENT_MODE", raising=False)
+        monkeypatch.setenv("BROKER_API_KEY_ENCRYPTION_KEYS", Fernet.generate_key().decode())
+        monkeypatch.setenv("FIWARE_NGSI_VERSION", "ld")
+
+        broker = container_module.get_context_broker()
+
+        assert broker._default_ngsi_version == "ld"
 
 
 class TestGetContextBrokerSaas:

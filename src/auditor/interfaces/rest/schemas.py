@@ -48,6 +48,7 @@ class SessionResponse(BaseModel):
 
 
 BrokerKind = Literal["local", "cloud"]
+NgsiVersion = Literal["v2", "ld"]
 
 
 class BrokerTargetRequest(BaseModel):
@@ -55,6 +56,7 @@ class BrokerTargetRequest(BaseModel):
     fiware_service_path: str = Field(default="/", pattern=r"^/([A-Za-z0-9_]+(/[A-Za-z0-9_]+)*)?$")
     broker_kind: BrokerKind = "local"
     broker_api_key: str | None = Field(default=None, max_length=4096, pattern=r"^\S*$")
+    ngsi_version: NgsiVersion = "v2"
 
 
 class BrokerConnectionTestRequest(BrokerTargetRequest):
@@ -86,6 +88,7 @@ class BrokerConfigResponse(BaseModel):
     fiware_service: str
     fiware_service_path: str
     broker_kind: BrokerKind = "local"
+    ngsi_version: NgsiVersion = "v2"
     has_api_key: bool = False
     default_local_broker_url: str = ""
     connection: BrokerConnectionTestResponse | None = None

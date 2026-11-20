@@ -39,6 +39,9 @@ class TenantAccount:
     password_hash: str | None
     created_at: datetime
     updated_at: datetime
+    # ADR-0023 -- no fim e com default pra nao quebrar nenhum TenantAccount(...)
+    # ja escrito (posicional ou keyword) antes desta ADR existir.
+    ngsi_version: str = "v2"
 
 
 class TenantAccountRepository:
@@ -65,6 +68,7 @@ class TenantAccountRepository:
         broker_api_key: str | None = None,
         login_email: str | None = None,
         password: str | None = None,
+        ngsi_version: str = "v2",
     ) -> None:
         self._check_broker_url(broker_url)
         encrypted_api_key = self._encrypt(broker_api_key)
@@ -78,6 +82,7 @@ class TenantAccountRepository:
                     fiware_service_path=tenant.fiware_service_path,
                     broker_url=broker_url,
                     broker_api_key_encrypted=encrypted_api_key,
+                    ngsi_version=ngsi_version,
                     login_email=normalized_email,
                     password_hash=stored_password_hash,
                 )
@@ -133,6 +138,7 @@ class TenantAccountRepository:
             ),
             broker_url=row["broker_url"],
             broker_api_key=decrypted_api_key,
+            ngsi_version=row["ngsi_version"],
             login_email=row["login_email"],
             password_hash=row["password_hash"],
             created_at=row["created_at"],
@@ -140,10 +146,23 @@ class TenantAccountRepository:
         )
 
     async def update_broker(
-        self, tenant: Tenant, broker_url: str, broker_api_key: str | None
+        self,
+        tenant: Tenant,
+        broker_url: str,
+        broker_api_key: str | None,
+        ngsi_version: str | None = None,
     ) -> None:
         self._check_broker_url(broker_url)
         encrypted_api_key = self._encrypt(broker_api_key)
+        values: dict = {
+            "broker_url": broker_url,
+            "broker_api_key_encrypted": encrypted_api_key,
+            "updated_at": func.now(),
+        }
+        # None = nao mexe na estrutura ja salva (ver ADR-0023) -- so' troca
+        # quando quem chama informa explicitamente v2/ld.
+        if ngsi_version is not None:
+            values["ngsi_version"] = ngsi_version
 
         async with self._engine.begin() as conn:
             result = await conn.execute(
@@ -153,11 +172,7 @@ class TenantAccountRepository:
                     tenant_accounts_table.c.fiware_service_path
                     == tenant.fiware_service_path,
                 )
-                .values(
-                    broker_url=broker_url,
-                    broker_api_key_encrypted=encrypted_api_key,
-                    updated_at=func.now(),
-                )
+                .values(**values)
             )
 
         if result.rowcount == 0:
@@ -172,6 +187,7 @@ class TenantAccountRepository:
         new_tenant: Tenant,
         broker_url: str,
         broker_api_key: str | None,
+        ngsi_version: str | None = None,
     ) -> None:
         self._check_broker_url(broker_url)
         encrypted_api_key = self._encrypt(broker_api_key)
@@ -184,7 +200,10 @@ class TenantAccountRepository:
                         tenant_accounts_table.c.fiware_service_path
                         == old_tenant.fiware_service_path,
                     )
-                    .returning(tenant_accounts_table.c.login_email)
+                    .returning(
+                        tenant_accounts_table.c.login_email,
+                        tenant_accounts_table.c.ngsi_version,
+                    )
                 )
             ).first()
             if deleted is None:
@@ -198,12 +217,18 @@ class TenantAccountRepository:
                     f"/{old_tenant.fiware_service_path} tem login; replace_tenant so' vale "
                     "para contas self-hosted (login e' exclusivo do broker/tenant)"
                 )
+            # None = mantem a estrutura que a conta antiga ja tinha (ADR-0023) --
+            # troca de URL/host nao e' motivo pra resetar v2/ld sozinha.
+            resolved_ngsi_version = (
+                ngsi_version if ngsi_version is not None else deleted.ngsi_version
+            )
             await conn.execute(
                 tenant_accounts_table.insert().values(
                     fiware_service=new_tenant.fiware_service,
                     fiware_service_path=new_tenant.fiware_service_path,
                     broker_url=broker_url,
                     broker_api_key_encrypted=encrypted_api_key,
+                    ngsi_version=resolved_ngsi_version,
                 )
             )
 

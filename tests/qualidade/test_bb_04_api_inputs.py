@@ -80,15 +80,15 @@ class _Accounts:
     async def get_single(self):
         return self.atual
 
-    async def create(self, tenant, broker_url, broker_api_key=None):
+    async def create(self, tenant, broker_url, broker_api_key=None, **kwargs):
         self.criadas.append((tenant, broker_url))
 
-    async def replace_tenant(self, atual, novo, broker_url, broker_api_key=None):
+    async def replace_tenant(self, atual, novo, broker_url, broker_api_key=None, **kwargs):
         self.criadas.append((novo, broker_url))
 
 
 class _BrokerAlcancavel:
-    async def check(self, broker_url, tenant, api_key):
+    async def check(self, broker_url, tenant, api_key, ngsi_version="v2"):
         return BrokerConnectionCheck(BrokerConnectionStatus.OK, entity_types_count=0, http_status=200)
 
 

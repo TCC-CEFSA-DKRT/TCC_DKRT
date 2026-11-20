@@ -51,7 +51,9 @@ class _FakeAccounts:
         self.create_calls.append((tenant, broker_url, broker_api_key))
         self._account = _account(tenant, broker_url)
 
-    async def replace_tenant(self, old_tenant, new_tenant, broker_url, broker_api_key) -> None:
+    async def replace_tenant(
+        self, old_tenant, new_tenant, broker_url, broker_api_key, **kwargs
+    ) -> None:
         self.replace_calls.append((old_tenant, new_tenant, broker_url, broker_api_key))
         self._account = _account(new_tenant, broker_url)
 
@@ -64,8 +66,10 @@ class _FakeTester:
         self._result = result
         self.calls: list[tuple] = []
 
-    async def check(self, broker_url, tenant, api_key) -> BrokerConnectionCheck:
-        self.calls.append((broker_url, tenant, api_key))
+    async def check(
+        self, broker_url, tenant, api_key, ngsi_version: str = "v2"
+    ) -> BrokerConnectionCheck:
+        self.calls.append((broker_url, tenant, api_key, ngsi_version))
         return self._result
 
 
@@ -341,7 +345,7 @@ class TestConnectionTest:
         assert response.status_code == 200
         assert response.json() == {"status": "ok", "entity_types_count": 3, "http_status": 200}
         assert tester.calls == [
-            ("http://localhost:1026", Tenant(fiware_service="openiot", fiware_service_path="/"), None)
+            ("http://localhost:1026", Tenant(fiware_service="openiot", fiware_service_path="/"), None, "v2")
         ]
         assert accounts.create_calls == []
 

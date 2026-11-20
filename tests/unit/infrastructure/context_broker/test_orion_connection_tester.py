@@ -59,9 +59,9 @@ def _closed_port() -> int:
         return sock.getsockname()[1]
 
 
-async def _check(broker_url: str, api_key: str | None = None):
+async def _check(broker_url: str, api_key: str | None = None, ngsi_version: str = "v2"):
     async with httpx.AsyncClient() as client:
-        return await OrionConnectionTester(client).check(broker_url, _TENANT, api_key)
+        return await OrionConnectionTester(client).check(broker_url, _TENANT, api_key, ngsi_version)
 
 
 class TestReachableBroker:
@@ -90,6 +90,38 @@ class TestReachableBroker:
         await _check(broker.url)
 
         assert "authorization" not in broker.requests[0]["headers"]
+
+
+class TestLdBroker:
+    @pytest.mark.asyncio
+    async def test_asks_the_ngsi_ld_types_endpoint_with_the_ngsild_tenant_header(self, broker):
+        await _check(broker.url, api_key="minha-chave", ngsi_version="ld")
+
+        request = broker.requests[0]
+        assert request["line"] == "GET /ngsi-ld/v1/types HTTP/1.1"
+        assert request["headers"]["ngsild-tenant"] == "openiot"
+        assert "fiware-service" not in request["headers"]
+        assert request["headers"]["authorization"] == "Bearer minha-chave"
+
+    @pytest.mark.asyncio
+    async def test_counts_types_from_the_entitytypelist_envelope(self, broker):
+        broker.body = json.dumps(
+            {"type": "EntityTypeList", "typeList": ["Streetlight", "WeatherObserved"]}
+        ).encode()
+
+        check = await _check(broker.url, ngsi_version="ld")
+
+        assert check.status is BrokerConnectionStatus.OK
+        assert check.entity_types_count == 2
+
+    @pytest.mark.asyncio
+    async def test_counts_types_from_a_plain_list_response(self, broker):
+        broker.body = json.dumps(["Streetlight"]).encode()
+
+        check = await _check(broker.url, ngsi_version="ld")
+
+        assert check.status is BrokerConnectionStatus.OK
+        assert check.entity_types_count == 1
 
 
 class TestInvalidUrl:
