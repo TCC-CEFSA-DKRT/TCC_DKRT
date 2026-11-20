@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import cast
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from auditor.domain.ports.broker_connection_tester_port import BrokerConnectionTesterPort
@@ -22,6 +24,7 @@ from auditor.interfaces.rest.schemas import (
     BrokerConnectionTestResponse,
     BrokerKind,
     BrokerTargetRequest,
+    NgsiVersion,
 )
 
 router = APIRouter(prefix="/config", tags=["config"])
@@ -90,7 +93,7 @@ async def get_config(
         fiware_service=account.tenant.fiware_service,
         fiware_service_path=account.tenant.fiware_service_path,
         broker_kind=_kind_of(account.broker_url, has_api_key),
-        ngsi_version=account.ngsi_version,
+        ngsi_version=cast(NgsiVersion, account.ngsi_version),
         has_api_key=has_api_key,
         default_local_broker_url=settings.fiware_broker_url,
     )

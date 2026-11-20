@@ -15,9 +15,6 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     fiware_broker_url: str = "http://localhost:1026"
-    # ADR-0023: estrutura do broker fixo/padrao (OrionAdapter direto, ou
-    # fallback do SelfHostedContextBroker quando nao ha conta salva). Por
-    # conta salva em tenant_accounts, o campo que vale e' TenantAccount.ngsi_version.
     fiware_ngsi_version: Literal["v2", "ld"] = "v2"
     fiware_service: str = "openiot"
     fiware_service_path: str = "/"

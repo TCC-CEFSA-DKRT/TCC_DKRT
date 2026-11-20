@@ -33,10 +33,6 @@ _ENVELOPE_FIELDS = {"id", "type"}
 
 
 def orion_ld_headers(tenant: Tenant, api_key: str | None) -> dict[str, str]:
-    # NGSI-LD nao tem equivalente a Fiware-ServicePath -- o modelo de
-    # escopo/path do LD e' outro (NGSI-LD spec, secao 4.15) e esta fora do
-    # escopo desta integracao; so' o tenant (Fiware-Service -> NGSILD-Tenant)
-    # e' repassado.
     headers = {"Accept": "application/json"}
     if tenant.fiware_service:
         headers["NGSILD-Tenant"] = tenant.fiware_service
@@ -116,10 +112,6 @@ class OrionLdAdapter(ContextBrokerPort):
         return entities
 
     async def list_entity_types(self, tenant: Tenant) -> list[str]:
-        # GET /ngsi-ld/v1/types -- a forma da resposta varia por
-        # implementacao: alguns brokers devolvem a lista de nomes direto
-        # (["Streetlight", ...]), outros o envelope EntityTypeList da spec
-        # (`{"type": "EntityTypeList", "typeList": [...]}`). Trata os dois.
         headers = self._headers(tenant)
         try:
             response = await self._client.get(

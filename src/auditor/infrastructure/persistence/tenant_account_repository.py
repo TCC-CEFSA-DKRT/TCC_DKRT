@@ -39,8 +39,6 @@ class TenantAccount:
     password_hash: str | None
     created_at: datetime
     updated_at: datetime
-    # ADR-0023 -- no fim e com default pra nao quebrar nenhum TenantAccount(...)
-    # ja escrito (posicional ou keyword) antes desta ADR existir.
     ngsi_version: str = "v2"
 
 
@@ -159,8 +157,6 @@ class TenantAccountRepository:
             "broker_api_key_encrypted": encrypted_api_key,
             "updated_at": func.now(),
         }
-        # None = nao mexe na estrutura ja salva (ver ADR-0023) -- so' troca
-        # quando quem chama informa explicitamente v2/ld.
         if ngsi_version is not None:
             values["ngsi_version"] = ngsi_version
 
@@ -217,8 +213,6 @@ class TenantAccountRepository:
                     f"/{old_tenant.fiware_service_path} tem login; replace_tenant so' vale "
                     "para contas self-hosted (login e' exclusivo do broker/tenant)"
                 )
-            # None = mantem a estrutura que a conta antiga ja tinha (ADR-0023) --
-            # troca de URL/host nao e' motivo pra resetar v2/ld sozinha.
             resolved_ngsi_version = (
                 ngsi_version if ngsi_version is not None else deleted.ngsi_version
             )

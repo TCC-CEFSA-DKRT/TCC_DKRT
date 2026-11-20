@@ -69,9 +69,6 @@ class OrionConnectionTester:
             payload = response.json()
         except ValueError:
             payload = None
-        # /v2/types sempre devolve lista; /ngsi-ld/v1/types pode devolver a
-        # lista direto ou o envelope EntityTypeList (`{"typeList": [...]}`)
-        # dependendo do broker -- ver OrionLdAdapter.list_entity_types.
         if isinstance(payload, dict) and "typeList" in payload:
             payload = payload["typeList"]
         if not isinstance(payload, list):
