@@ -10,12 +10,21 @@
     class="filters__input"
     name="entity_type"
     placeholder="Tipo (ex.: Streetlight)"
+    aria-label="Filtrar por tipo de entidade"
+    list="audit-runs-entity-types"
+    autocomplete="off"
     [(ngModel)]="entityTypeInput"
+    (focus)="loadEntityTypeSuggestions()"
   />
-  <select class="filters__input" name="status" [(ngModel)]="statusInput">
+  <datalist id="audit-runs-entity-types">
+    @for (entityType of entityTypeSuggestions(); track entityType) {
+      <option [value]="entityType"></option>
+    }
+  </datalist>
+  <select class="filters__input" name="status" aria-label="Filtrar por status" [(ngModel)]="statusInput">
     <option value="">Todos os status</option>
-    @for (option of statusOptions; track option) {
-      <option [value]="option">{{ option }}</option>
+    @for (option of statusOptions; track option.value) {
+      <option [value]="option.value">{{ option.label }}</option>
     }
   </select>
   <button type="submit" class="filters__submit btn-primary">Filtrar</button>

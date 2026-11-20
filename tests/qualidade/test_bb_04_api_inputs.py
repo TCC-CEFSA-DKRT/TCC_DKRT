@@ -3,8 +3,8 @@
 A API roda in-process (httpx.ASGITransport) com dependencias substituidas por
 fakes — sem Orion, Postgres, fila ou Ollama. Tecnicas: classes de
 equivalencia (CE) e analise de valor-limite (AVL) sobre os campos de entrada
-validados por `schemas.py`; casos com defeito conhecido ficam como xfail
-estrito e sao descritos no relatorio de defeitos."""
+validados por `schemas.py`; os casos que encontraram defeitos (D-01, D-02 e
+D-06, corrigidos na issue #60) guardam o ID do defeito em `Caso.defeito`."""
 
 from __future__ import annotations
 
@@ -194,7 +194,6 @@ async def test_criar_auditoria(monkeypatch, caso, corpo, status):
 
 
 # ============================ RF-05: GET /audits (paginacao) ==================
-# Contrato proposto no plano de testes: page >= 1 e 1 <= page_size <= 100.
 _PG = [
     ("CT-PAG-01", "page=1 (limite inferior)", "page=1", 200, "AVL", None),
     ("CT-PAG-02", "page=0 (abaixo do limite)", "page=0", 422, "AVL", "D-01"),
@@ -203,8 +202,8 @@ _PG = [
     ("CT-PAG-05", "page_size=1 (limite inferior)", "page_size=1", 200, "AVL", None),
     ("CT-PAG-06", "page_size=0 (abaixo do limite)", "page_size=0", 422, "AVL", "D-01"),
     ("CT-PAG-07", "page_size=-5", "page_size=-5", 422, "AVL", "D-01"),
-    ("CT-PAG-08", "page_size=100 (limite superior)", "page_size=100", 200, "AVL", None),
-    ("CT-PAG-09", "page_size=101 (acima do limite)", "page_size=101", 422, "AVL", "D-01"),
+    ("CT-PAG-08", "page_size=200 (limite superior)", "page_size=200", 200, "AVL", None),
+    ("CT-PAG-09", "page_size=201 (acima do limite)", "page_size=201", 422, "AVL", "D-01"),
     ("CT-PAG-10", "page_size=1000000 (carga abusiva)", "page_size=1000000", 422, "AVL", "D-01"),
     ("CT-PAG-11", "Filtro status válido", "status=failed", 200, "CE", None),
     ("CT-PAG-12", "Filtro status inexistente", "status=invalido", 422, "CE", None),
