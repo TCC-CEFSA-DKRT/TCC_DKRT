@@ -178,7 +178,7 @@ python scripts/run_experiment.py \
 ```
 
 Requer o mesmo ambiente do passo 1-3 de pé, com um SLM real acessível — nunca roda contra
-mocks. Ver `.cursor/specs/fase10.spec.md` e `dataset/experiment/README.md` (formato do
+mocks. Ver `docs/specs/fase10.spec.md` e `dataset/experiment/README.md` (formato do
 dataset — curadoria humana, não gerada por ferramenta).
 
 ## Infraestrutura AWS (Terraform) e pipeline — ADR-0021
@@ -214,7 +214,7 @@ sistema multiagente descartado e está em `docs/legacy/`, não é reaproveitáve
   é obrigado a não introduzir violação nova.
 - `docs/plano_refatoracao_v3.md` (Parte I, 1.1) ainda descreve as restrições da AWS Academy
   Learner Lab como vigentes — não atualizado pela ADR-0018 (reescrita grande, follow-up
-  separado); `.cursor/specs/fase9.spec.md` já tem uma nota apontando para a ADR-0018.
+  separado); `docs/specs/fase9.spec.md` já tem uma nota apontando para a ADR-0018.
 - Servidor MCP (ADR-0016) aceito mas não implementado (ver seção acima).
 
 ## Estrutura do projeto
