@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Any, Generic, Literal, TypeVar
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from auditor.domain.entities.audit_run import AuditRun
 from auditor.domain.entities.entity_report import (
@@ -91,9 +91,20 @@ class BrokerConfigResponse(BaseModel):
     connection: BrokerConnectionTestResponse | None = None
 
 
+def _reject_blank(value: str | None) -> str | None:
+    if value is not None and not value.strip():
+        raise ValueError("não pode conter só espaços")
+    return value
+
+
 class AuditCreateRequest(BaseModel):
     entity_type: str | None = None
     entity_id: str | None = None
+
+    @field_validator("entity_type", "entity_id")
+    @classmethod
+    def _not_blank(cls, value: str | None) -> str | None:
+        return _reject_blank(value)
 
 
 class AuditCreateResponse(BaseModel):
@@ -354,6 +365,12 @@ COMMAND_TEXT_MAX_LENGTH = 500
 
 class InterpretAuditRequest(BaseModel):
     command_text: str = Field(min_length=1, max_length=COMMAND_TEXT_MAX_LENGTH)
+
+    @field_validator("command_text")
+    @classmethod
+    def _not_blank(cls, value: str) -> str:
+        _reject_blank(value)
+        return value
 
 
 class InterpretAuditResponse(BaseModel):
