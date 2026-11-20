@@ -1,5 +1,8 @@
 # Instruções para agentes de IA e colaboradores
 
+> Cópia versionada do `AGENTS.md` da raiz (esse continua existindo localmente, só não é
+> rastreado pelo git — ver `.gitignore`). Esta é a versão que chega em quem clona o repositório.
+
 Este arquivo é lido por assistentes de código (Cursor, Codex, Copilot, Claude Code etc.) e vale também para a equipe.
 
 ## Regra principal: nenhum comentário novo no código
