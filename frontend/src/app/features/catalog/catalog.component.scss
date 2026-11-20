@@ -70,6 +70,12 @@
   height: 42px;
 }
 
+.filters__hint {
+  margin: calc(-1 * var(--space-2)) 0 var(--space-4);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
 .models-panel {
   overflow-x: auto;
   padding: var(--space-2) var(--space-2) 0;

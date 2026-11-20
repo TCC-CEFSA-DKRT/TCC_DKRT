@@ -105,6 +105,32 @@ describe('ConfigComponent', () => {
     });
   });
 
+  describe('going back', () => {
+    it('offers a way back to the dashboard when a broker is already configured', async () => {
+      const { click, query } = await render(savedResponse());
+
+      expect(query('.config-back')!.textContent).toContain('Voltar ao painel');
+      await click('.config-back');
+
+      expect(router.navigateByUrl).toHaveBeenCalledWith('/dashboard');
+    });
+
+    it('does not offer to go back on the first setup, because the app needs a broker first', async () => {
+      const { query } = await render();
+
+      expect(query('.config-back')).toBeNull();
+    });
+
+    it('offers the way back right after the first configuration is saved', async () => {
+      const { click, respond, query } = await render();
+
+      await click('.config-submit');
+      await respond(`${BASE_URL}/config`, savedResponse());
+
+      expect(query('.config-back')).not.toBeNull();
+    });
+  });
+
   describe('choosing where the broker is', () => {
     it('shows the access key field only for a cloud broker and suggests https://', async () => {
       const { query, click, inputValue } = await render();
@@ -153,6 +179,29 @@ describe('ConfigComponent', () => {
       expect(text()).toContain('Use o formato http://endereço:porta');
       expect(text()).toContain('Comece com /');
       expect(document.activeElement?.id).toBe('config-broker-url');
+    });
+
+    it('explains the Fiware-ServicePath format next to the field, before any error', async () => {
+      const { query } = await render();
+
+      const hint = query<HTMLElement>('#config-fiware-service-path-hint')!;
+      expect(hint.textContent).toContain('começando com /');
+      expect(hint.textContent).toContain('/cidade/iluminacao');
+      expect(query('#config-fiware-service-path')!.getAttribute('aria-describedby')).toBe(
+        'config-fiware-service-path-hint'
+      );
+    });
+
+    it('keeps the Fiware-ServicePath hint and adds the error when the value is invalid', async () => {
+      const { type, click, query } = await render();
+      await type('#config-fiware-service-path', 'sem-barra');
+
+      await click('.config-test');
+
+      httpMock.expectNone(`${BASE_URL}/config/test`);
+      expect(query('#config-fiware-service-path')!.getAttribute('aria-describedby')).toBe(
+        'config-fiware-service-path-hint config-fiware-service-path-error'
+      );
     });
 
     it('clears the message as soon as the field is corrected', async () => {

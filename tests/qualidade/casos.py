@@ -24,12 +24,10 @@ class Caso:
 
 
 def param(caso: Caso, *valores):
-    """pytest.param com id = ID do caso; defeito conhecido vira xfail(strict)."""
+    """pytest.param com id = ID do caso e as marcas de requisito e tecnica.
+    `caso.defeito` so' registra o defeito que o caso encontrou (todos corrigidos
+    na issue #60); o caso roda normalmente e precisa passar."""
     import pytest
 
     marcas = [pytest.mark.req(caso.req), pytest.mark.tecnica(caso.tecnica)]
-    if caso.defeito:
-        marcas.append(
-            pytest.mark.xfail(strict=True, reason=f"{caso.defeito}: defeito conhecido (ver relatorio)")
-        )
     return pytest.param(caso, *valores, id=caso.id, marks=marcas)

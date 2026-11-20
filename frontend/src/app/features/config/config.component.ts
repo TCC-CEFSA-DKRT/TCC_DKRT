@@ -4,6 +4,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
+import { HOME_PATH } from '../../core/session.constants';
 import { SessionService } from '../../core/session.service';
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
 import { LoadingSkeletonComponent } from '../../shared/components/loading-skeleton/loading-skeleton.component';
@@ -64,6 +65,7 @@ export class ConfigComponent {
   protected readonly values = signal<ConfigFormValues>(EMPTY_VALUES);
   protected readonly attempted = signal(false);
   protected readonly savedConfig = signal<BrokerConfigResponse | null>(null);
+  protected readonly canGoBack = signal(false);
 
   private readonly defaultLocalUrl = signal('');
   private readonly testedConnection = signal<TestedConnection | null>(null);
@@ -103,6 +105,7 @@ export class ConfigComponent {
           apiKey: '',
           hasSavedApiKey: cfg.has_api_key ?? false,
         });
+        this.canGoBack.set(cfg.configured);
         this.loadState.set('ready');
       },
       error: () => this.loadState.set('error'),
@@ -157,6 +160,10 @@ export class ConfigComponent {
     return describeConnection(result).text;
   }
 
+  protected onBack(): void {
+    this.router.navigateByUrl(HOME_PATH);
+  }
+
   protected onContinue(): void {
     this.router.navigateByUrl('/dashboard');
   }
@@ -178,6 +185,7 @@ export class ConfigComponent {
     });
     this.values.update((values) => ({ ...values, apiKey: '', hasSavedApiKey: cfg.has_api_key }));
     this.savedConfig.set(cfg);
+    this.canGoBack.set(true);
     this.saveState.set('saved');
   }
 
