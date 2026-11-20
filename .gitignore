@@ -24,3 +24,9 @@ htmlcov/
 !*.tfvars.example
 crash.log
 crash.*.log
+
+# Config de assistentes de IA (conteúdo com regra real tem cópia versionada em docs/)
+/CLAUDE.md
+/AGENTS.md
+/.cursor/
+/Claude outputs/
