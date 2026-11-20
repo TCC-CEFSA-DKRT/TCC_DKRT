@@ -37,7 +37,7 @@ jobs:
       - name: Python (src, tests, scripts)
         run: python scripts/ci/check_no_comments.py --base origin/main
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: steps.changed.outputs.frontend == 'true'
         with:
           node-version: 20

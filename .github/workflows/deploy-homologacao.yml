@@ -105,7 +105,7 @@ jobs:
           cache-from: type=gha,scope=lambda
           cache-to: type=gha,mode=max,scope=lambda
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: npm
