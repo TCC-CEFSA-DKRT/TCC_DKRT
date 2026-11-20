@@ -33,6 +33,7 @@ export class LoginComponent {
   protected readonly inputIds = LOGIN_INPUT_IDS;
   protected readonly email = signal('');
   protected readonly password = signal('');
+  protected readonly showPassword = signal(false);
   protected readonly state = signal<LoginState>('idle');
   protected readonly errorMessage = signal('');
   protected readonly attempted = signal(false);

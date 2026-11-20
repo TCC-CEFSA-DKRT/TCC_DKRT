@@ -1,17 +1,18 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
+import { BrandLogoComponent } from '../brand-logo/brand-logo.component';
 import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
 
 @Component({
   selector: 'app-split-panel',
   standalone: true,
-  imports: [ThemeToggleComponent],
+  imports: [BrandLogoComponent, ThemeToggleComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="split-panel">
       <div class="split-panel__brand">
         <div class="split-panel__brand-inner">
-          <span class="split-panel__logo" aria-hidden="true">DK</span>
+          <app-brand-logo class="split-panel__logo" />
           <h1 class="split-panel__brand-title">DKRT</h1>
           <p class="split-panel__brand-subtitle">Auditoria de Data Spaces</p>
           <p class="split-panel__brand-tagline">
@@ -54,18 +55,8 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
         max-width: 380px;
       }
       .split-panel__logo {
-        display: grid;
-        place-items: center;
-        width: 56px;
-        height: 56px;
+        width: 72px;
         margin-bottom: var(--space-6);
-        border-radius: var(--radius-lg);
-        background: var(--gradient-accent);
-        color: var(--color-on-accent);
-        font-family: var(--font-display);
-        font-weight: 700;
-        font-size: 1.25rem;
-        box-shadow: var(--glow-accent);
       }
       .split-panel__brand-title {
         font-size: 2.75rem;

@@ -21,7 +21,7 @@ automação com pytest/Locust (Módulo C). O relatório e a apresentação ficam
 ```bash
 pip install -e ".[dev]"
 
-# Suíte de qualidade (casos com defeito conhecido aparecem como xfail estrito)
+# Suíte de qualidade
 pytest tests/qualidade tests/carga -v
 
 # Suíte completa + cobertura
@@ -38,9 +38,9 @@ pytest tests/qualidade tests/carga --junitxml=docs/qualidade/resultados/junit.xm
 python scripts/qualidade/matriz_rastreabilidade.py
 ```
 
-## Defeitos conhecidos (`xfail` estrito)
+## Defeitos encontrados pela suíte
 
-Cada caso que expõe um defeito (D-01 a D-06) está marcado `xfail(strict=True)`: a suíte fica verde
-hoje e **falha de propósito no dia em que o defeito for corrigido** (XPASS estrito), obrigando a
-remover a marca. Os defeitos de interface (D-07 a D-10) vêm da inspeção estática das telas e estão
-descritos no relatório.
+Os casos que encontraram defeitos guardam o ID em `Caso.defeito` (D-01 a D-06), só para
+rastreabilidade: todos foram corrigidos na issue #60 e esses casos rodam como qualquer outro, então
+precisam passar. Os defeitos de interface (D-07 a D-10) vêm da inspeção das telas e também estão
+corrigidos. Detalhes em `docs/historico/60-correcao-defeitos-qualidade.md`.

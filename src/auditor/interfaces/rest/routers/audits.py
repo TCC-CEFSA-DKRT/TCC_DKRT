@@ -93,8 +93,8 @@ async def list_audits(
     status_: RunStatus | None = Query(default=None, alias="status"),
     started_after: datetime | None = None,
     started_before: datetime | None = None,
-    page: int = 1,
-    page_size: int = 20,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=200),
     uow: SqlAlchemyUnitOfWork = Depends(get_unit_of_work),
 ) -> PageResponse[AuditRunSummaryResponse]:
     """Fase 8, secao 0.1 — tela "Audit Runs". So' a borda HTTP que faltava:
@@ -122,7 +122,7 @@ async def list_audits(
 
 @router.get("/summary-over-time", response_model=list[AuditRunSummaryResponse])
 async def get_summary_over_time(
-    entity_type: str,
+    entity_type: str = Query(min_length=1),
     tenant: Tenant = Depends(get_tenant),
     uow: SqlAlchemyUnitOfWork = Depends(get_unit_of_work),
 ) -> list[AuditRunSummaryResponse]:

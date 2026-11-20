@@ -18,6 +18,7 @@ secao 4 do spec (uma de obrigatoriedade, uma de tipo), em vez de tres.
 
 from __future__ import annotations
 
+import math
 from datetime import datetime
 from typing import Any
 
@@ -109,7 +110,7 @@ class StructuralValidator:
         expected_type = prop_schema.get("type")
         if expected_type not in _JSON_TYPE_PYTHON:
             return []
-        if expected_type == "number" and isinstance(value, bool):
+        if expected_type in ("number", "integer") and isinstance(value, bool):
             is_valid = False
         else:
             is_valid = isinstance(value, _JSON_TYPE_PYTHON[expected_type])
@@ -149,6 +150,8 @@ class StructuralValidator:
 
     @staticmethod
     def _is_valid_datetime(value: str) -> bool:
+        if len(value) <= 10 or value[10] not in "Tt ":
+            return False
         try:
             datetime.fromisoformat(value.replace("Z", "+00:00"))
             return True
@@ -160,8 +163,10 @@ class StructuralValidator:
             return []
         minimum = prop_schema.get("minimum")
         maximum = prop_schema.get("maximum")
-        out_of_range = (minimum is not None and value < minimum) or (
-            maximum is not None and value > maximum
+        out_of_range = (
+            not math.isfinite(value)
+            or (minimum is not None and value < minimum)
+            or (maximum is not None and value > maximum)
         )
         if not out_of_range:
             return []

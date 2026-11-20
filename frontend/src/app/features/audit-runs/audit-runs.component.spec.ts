@@ -147,4 +147,94 @@ describe('AuditRunsComponent', () => {
 
     fixture.destroy();
   });
+
+  describe('filters', () => {
+    function renderWithNoRuns() {
+      const fixture = TestBed.createComponent(AuditRunsComponent);
+      fixture.detectChanges();
+      httpMock
+        .expectOne((r) => r.url === `${BASE_URL}/audits`)
+        .flush({ items: [], page: 1, page_size: 20, total: 0, has_next: false });
+      fixture.detectChanges();
+      const element: HTMLElement = fixture.nativeElement;
+      const typeInput = element.querySelector<HTMLInputElement>('input[name="entity_type"]')!;
+      const focusTypeInput = () => {
+        typeInput.dispatchEvent(new Event('focus'));
+        fixture.detectChanges();
+      };
+      const suggestions = () =>
+        Array.from(element.querySelectorAll<HTMLOptionElement>('#audit-runs-entity-types option')).map(
+          (option) => option.value
+        );
+      return { fixture, element, typeInput, focusTypeInput, suggestions };
+    }
+
+    it('lists every run status in Portuguese, including runs that found no entities', () => {
+      const { fixture, element } = renderWithNoRuns();
+
+      const labels = Array.from(element.querySelectorAll<HTMLOptionElement>('select[name="status"] option')).map(
+        (option) => option.textContent?.trim()
+      );
+      const values = Array.from(element.querySelectorAll<HTMLOptionElement>('select[name="status"] option')).map(
+        (option) => option.value
+      );
+
+      expect(labels).toEqual([
+        'Todos os status',
+        'Na fila',
+        'Em execução',
+        'Concluído',
+        'Parcial',
+        'Falhou',
+        'Nenhuma entidade encontrada',
+      ]);
+      expect(values).toContain('no_entities_found');
+      fixture.destroy();
+    });
+
+    it('gives the type and status filters a name that screen readers can announce', () => {
+      const { fixture, element, typeInput } = renderWithNoRuns();
+
+      expect(typeInput.getAttribute('aria-label')).toBe('Filtrar por tipo de entidade');
+      expect(element.querySelector('select[name="status"]')!.getAttribute('aria-label')).toBe('Filtrar por status');
+      fixture.destroy();
+    });
+
+    it('suggests the entity types that exist in the broker once the type filter gets focus, asking only once', () => {
+      const { fixture, typeInput, focusTypeInput, suggestions } = renderWithNoRuns();
+      httpMock.expectNone(`${BASE_URL}/entity-types`);
+
+      focusTypeInput();
+      httpMock
+        .expectOne(`${BASE_URL}/entity-types`)
+        .flush({ types: ['Streetlight', 'AirQualityObserved'], broker_reachable: true });
+      fixture.detectChanges();
+      focusTypeInput();
+
+      httpMock.expectNone(`${BASE_URL}/entity-types`);
+      expect(typeInput.getAttribute('list')).toBe('audit-runs-entity-types');
+      expect(suggestions()).toEqual(['Streetlight', 'AirQualityObserved']);
+      fixture.destroy();
+    });
+
+    it('keeps the type filter as free text and asks again on the next focus when the suggestions fail', () => {
+      const { fixture, typeInput, focusTypeInput, suggestions } = renderWithNoRuns();
+
+      focusTypeInput();
+      httpMock
+        .expectOne(`${BASE_URL}/entity-types`)
+        .flush('erro', { status: 500, statusText: 'Server Error' });
+      fixture.detectChanges();
+
+      expect(suggestions()).toEqual([]);
+      expect(typeInput.disabled).toBeFalse();
+
+      focusTypeInput();
+      httpMock.expectOne(`${BASE_URL}/entity-types`).flush({ types: ['Streetlight'], broker_reachable: true });
+      fixture.detectChanges();
+
+      expect(suggestions()).toEqual(['Streetlight']);
+      fixture.destroy();
+    });
+  });
 });
