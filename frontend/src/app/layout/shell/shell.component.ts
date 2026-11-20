@@ -1,20 +1,21 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { SessionService } from '../../core/session.service';
+import { BrandLogoComponent } from '../../shared/components/brand-logo/brand-logo.component';
 import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme-toggle.component';
 import { UserMenuComponent } from '../../shared/components/user-menu/user-menu.component';
 
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ThemeToggleComponent, UserMenuComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, BrandLogoComponent, ThemeToggleComponent, UserMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="shell">
       <nav class="shell__nav" aria-label="Menu principal">
         <div class="shell__nav-inner">
         <div class="shell__brand">
-          <span class="shell__logo" aria-hidden="true">DK</span>
+          <app-brand-logo class="shell__logo" />
           <span class="shell__brand-text">
             <span class="shell__brand-name">DKRT</span>
             <span class="shell__brand-subtitle">Auditoria de Data Spaces</span>
@@ -109,18 +110,8 @@ import { UserMenuComponent } from '../../shared/components/user-menu/user-menu.c
         padding: 0 var(--space-2) var(--space-6);
       }
       .shell__logo {
-        display: grid;
-        place-items: center;
         width: 46px;
-        height: 46px;
         flex-shrink: 0;
-        border-radius: 12px;
-        background: var(--gradient-accent);
-        color: var(--color-on-accent);
-        font-family: var(--font-display);
-        font-weight: 700;
-        font-size: 1.0625rem;
-        box-shadow: var(--glow-accent);
       }
       .shell__brand-text {
         display: flex;

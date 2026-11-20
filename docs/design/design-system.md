@@ -45,7 +45,7 @@ Todos os pares de texto foram medidos (WCAG 2.1, contraste mínimo AA 4,5:1 para
 | `--color-text-muted` | `#8399A5` | Dicas, rodapés | 5,5:1 sobre `surface-2` |
 | `--color-accent` | `#35F0E0` | Marca (ciano): links, foco, títulos de seção, item ativo do menu | 11,4:1 |
 | `--color-accent-2` | `#7DFF9A` | Segundo tom da marca (verde), usado no gradiente | — |
-| `--gradient-accent` | `#2FE6D3 → #8CF36A` | Botão primário, logo, barras do ranking | texto `--color-on-accent` (`#04110F`) 12,3:1 |
+| `--gradient-accent` | `#2FE6D3 → #8CF36A` | Botão primário e barras do ranking | texto `--color-on-accent` (`#04110F`) 12,3:1 |
 
 Status e severidade (texto, badges, gráficos):
 
@@ -111,8 +111,11 @@ com o filtro de tons de cinza do sistema.
   · `--space-4` (16) · `--space-5` (20) · `--space-6` (24) · `--space-8` (32).
 - Raios: `--radius-sm` (6px, campos e blocos internos) · `--radius-md` (10px, botões e
   cartões internos) · `--radius-lg` (14px, cartões `.glass`).
-- Sombras: `--shadow-card` (cartões) e `--glow-accent` (brilho ciano do botão primário e
-  do logo). O brilho é reservado para a marca e para a ação principal da tela.
+- Sombras: `--shadow-card` (cartões) e `--glow-accent` (brilho ciano do botão primário).
+  O brilho é reservado para a ação principal da tela.
+- Logo: a marca da equipe (`public/brand/dkrt-mark.svg`, componente `app-brand-logo`) é
+  desenhada com o degradê de `--color-text-primary` para `--color-accent`, então acompanha
+  o tema claro e o escuro sem precisar de duas imagens.
 - Foco do teclado: `--focus-ring`, anel ciano de 2px em todo elemento focável.
 
 ## Componentes globais (`styles.scss`)

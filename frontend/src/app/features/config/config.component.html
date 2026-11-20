@@ -10,6 +10,11 @@
       />
     }
     @case ('ready') {
+      @if (canGoBack()) {
+        <button type="button" class="config-back" (click)="onBack()">
+          <span aria-hidden="true">←</span> Voltar ao painel
+        </button>
+      }
       <h2 class="config-title">Configuração do broker</h2>
       <form class="config-form" novalidate (ngSubmit)="onSave()">
         <fieldset class="config-kind">
@@ -77,8 +82,13 @@
             [ngModel]="values().fiwareServicePath"
             (ngModelChange)="setField('fiwareServicePath', $event)"
             [attr.aria-invalid]="fieldErrors().fiwareServicePath ? true : null"
-            [attr.aria-describedby]="fieldErrors().fiwareServicePath ? 'config-fiware-service-path-error' : null"
+            [attr.aria-describedby]="
+              fieldErrors().fiwareServicePath
+                ? 'config-fiware-service-path-hint config-fiware-service-path-error'
+                : 'config-fiware-service-path-hint'
+            "
           />
+          <small id="config-fiware-service-path-hint" class="config-field__hint">Caminho dentro do serviço, começando com /. Ex.: /cidade/iluminacao. Use só / se o broker não separa as entidades por caminho.</small>
           @if (fieldErrors().fiwareServicePath; as error) {
             <small id="config-fiware-service-path-error" class="config-field__error">{{ error }}</small>
           }

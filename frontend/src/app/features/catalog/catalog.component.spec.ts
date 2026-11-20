@@ -130,6 +130,24 @@ describe('CatalogComponent', () => {
       expect(text).toContain('2 modelo(s) no total');
     });
 
+    it('names both filters and explains what a subject is right below them', () => {
+      const fixture = TestBed.createComponent(CatalogComponent);
+      setup(fixture);
+      expectModelsRequest(httpMock).flush({ items: [], page: 1, page_size: 20, total: 0, has_next: false });
+      fixture.detectChanges();
+
+      const element: HTMLElement = fixture.nativeElement;
+      const search = element.querySelector<HTMLInputElement>('input[name="model_q"]')!;
+      const subject = element.querySelector<HTMLInputElement>('input[name="model_subject"]')!;
+      const hint = element.querySelector<HTMLElement>('#catalog-subject-hint')!;
+
+      expect(search.getAttribute('aria-label')).toBe('Buscar modelo por nome');
+      expect(subject.getAttribute('aria-label')).toBe('Filtrar por subject');
+      expect(subject.getAttribute('aria-describedby')).toBe('catalog-subject-hint');
+      expect(hint.textContent).toContain('repositório oficial do Smart Data Models');
+      expect(hint.textContent).toContain('dataModel.Streetlighting');
+    });
+
     it('sends the search box and subject filter as query params on submit', () => {
       const fixture = TestBed.createComponent(CatalogComponent);
       setup(fixture);
