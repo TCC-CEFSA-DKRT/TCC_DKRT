@@ -9,6 +9,7 @@ const VALID: ConfigFormValues = {
   fiwareServicePath: '/',
   apiKey: '',
   hasSavedApiKey: false,
+  ngsiVersion: 'v2',
 };
 
 describe('validateConfigForm', () => {

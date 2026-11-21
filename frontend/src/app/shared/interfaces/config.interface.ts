@@ -1,5 +1,7 @@
 export type BrokerKind = 'local' | 'cloud';
 
+export type NgsiVersion = 'v2' | 'ld';
+
 export type BrokerConnectionStatus =
   | 'ok'
   | 'invalid_url'
@@ -14,6 +16,7 @@ export interface BrokerTargetRequest {
   fiware_service_path: string;
   broker_kind: BrokerKind;
   broker_api_key: string | null;
+  ngsi_version: NgsiVersion;
 }
 
 export interface BrokerConfigRequest extends BrokerTargetRequest {
@@ -32,6 +35,7 @@ export interface BrokerConfigResponse {
   fiware_service: string;
   fiware_service_path: string;
   broker_kind: BrokerKind;
+  ngsi_version: NgsiVersion;
   has_api_key: boolean;
   default_local_broker_url: string;
   connection: BrokerConnectionTestResponse | null;

@@ -1,4 +1,4 @@
-import { BrokerConnectionTestResponse, BrokerKind } from '../../shared/interfaces/config.interface';
+import { BrokerConnectionTestResponse, BrokerKind, NgsiVersion } from '../../shared/interfaces/config.interface';
 
 export type LoadState = 'loading' | 'ready' | 'error';
 
@@ -17,6 +17,7 @@ export interface ConfigFormValues {
   fiwareServicePath: string;
   apiKey: string;
   hasSavedApiKey: boolean;
+  ngsiVersion: NgsiVersion;
 }
 
 export interface ConnectionMessage {
@@ -31,6 +32,12 @@ export interface TestedConnection {
 
 export interface BrokerKindOption {
   value: BrokerKind;
+  title: string;
+  description: string;
+}
+
+export interface NgsiVersionOption {
+  value: NgsiVersion;
   title: string;
   description: string;
 }

@@ -19,6 +19,7 @@ const LOADED: BrokerConfigResponse = {
   fiware_service: 'openiot',
   fiware_service_path: '/',
   broker_kind: 'local',
+  ngsi_version: 'v2',
   has_api_key: false,
   default_local_broker_url: 'http://localhost:1026',
   connection: null,
@@ -230,6 +231,7 @@ describe('ConfigComponent', () => {
         fiware_service_path: '/',
         broker_kind: 'local',
         broker_api_key: null,
+        ngsi_version: 'v2',
       });
       expect(text()).toContain('Conexão funcionando');
       expect(text()).toContain('2 tipo(s) de entidade');

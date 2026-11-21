@@ -18,7 +18,7 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
           <p class="split-panel__brand-tagline">
             Opere o Orion Context Broker em linguagem natural.
           </p>
-          <p class="split-panel__brand-note">NGSI-v2 · Smart Data Models</p>
+          <p class="split-panel__brand-note">NGSI-v2 e NGSI-LD · Smart Data Models</p>
         </div>
       </div>
       <div class="split-panel__form">

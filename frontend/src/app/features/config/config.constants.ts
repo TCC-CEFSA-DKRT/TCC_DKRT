@@ -1,5 +1,5 @@
 import { BrokerConnectionStatus } from '../../shared/interfaces/config.interface';
-import { BrokerKindOption, ConfigField } from './config.interface';
+import { BrokerKindOption, ConfigField, NgsiVersionOption } from './config.interface';
 
 export const BROKER_URL_PATTERN = /^https?:\/\/\S+$/;
 
@@ -21,6 +21,19 @@ export const BROKER_KIND_OPTIONS: BrokerKindOption[] = [
     value: 'cloud',
     title: 'Broker em nuvem',
     description: 'Orion hospedado em outro servidor, acessado por https:// e, se exigido, com chave de acesso.',
+  },
+];
+
+export const NGSI_VERSION_OPTIONS: NgsiVersionOption[] = [
+  {
+    value: 'v2',
+    title: 'NGSI-v2',
+    description: 'Estrutura clássica do Orion Context Broker.',
+  },
+  {
+    value: 'ld',
+    title: 'NGSI-LD',
+    description: 'Estrutura do Orion-LD, com Property/Relationship e contexto semântico.',
   },
 ];
 

@@ -46,6 +46,20 @@
 - `tests/unit/interfaces/rest/test_config_router.py::_FakeTester.check` e `_FakeAccounts.replace_tenant`, `tests/qualidade/test_bb_04_api_inputs.py::_BrokerAlcancavel.check`/`_Accounts.create`/`.replace_tenant`, `tests/unit/interfaces/aws_lambda/test_admin_handler.py` e `tests/unit/interfaces/cli/test_cli.py` (dublês de `TenantAccountRepository.create`) — todos precisaram aceitar o parâmetro novo (`ngsi_version`/`**kwargs`); sem isso o `PUT /config`, o teste de conexão e o `tenant-register` dos testes quebravam com `TypeError` ou, pior, com `assert 500 == 200` sem dizer o motivo.
 - `src/auditor/infrastructure/config/container.py`, `settings.py`, `persistence/tables.py`, `interfaces/cli/main.py`, `tests/qualidade/test_bb_04_api_inputs.py` e `tests/unit/interfaces/cli/test_cli.py` já estavam salvos com CRLF em `main`, apesar de `.gitattributes` dizer `eol=lf` para todo `*.py` (`* text=auto eol=lf`) — débito anterior a esta entrega, não causado por ela. Qualquer edição nesses arquivos por qualquer ferramenta que escreva `\n` (como esta) faz o `git add`/commit normalizar pra LF (o próprio `.gitattributes` força isso na hora de indexar, não tem como escapar disso editando o arquivo), e isso faz o diff contra `origin/main` mostrar o arquivo inteiro como alterado — o que por sua vez fez tanto `ci-comentarios.yml` (sinaliza comentário antigo como "novo") quanto o `gitleaks` do `security.yml` (atribui um segredo de teste pré-existente, tipo a senha de fixture `"senha-correta-123"` em `test_bb_04_api_inputs.py`, ao commit que só re-normalizou a linha) dispararem falso positivo. Renormalizar esses 6 arquivos pra LF numa `main` própria (`git add --renormalize`) resolveria na raiz; não foi feito aqui por estar fora do escopo de "implementar NGSI-LD".
 
+## 2026-11-20 — Seletor v2/ld na tela de Configuração (Diego)
+
+**Contexto:** a API já aceitava e devolvia `ngsi_version`, mas a tela Angular de configuração do broker self-hosted não tinha como escolher a estrutura — sempre mandava `v2` implícito, e o rótulo do painel de login dizia só "NGSI-v2 · Smart Data Models".
+
+**O que mudou:**
+- Novo fieldset "Qual é a estrutura dos dados?" em `config.component.html`, com os mesmos radio buttons de `config-kind` (reaproveitado o CSS, sem classe nova), logo abaixo do "Onde está o broker?".
+- `NgsiVersion` (`shared/interfaces/config.interface.ts`), `ngsi_version` em `BrokerTargetRequest`/`BrokerConfigResponse`; `ngsiVersion` em `ConfigFormValues`; `NGSI_VERSION_OPTIONS` (`config.constants.ts`, mesmo formato de `BrokerKindOption`); `ConfigComponent.setNgsiVersion()` espelha `setKind()`.
+- `config-connection.ts::connectionValuesKey` passou a incluir `ngsiVersion` — trocar a estrutura invalida um teste de conexão já feito, do mesmo jeito que trocar a URL já invalidava.
+- `split-panel.component.ts`: rótulo passou a "NGSI-v2 e NGSI-LD · Smart Data Models".
+
+**Armadilhas:**
+- Sem Chrome/Chromium nem o binário Linux do esbuild neste ambiente de desenvolvimento (node_modules instalado no Windows do Diego) — não rodou `ng test`/`ng build` aqui. Verificado só com `tsc --noEmit` (`tsconfig.app.json` e `tsconfig.spec.json`, os dois sem erro) — o CI ("ng test e ng build", ambiente Linux limpo) é quem valida de fato.
+- `config.component.spec.ts::` o teste de `POST /config/test` comparava o corpo da requisição com `toEqual` (objeto exato); precisou somar `ngsi_version: 'v2'` no objeto esperado, senão quebra mesmo sem nada de errado no código.
+
 **Pendências:**
 - `scripts/ci/check_no_comments.py` ganhou `--ignore-cr-at-eol` no `git diff` interno (uma linha) porque, sem isso, qualquer PR que toque `container.py`/`tables.py`/`cli/main.py`/`test_bb_04_api_inputs.py`/`test_cli.py` reprova o CI "Comentários" por reportar comentário antigo como novo (mesma causa do parágrafo acima) — a correção de raiz (renormalizar esses 6 arquivos em `main`) continua pendente, mas deixou de bloquear PRs enquanto isso não acontece.
 - Seletor v2/ld na tela Angular de configuração do broker self-hosted (frontend não tocado nesta entrega).

@@ -8,6 +8,7 @@ const VALUES: ConfigFormValues = {
   fiwareServicePath: '/',
   apiKey: '',
   hasSavedApiKey: false,
+  ngsiVersion: 'v2',
 };
 
 describe('describeConnection', () => {
